@@ -9,7 +9,9 @@ Website (GitHub Pages): https://gaberpet.github.io/city-of-fighters/
 | Player sign-up | https://gaberpet.github.io/city-of-fighters/ |
 | Control panel (password) | https://gaberpet.github.io/city-of-fighters/admin.html |
 | OBS scoreboard | https://gaberpet.github.io/city-of-fighters/overlay.html |
+| Phone remote (password) | https://gaberpet.github.io/city-of-fighters/phone.html |
 | OBS standings | https://gaberpet.github.io/city-of-fighters/leaderboard.html |
+| OBS bracket | https://gaberpet.github.io/city-of-fighters/bracket.html |
 
 Add the OBS pages as **Browser Source**, 1920×1080. The background is transparent.
 
@@ -32,7 +34,7 @@ To change the password later, run only the last line again with the new password
 
 1. Start the bracket in the control panel (registration closes).
 2. Put a match on stream, press **+ round** for each round won. 3 rounds wins a game, 2 games wins the match.
-3. The winner moves on and the stream switches to their next match automatically. Use **Reopen** to fix a mistake.
+3. The winner moves on and the stream switches to their next match automatically. Made a mistake? Press **Undo** (steps back through your last 20 actions on that device) or **Reopen** a finished match.
 4. When the grand final ends, a results image appears in the control panel: **Download PNG**.
 
 `node test.js` checks the bracket logic. Every push to `main` runs it and publishes `public/` to GitHub Pages.

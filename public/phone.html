@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0c0714">
+<title>City of Fighters Remote</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  main { max-width: 520px; padding: 12px 16px 40px; }
+  * { touch-action: manipulation; }
+  header { display: flex; align-items: center; gap: 10px; }
+  header img { width: 44px; border-radius: 6px; }
+  header a { margin-left: auto; color: var(--dim); font-size: 14px; }
+  #label { text-align: center; color: var(--violet); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 6px; font-weight: 700; }
+  .pad { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 18px; border-radius: 14px;
+         border: 2px solid var(--pink); background: #ff2d7818; text-align: left; margin-bottom: 8px; }
+  .pad.b { border-color: var(--violet); background: #b44dff18; }
+  .pad:active { transform: scale(.98); }
+  .pad .n { font-size: 24px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pad .g { grid-row: span 2; font-size: 56px; font-weight: 800; line-height: 1; }
+  .pad .hint { font-size: 13px; color: var(--dim); }
+  .pips i { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; margin-right: 6px; vertical-align: middle; }
+  .pips i.on { background: currentColor; }
+  .pad.a .pips { color: var(--pink); } .pad.b .pips { color: var(--violet); }
+  .fix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+  .fix button { padding: 10px 4px; font-size: 14px; }
+  #undo { width: 100%; padding: 14px; font-size: 18px; margin: 4px 0 16px; }
+  .next { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .next div { flex: 1; min-width: 0; }
+  .next button { padding: 10px 12px; }
+  .win { text-align: center; font-size: 22px; font-weight: 800; color: var(--pink); margin: 10px 0; }
+  body.locked #remote, body:not(.locked) #login { display: none; }
+  #toast { position: fixed; bottom: 16px; left: 16px; right: 16px; background: #ff6b9a; color: #000; padding: 10px 16px; border-radius: 8px; display: none; text-align: center; }
+</style>
+</head>
+<body class="locked">
+<main>
+  <header><img src="logo.png" alt=""><b>Remote</b><a href="admin.html">Full control panel</a></header>
+
+  <form class="card" id="login">
+    <h2>Control panel password</h2>
+    <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
+    <p class="err" id="loginErr"></p>
+    <button class="primary" type="submit" style="width:100%;padding:12px">Unlock</button>
+  </form>
+
+  <div id="remote">
+    <div id="stream"></div>
+    <button id="undo" data-act="undo">↶ Undo</button>
+    <h2>Up next</h2>
+    <div id="next" class="dim"></div>
+  </div>
+</main>
+<div id="toast" role="alert"></div>
+<script src="bracket.js"></script><script src="api.js"></script><script src="control.js"></script>
+<script>
+const pips = (n, ft) => '<span class="pips">' + Array.from({ length: ft }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') + '</span>';
+const pad = (m, s) => `<button class="pad ${s}" data-act="score" data-body='${esc(JSON.stringify({ id: m.id, side: s, kind: 'round', delta: 1 }))}' aria-label="Round to ${esc(s === 'a' ? m.aName : m.bName)}">
+  <span class="n">${esc(s === 'a' ? m.aName : m.bName)}</span><span class="g">${m['g' + s]}</span>
+  <span>${pips(m['r' + s], S.ftRounds)} <span class="hint">tap = round won</span></span></button>`;
+const fix = (m, s) => `<div class="fix">${btn('− round', 'score', { id: m.id, side: s, kind: 'round', delta: -1 }, '')}${btn('+ game', 'score', { id: m.id, side: s, kind: 'game', delta: 1 }, '')}${btn('− game', 'score', { id: m.id, side: s, kind: 'game', delta: -1 }, '')}</div>`;
+
+async function draw() {
+  S = view(await rpc('cof_admin_get', { p_pw: pw }));
+  document.body.classList.remove('locked');
+  const m = S.matches.find(x => x.id === S.streamMatch);
+  $('stream').innerHTML = !S.matches.length ? '<p class="dim">Bracket not started. Start it in the full control panel.</p>'
+    : !m ? '<p class="dim">No match on stream. Pick one below.</p>'
+    : `<div id="label">${esc(m.label)}</div>` + (m.winner
+      ? `<div class="win">${esc(m.winner === m.a ? m.aName : m.bName)} wins!</div>`
+      : m.ready ? pad(m, 'a') + fix(m, 'a') + pad(m, 'b') + fix(m, 'b') : '<p class="dim">Waiting for players.</p>');
+  const ready = S.matches.filter(x => x.ready && x.id !== S.streamMatch);
+  const champ = S.standings[0]?.place === 1 ? S.standings[0].name : null;
+  $('next').innerHTML = champ ? `<p class="win">🏆 ${esc(champ)} is champion!</p><p>Download the results image in the full control panel.</p>`
+    : ready.map(x => `<div class="next"><div><div class="dim" style="font-size:13px">${esc(x.label)}</div><b>${esc(x.aName)}</b> vs <b>${esc(x.bName)}</b></div>
+      ${btn('On stream', 'stream', { id: x.id }, 'primary')}</div>`).join('') || 'No other matches ready.';
+}
+boot();
+</script>
+</body>
+</html>
