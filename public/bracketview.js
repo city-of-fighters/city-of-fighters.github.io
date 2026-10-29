@@ -1,12 +1,12 @@
 // Draws the bracket as HTML (styles in bracket.css). Used by the control panel and the OBS bracket page.
 // With prev (the matches from the last draw), players who just moved in and fresh results get animated.
-const knockedOut = (m, id) => m.winner && !m.auto && m.loser === id &&
-  (m.side === 'L' || m.id === 'GF2' || (m.id === 'GF1' && m.winner === m.a));
+const knockedOut = (S, m, id) => m.winner && !m.auto && m.loser === id &&
+  (m.side === 'L' || (m.side === 'W' && S.format === 'single') || m.id === 'GF2' || (m.id === 'GF1' && m.winner === m.a));
 
 function bracketHTML(S, prev) {
   const before = prev ? new Map(prev.map(m => [m.id, m])) : null;
   const slot = (m, s) => {
-    const id = m[s], won = m.winner && !m.auto && m.winner === id, out = knockedOut(m, id);
+    const id = m[s], won = m.winner && !m.auto && m.winner === id, out = knockedOut(S, m, id);
     const p = before?.get(m.id), real = id && id !== 'BYE';
     const cls = [won && 'win', out && 'out', !real && 'dim',
       real && p && p[s] !== id && 'new',                 // just moved into this spot
@@ -25,10 +25,10 @@ function bracketHTML(S, prev) {
       return `<div class="bcol"><div class="bhead">${esc(col[0].label)}</div><div class="bstack">${col.map(box).join('')}</div></div>`;
     }).join('');
   };
+  const part = (title, inner) => `<div class="bpart"><h3>${title}</h3><div class="brow">${inner}</div></div>`;
+  if (S.matches.some(m => m.side === 'R')) return `<div class="bracket">${part('Rounds', side('R'))}</div>`; // round robin / Swiss
+  if (S.format === 'single') return `<div class="bracket">${part('Bracket', side('W'))}</div>`;
   const gf = S.matches.filter(m => m.side === 'GF' && !m.skipped && (m.id === 'GF1' || m.a));
-  return `<div class="bracket">
-    <div class="bpart"><h3>Winners</h3><div class="brow">${side('W')}</div></div>
-    <div class="bpart"><h3>Losers</h3><div class="brow">${side('L')}</div></div>
-    <div class="bpart"><h3>Finals</h3><div class="brow">${gf.map(m => `<div class="bcol"><div class="bhead">${esc(m.label)}</div><div class="bstack">${box(m)}</div></div>`).join('')}</div></div>
-  </div>`;
+  return `<div class="bracket">${part('Winners', side('W'))}${part('Losers', side('L'))}
+    ${part('Finals', gf.map(m => `<div class="bcol"><div class="bhead">${esc(m.label)}</div><div class="bstack">${box(m)}</div></div>`).join(''))}</div>`;
 }

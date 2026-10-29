@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Stream</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  main { max-width: 1300px; }
+  .studio { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .studio { grid-template-columns: 1fr; } }
+  .layouts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .layouts button { padding: 14px 8px; text-align: center; font-weight: 700; }
+  .layouts button.sel { border-color: var(--pink); background: #ff2d7826; box-shadow: 0 0 12px #ff2d7844; }
+  .layouts button .ic { display: block; font-size: 26px; }
+  .layouts button .live { display: block; font-size: 11px; color: var(--ok); font-weight: 600; min-height: 1em; }
+  select { width: 100%; }
+  #deploy { width: 100%; padding: 14px; font-size: 18px; margin-top: 14px; }
+  #deploy:disabled { box-shadow: none; }
+  .screenbox { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; border: 1px solid var(--line); background: #000; }
+  .screenbox iframe { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .tagline { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 6px; }
+  .tagline b { text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
+  #liveWrap { max-width: 420px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ff3b3b; margin-right: 6px; box-shadow: 0 0 8px #ff3b3b; }
+  body.locked .studio, body:not(.locked) #login { display: none; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #ff6b9a; color: #000; padding: 8px 16px; border-radius: 6px; display: none; }
+</style>
+</head>
+<body class="locked">
+<main>
+  <h1 class="brand"><img src="logo.png" alt="">City of <span>Fighters</span> · Stream</h1>
+  <nav class="tabs"><a href="admin.html">Control panel</a><a class="on" href="studio.html">Stream</a><a href="phone.html">Phone remote</a></nav>
+  <div class="dim">Add this once in OBS as a Browser Source (1920×1080): <code id="obs"></code> <button class="small" id="copy">Copy</button></div>
+
+  <form class="card" id="login" style="max-width:420px">
+    <h2>Control panel password</h2>
+    <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
+    <p class="err" id="loginErr"></p>
+    <button class="primary" type="submit">Unlock</button>
+  </form>
+
+  <div class="studio">
+    <div class="card">
+      <h2>1 · Choose what to show</h2>
+      <div class="layouts" id="layouts"></div>
+      <label for="match">Match on the scoreboard</label>
+      <select id="match"></select>
+      <button class="primary" id="deploy">Deploy to OBS</button>
+      <p class="dim" id="deployHint" style="font-size:13px"></p>
+      <p class="dim" style="font-size:13px">The podium shows up on OBS by itself when the tournament ends. Results of matches played off stream pop up over the scoreboard and bracket.</p>
+    </div>
+    <div>
+      <div class="card">
+        <div class="tagline"><b>2 · Preview</b><span class="dim" id="previewName"></span></div>
+        <div class="screenbox" id="previewBox"><iframe id="preview" title="Preview" tabindex="-1"></iframe></div>
+      </div>
+      <div class="card" id="liveWrap">
+        <div class="tagline"><b><span class="dot"></span>Now on OBS</b><span class="dim" id="liveName"></span></div>
+        <div class="screenbox" id="liveBox"><iframe id="live" title="Now on OBS" tabindex="-1" src="overlay.html?preview=1"></iframe></div>
+      </div>
+    </div>
+  </div>
+</main>
+<div id="toast" role="alert"></div>
+<script src="bracket.js"></script><script src="api.js"></script><script src="control.js"></script>
+<script>
+const base = location.href.replace(/studio\.html.*$/, '');
+$('obs').textContent = base + 'overlay.html';
+$('copy').onclick = () => navigator.clipboard.writeText(base + 'overlay.html').then(() => toast('Copied'), () => toast('Copy failed'));
+const ICONS = { scoreboard: '🎮', bracket: '🏆', standings: '📊', podium: '🥇' };
+let draft = null, dirty = false; // { screen, match } being previewed; follows what is live until you change it
+
+// Scale the 1920×1080 pages down to the boxes.
+const fitFrame = (box, frame) => new ResizeObserver(() => (frame.style.transform = `scale(${box.clientWidth / 1920})`)).observe(box);
+fitFrame($('previewBox'), $('preview'));
+fitFrame($('liveBox'), $('live'));
+
+function showPreview() {
+  const src = `overlay.html?preview=1&screen=${draft.screen}&match=${encodeURIComponent(draft.match)}`;
+  if (!$('preview').src.endsWith(src)) $('preview').src = src;
+  $('previewName').textContent = SCREENS[draft.screen];
+}
+$('layouts').onclick = e => {
+  const b = e.target.closest('[data-screen]');
+  if (b) { draft.screen = b.dataset.screen; dirty = true; render(); }
+};
+$('match').onchange = e => { draft.match = e.target.value; dirty = true; render(); };
+$('deploy').onclick = () => { dirty = false; post('deploy', { screen: draft.screen, match: draft.match }); };
+
+function render() {
+  const same = draft.screen === S.screen && (draft.match || null) === (S.streamMatch || null);
+  $('layouts').innerHTML = Object.entries(SCREENS).map(([k, v]) => `<button type="button" data-screen="${k}" class="${k === draft.screen ? 'sel' : ''}">
+    <span class="ic">${ICONS[k]}</span>${v}<span class="live">${k === S.screen ? '● live' : ''}</span></button>`).join('');
+  const options = [['', 'No match (hide scoreboard)'], ...S.matches.filter(m => m.ready || m.id === S.streamMatch || m.id === draft.match)
+    .map(m => [m.id, `${m.label}: ${m.aName ?? 'TBD'} vs ${m.bName ?? 'TBD'}${m.winner ? ' (finished)' : ''}`])];
+  if (document.activeElement !== $('match')) $('match').innerHTML = options.map(([v, t]) => `<option value="${esc(v)}"${v === (draft.match || '') ? ' selected' : ''}>${esc(t)}</option>`).join('');
+  $('deploy').disabled = same;
+  $('deploy').textContent = same ? '✓ This is live on OBS' : 'Deploy to OBS';
+  $('deployHint').textContent = same ? '' : 'The preview is not on OBS yet. Press Deploy to show it.';
+  $('liveName').textContent = SCREENS[S.screen];
+  showPreview();
+}
+
+async function draw() {
+  S = view(await rpc('cof_admin_get', { p_pw: pw }));
+  document.body.classList.remove('locked');
+  if (!draft || !dirty) draft = { screen: S.screen, match: S.streamMatch || '' };
+  render();
+}
+boot();
+</script>
+</body>
+</html>

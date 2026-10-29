@@ -18,8 +18,8 @@
 <body class="locked">
 <main>
   <h1 class="brand"><img src="logo.png" alt="">City of <span>Fighters</span> · Control</h1>
-  <div class="dim">Sign-up page: <a id="signup"></a> · Phone remote: <a id="phone">phone.html</a><br>
-    OBS (Browser Source, 1920×1080): scoreboard <code id="obs1"></code> · standings <code id="obs2"></code> · bracket <code id="obs3"></code></div>
+  <nav class="tabs"><a class="on" href="admin.html">Control panel</a><a href="studio.html">Stream</a><a href="phone.html">Phone remote</a></nav>
+  <div class="dim">Sign-up page: <a id="signup"></a> · OBS Browser Source (1920×1080): <code id="obs"></code></div>
 
   <form class="card" id="login" style="max-width:420px">
     <h2>Control panel password</h2>
@@ -51,7 +51,8 @@
     <table><tbody id="players"></tbody></table>
     <div class="row" style="margin-top:12px">
       <button data-act="shuffle">Shuffle seeds</button>
-      <button class="primary" data-act="start" data-confirm="Start the bracket? Registration will close.">Start bracket</button>
+      <label for="format" style="margin:0">Tournament type</label><select id="format"></select>
+      <button class="primary" id="startBtn">Start tournament</button>
     </div>
   </div>
 
@@ -82,8 +83,9 @@
 <script>
 const base = location.href.replace(/admin\.html.*$/, '');
 $('signup').href = $('signup').textContent = base;
-$('phone').href = base + 'phone.html';
-for (const [id, page] of [['obs1', 'overlay'], ['obs2', 'leaderboard'], ['obs3', 'bracket']]) $(id).textContent = base + page + '.html';
+$('obs').textContent = base + 'overlay.html';
+$('format').innerHTML = Object.entries(B.FORMATS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+$('startBtn').onclick = () => confirm(`Start a ${B.FORMATS[$('format').value]} tournament? Registration will close.`) && post('start', { format: $('format').value });
 $('saveSettings').onclick = () => post('settings', { name: $('ename').value, rules: $('rules').value });
 $('regOpen').onchange = e => post('settings', { regOpen: e.target.checked });
 
@@ -103,7 +105,8 @@ async function draw() {
   if (document.activeElement !== $('rules')) $('rules').value = S.rules;
   $('regOpen').checked = S.regOpen;
   $('pc').textContent = S.players.length;
-  $('playersCard').querySelectorAll('[data-act=shuffle],[data-act=start]').forEach(b => (b.disabled = started));
+  $('playersCard').querySelectorAll('[data-act=shuffle],#startBtn,#format').forEach(b => (b.disabled = started));
+  if (started) $('format').value = S.format;
 
   $('players').innerHTML = S.players.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.name)}</b></td><td class="dim">${esc(p.email)}</td>
     <td>${started ? '' : btn('▲', 'move', { id: p.id, dir: -1 }) + ' ' + btn('▼', 'move', { id: p.id, dir: 1 }) + ' ' + btn('Remove', 'removePlayer', { id: p.id })}</td></tr>`).join('')
@@ -131,7 +134,7 @@ async function draw() {
   $('bracketCard').hidden = !started;
   if (started) $('bracket').innerHTML = bracketHTML(S);
 
-  const finished = S.standings[0]?.place === 1;
+  const finished = S.finished;
   $('resultsCard').hidden = !finished;
   if (finished) drawResults();
 }

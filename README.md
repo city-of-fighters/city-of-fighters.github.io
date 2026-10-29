@@ -8,12 +8,11 @@ Website (GitHub Pages): https://gaberpet.github.io/city-of-fighters/
 |---|---|
 | Player sign-up | https://gaberpet.github.io/city-of-fighters/ |
 | Control panel (password) | https://gaberpet.github.io/city-of-fighters/admin.html |
-| OBS scoreboard | https://gaberpet.github.io/city-of-fighters/overlay.html |
+| Stream tab: preview and deploy what OBS shows | https://gaberpet.github.io/city-of-fighters/studio.html |
 | Phone remote (password) | https://gaberpet.github.io/city-of-fighters/phone.html |
-| OBS standings | https://gaberpet.github.io/city-of-fighters/leaderboard.html |
-| OBS bracket | https://gaberpet.github.io/city-of-fighters/bracket.html |
+| **OBS Browser Source** (1920×1080, the only one needed) | https://gaberpet.github.io/city-of-fighters/overlay.html |
 
-Add the OBS pages as **Browser Source**, 1920×1080. The background is transparent.
+The OBS page shows the scoreboard, bracket, standings or podium: pick one in the Stream tab, check the preview, press **Deploy to OBS**. The podium goes live by itself when the tournament ends. The old `bracket.html` / `leaderboard.html` links still work.
 
 ## One-time setup
 
@@ -26,7 +25,7 @@ To change the password later, run only the last line again with the new password
 
 ## Rules built in
 
-- Double elimination, grand final with bracket reset.
+- Pick the tournament type when you start: double elimination (grand final with bracket reset), single elimination, round robin or Swiss. Round robin and Swiss give 3 points per match won (a bye counts as a win), ties broken by games won.
 - Matches are first to 2 games; games are first to 3 rounds.
 - Sign-up needs a unique gamer tag and email, and accepting the rules.
 

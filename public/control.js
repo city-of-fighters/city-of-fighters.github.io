@@ -28,13 +28,31 @@ const actions = {
     const i = d.order.indexOf(b.id), j = i + (b.dir < 0 ? -1 : 1);
     if (i >= 0 && j >= 0 && j < d.order.length) [d.order[i], d.order[j]] = [d.order[j], d.order[i]];
   },
-  start: d => { notStarted(d); d.matches = B.build(d.order); d.regOpen = false; },
-  resetBracket: d => { d.matches = []; d.streamMatch = null; },
-  report: (d, b) => { B.report(d.matches, b.id, b.slot); nextOnStream(d, b.id); },
+  start: (d, b) => {
+    notStarted(d);
+    d.format = B.FORMATS[b.format] ? b.format : 'double';
+    d.matches = B.build(d.order, d.format);
+    Object.assign(d, { regOpen: false, screen: 'scoreboard' });
+  },
+  resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard' }); },
+  report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot), b.id),
   reopen: (d, b) => B.reopen(d.matches, b.id),
-  score: (d, b) => { B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1); nextOnStream(d, b.id); },
+  score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1), b.id),
   stream: (d, b) => { d.streamMatch = b.id || null; },
+  screen: (d, b) => { if (SCREENS[b.screen]) d.screen = b.screen; }, // what the OBS page shows
+  deploy: (d, b) => { // Stream tab: put the previewed layout (and match) live on OBS
+    if (SCREENS[b.screen]) d.screen = b.screen;
+    if ('match' in b) d.streamMatch = b.match || null;
+  },
 };
+const SCREENS = { scoreboard: 'Scoreboard', bracket: 'Bracket', standings: 'Standings', podium: 'Podium' };
+// After a result: move the stream on, and show the podium the moment the tournament is decided.
+function played(d, fn, id) {
+  const was = B.finished(d.matches);
+  fn();
+  nextOnStream(d, id);
+  if (!was && B.finished(d.matches)) d.screen = 'podium';
+}
 
 // Undo steps back through this device's own last 20 actions (kept in memory, so the overlays
 // don't have to download them). Removing a player and "Reset everything" can't be undone.

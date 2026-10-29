@@ -2,10 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Scoreboard</title>
+<title>City of Fighters Stream</title>
+<link rel="stylesheet" href="bracket.css">
 <style>
-  /* OBS Browser Source, 1920x1080, transparent background. Sits at the bottom so Tekken's health bars stay clear. */
-  html, body { margin: 0; background: transparent; font-family: 'Arial Black', Impact, system-ui, sans-serif; color: #fff; overflow: hidden; }
+  /* The one OBS Browser Source (1920x1080, transparent). The Stream tab of the website picks what it shows:
+     scoreboard, bracket, standings or podium. ?screen=… forces one screen, ?preview=1 adds a stand-in game background. */
+  html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; font-family: 'Arial Black', Impact, system-ui, sans-serif; color: #fff; overflow: hidden; }
+  body.preview { background: radial-gradient(circle at 30% 60%, #3a1d5c, #120a1f 55%), #120a1f; }
+  body.preview::before { content: 'GAME FOOTAGE'; position: fixed; inset: 0; display: grid; place-items: center; color: #ffffff12; font: 900 140px system-ui; letter-spacing: 10px; }
+  .screen { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; pointer-events: none; }
+  .screen.on { opacity: 1; }
+
+  /* Scoreboard at the bottom, so Tekken's health bars stay clear */
   #bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; filter: drop-shadow(0 4px 10px #000a); }
   .side { width: 480px; display: flex; align-items: center; background: linear-gradient(#22143a, #0c0714); border-top: 4px solid #ff2d78; height: 64px; padding: 0 20px; }
   .side.b { border-top-color: #9b4dff; }
@@ -16,6 +24,41 @@
   #mid { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0714; padding: 0 18px; min-width: 200px; }
   #event { font-size: 14px; color: #c77dff; letter-spacing: 2px; }
   #label { font-size: 19px; text-transform: uppercase; }
+
+  /* Bracket and standings panels */
+  .panel { position: absolute; top: 20px; left: 50%; transform-origin: top center; background: #0c0714e8; border-top: 6px solid #ff2d78; padding: 18px 26px; border-radius: 0 0 10px 10px; }
+  .ptop { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #c77dff; letter-spacing: 2px; font: 700 20px system-ui, sans-serif; }
+  .ptop img { width: 70px; border-radius: 6px; }
+  #stand { width: 1000px; font-size: 26px; }
+  #stand table { width: 100%; border-collapse: collapse; }
+  #stand td { padding: 8px 6px; border-bottom: 1px solid #2e2140; }
+  #stand td.n { text-align: right; color: #c9bddb; font: 700 24px system-ui, sans-serif; }
+  #stand tr:first-child td:first-child { color: #ff2d78; }
+
+  /* Podium */
+  #podium { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; background: radial-gradient(ellipse at 50% 100%, #ff2d7833, #0c0714f0 65%); }
+  #podium .logo { width: 210px; margin-top: 40px; border-radius: 12px; box-shadow: 0 0 40px #ff2d7877; animation: drop .8s both cubic-bezier(.2, 1.3, .4, 1); }
+  #podium h1 { margin: 18px 0 0; font-size: 46px; letter-spacing: 6px; color: #c77dff; text-shadow: 0 0 20px #c77dff99; animation: fade .8s .3s both; }
+  .stands { display: flex; align-items: flex-end; gap: 26px; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
+  .stand { width: 380px; display: flex; flex-direction: column; align-items: center; }
+  .stand .who { text-align: center; margin-bottom: 18px; animation: drop .7s both cubic-bezier(.2, 1.3, .4, 1); }
+  .stand .pname { font-size: 46px; font-style: italic; text-transform: uppercase; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stand .rec { font: 600 22px system-ui, sans-serif; color: #d8c8ee; }
+  .stand .block { width: 100%; display: grid; place-items: start center; padding-top: 20px; font-size: 90px; border-radius: 10px 10px 0 0;
+                  background: linear-gradient(#2a1240, #120a1f); border-top: 8px solid var(--c); color: var(--c); text-shadow: 0 0 24px var(--c);
+                  transform-origin: bottom; animation: rise .9s both cubic-bezier(.2, 1.1, .4, 1); }
+  .stand.p1 { --c: #ffd24a; } .stand.p2 { --c: #d9d2e6; } .stand.p3 { --c: #e08a5a; }
+  .stand.p1 .block { height: 380px; animation-delay: 1.6s; } .stand.p1 .who { animation-delay: 2.4s; }
+  .stand.p2 .block { height: 270px; animation-delay: 1s; }   .stand.p2 .who { animation-delay: 1.8s; }
+  .stand.p3 .block { height: 190px; animation-delay: .4s; }  .stand.p3 .who { animation-delay: 1.2s; }
+  .stand.p1 .pname { color: #ffd24a; text-shadow: 0 0 24px #ffd24aaa; animation: glow 1.6s 3.2s infinite alternate; font-size: 58px; }
+  .crown { font-size: 54px; animation: drop .7s 2.8s both cubic-bezier(.2, 1.3, .4, 1); }
+  .confetti i { position: absolute; top: -30px; width: 12px; height: 20px; animation: fall linear infinite; opacity: .9; }
+  @keyframes rise { from { transform: scaleY(0); } to { transform: none; } }
+  @keyframes drop { from { transform: translateY(-60px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes glow { to { text-shadow: 0 0 40px #ffd24a, 0 0 8px #fff; } }
+  @keyframes fall { to { transform: translateY(1140px) rotate(720deg); } }
 
   /* Popup for results of matches played off stream */
   #pop { position: absolute; left: 50%; bottom: 96px; transform: translate(-50%, 40px); opacity: 0; transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), opacity .35s;
@@ -30,33 +73,50 @@
 </style>
 </head>
 <body>
-<div id="bar" style="opacity:0">
-  <div class="side a"><div class="name" id="an"></div></div>
-  <div class="games" id="ag">0</div>
-  <div id="mid"><div id="event">CITY OF FIGHTERS</div><div id="label"></div></div>
-  <div class="games b" id="bg">0</div>
-  <div class="side b"><div class="name" id="bn"></div></div>
+<div class="screen" id="s-scoreboard">
+  <div id="bar">
+    <div class="side a"><div class="name" id="an"></div></div>
+    <div class="games" id="ag">0</div>
+    <div id="mid"><div id="event">CITY OF FIGHTERS</div><div id="label"></div></div>
+    <div class="games b" id="bg">0</div>
+    <div class="side b"><div class="name" id="bn"></div></div>
+  </div>
 </div>
+<div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
+<div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
+<div class="screen" id="s-podium"><div id="podium"></div></div>
 <div id="pop" aria-live="polite"></div>
-<script src="bracket.js"></script><script src="api.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script>
 <script>
 const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+if (params.get('preview')) document.body.classList.add('preview');
+const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+const record = (s, r) => s.format === 'robin' || s.format === 'swiss' ? `${r.pts} pts · games ${r.gw}–${r.gl}` : `${r.w}–${r.l} · games ${r.gw}–${r.gl}`;
+const fit = (box, maxScale) => { // grow small / shrink big panels to fill the screen
+  box.style.transform = 'translateX(-50%)';
+  box.style.transform = `translateX(-50%) scale(${Math.min(maxScale, 1880 / box.offsetWidth, 1040 / box.offsetHeight)})`;
+};
+
+// --- Result popups for matches finished off stream ---
 let seen = null, lastStream = null;
 const popups = [];
-
-// What a finished match means for both players, e.g. "KEVIN has won and is moving on to the Winners Final".
 function resultText(s, m) {
   const name = id => (id === m.a ? m.aName : m.bName).toUpperCase();
-  const champ = m.id === 'GF2' || (m.id === 'GF1' && m.winner === m.a);
+  const tag = `<div class="tag">${esc(m.label.toUpperCase())} · RESULT</div>`;
+  if (m.side === 'R') {
+    const r = s.standings.find(x => x.id === m.winner);
+    return `${tag}<div class="main"><b>${esc(name(m.winner))}</b> has won against ${esc(name(m.loser))}</div><div class="sub">${esc(name(m.winner))} now has ${r?.pts ?? 0} points</div>`;
+  }
+  const champ = !m.winTo && !m.loseTo && (m.id !== 'GF1' || m.winner === m.a);
   const next = m.winTo && s.matches.find(x => x.id === m.winTo.id);
   const main = champ ? `<b>${esc(name(m.winner))}</b> is the CHAMPION!`
     : `<b>${esc(name(m.winner))}</b> has won and is moving on to the ${esc(next?.label ?? 'Grand Final Reset')}`;
   const sub = m.id === 'GF1' && !champ ? `<div class="sub">${esc(name(m.loser))} gets one more chance in the reset</div>`
     : m.loseTo ? `<div class="sub">${esc(name(m.loser))} drops to the losers bracket</div>`
     : `<div class="sub out">${esc(name(m.loser))} is eliminated</div>`;
-  return `<div class="tag">${esc(m.label.toUpperCase())} · RESULT</div><div class="main">${main}</div>${sub}`;
+  return `${tag}<div class="main">${main}</div>${sub}`;
 }
-
 async function showPopups() {
   while (popups.length) {
     $('pop').innerHTML = popups.shift();
@@ -67,11 +127,26 @@ async function showPopups() {
   }
 }
 
+// --- Podium ---
+function podiumHTML(s) {
+  const at = p => s.standings.filter(r => r.place === p);
+  const stand = (p, rows) => !rows.length ? '<div class="stand"></div>' : `<div class="stand p${p}"><div class="who">
+      ${p === 1 ? '<div class="crown">👑</div>' : ''}<div class="pname">${rows.map(r => esc(r.name)).join(' & ')}</div>
+      <div class="rec">${esc(record(s, rows[0]))}</div></div><div class="block">${ord(p)}</div></div>`;
+  const colors = ['#ff2d78', '#c77dff', '#ffd24a', '#ffffff', '#9b4dff'];
+  const confetti = Array.from({ length: 70 }, (_, i) => `<i style="left:${Math.random() * 100}%;background:${colors[i % 5]};animation-duration:${3 + Math.random() * 4}s;animation-delay:${2.6 + Math.random() * 4}s"></i>`).join('');
+  return `<img class="logo" src="logo.png" alt=""><h1>${esc(s.game.toUpperCase())} · FINAL RESULTS</h1>
+    <div class="stands">${stand(2, at(2))}${stand(1, at(1))}${stand(3, at(3))}</div><div class="confetti">${confetti}</div>`;
+}
+
+let shown = null, lastBracket = null, bracketKey = '', podiumKey = '';
 async function draw() {
   const s = view(await rpc('cof_public'));
+  const screen = params.get('screen') || s.screen;
+
+  // popups (not over the podium)
   const done = s.matches.filter(x => x.winner && !x.auto);
-  // Pop up results of matches that finished since the last check, except the one the viewers just watched.
-  if (seen) {
+  if (seen && screen !== 'podium') {
     const fresh = done.filter(x => !seen.has(x.id) && x.id !== lastStream);
     const idle = !popups.length && !$('pop').classList.contains('show');
     popups.push(...fresh.map(x => resultText(s, x)));
@@ -80,15 +155,42 @@ async function draw() {
   seen = new Set(done.map(x => x.id));
   lastStream = s.streamMatch;
 
-  const m = s.matches.find(x => x.id === s.streamMatch);
+  if (screen !== shown) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.toggle('on', el.id === 's-' + screen));
+    if (screen === 'podium') podiumKey = ''; // replay the podium animation each time it is shown
+    shown = screen;
+  }
+
+  // scoreboard
+  const m = s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch)); // ?match= previews another match
   $('bar').style.opacity = m ? 1 : 0;
-  if (!m) return;
-  $('event').textContent = s.name.toUpperCase();
-  $('label').textContent = m.label;
-  $('an').textContent = m.aName ?? 'TBD';
-  $('bn').textContent = m.bName ?? 'TBD';
-  $('ag').textContent = m.ga;
-  $('bg').textContent = m.gb;
+  if (m) {
+    $('event').textContent = s.name.toUpperCase();
+    $('label').textContent = m.label;
+    $('an').textContent = m.aName ?? 'TBD';
+    $('bn').textContent = m.bName ?? 'TBD';
+    $('ag').textContent = m.ga;
+    $('bg').textContent = m.gb;
+  }
+
+  // bracket: redraw only on changes, so each animation plays once
+  const key = JSON.stringify([s.matches, s.streamMatch, s.game]);
+  if (key !== bracketKey) {
+    $('bsub').textContent = `${s.game.toUpperCase()} · ${s.format === 'robin' || s.format === 'swiss' ? 'MATCHES' : 'BRACKET'}`;
+    $('b').innerHTML = s.matches.length ? bracketHTML(s, bracketKey ? lastBracket : null) : '<span style="color:#a99bbd;font-family:system-ui">Not started yet.</span>';
+    lastBracket = s.matches; bracketKey = key;
+  }
+  if (screen === 'bracket') fit($('bracketBox'), 2);
+
+  // standings (shortcut: top 12 only; add paging if the field gets bigger)
+  $('ssub').textContent = `${s.game.toUpperCase()} · STANDINGS`;
+  $('stand').innerHTML = '<table>' + s.standings.slice(0, 12).map(r => `<tr><td style="width:90px">${r.place ? ord(r.place) : '—'}</td>
+    <td>${esc(r.name)}</td><td class="n">${esc(record(s, r))}</td></tr>`).join('') + '</table>';
+  if (screen === 'standings') fit($('standBox'), 1.4);
+
+  // podium
+  const pkey = JSON.stringify(s.standings.slice(0, 4));
+  if (screen === 'podium' && pkey !== podiumKey) { $('podium').innerHTML = s.finished ? podiumHTML(s) : params.get('preview') ? '<h1 style="margin-top:400px;color:#c77dff">The podium appears when the tournament ends</h1>' : ''; podiumKey = pkey; }
 }
 live(draw);
 </script>
