@@ -1,4 +1,4 @@
-// City of Fighters desktop app: the website's control panel, Stream tab and phone remote in their own window.
+// City of Fighters desktop app: the website's control panel and Stream tab in their own window.
 // It loads the live site, so the app is always as up to date as the website.
 const { app, BrowserWindow, Menu, shell } = require('electron');
 const fs = require('fs');
@@ -67,7 +67,6 @@ Menu.setApplicationMenu(Menu.buildFromTemplate([
   { label: 'App', submenu: [
     { label: 'Control panel', accelerator: 'CmdOrCtrl+1', click: (_, w) => w?.loadURL(SITE + 'admin.html') },
     { label: 'Stream', accelerator: 'CmdOrCtrl+2', click: (_, w) => w?.loadURL(SITE + 'studio.html') },
-    { label: 'Phone remote', accelerator: 'CmdOrCtrl+3', click: (_, w) => w?.loadURL(SITE + 'phone.html') },
     { type: 'separator' }, { role: 'quit' },
   ] },
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'resetZoom' }] },
