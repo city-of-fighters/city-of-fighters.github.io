@@ -2,6 +2,7 @@
   "name": "City of Fighters",
   "short_name": "City of Fighters",
   "description": "City of Fighters tournaments: live leaderboard, registration and admin.",
+  "id": "city-of-fighters",
   "start_url": "app.html",
   "scope": "./",
   "display": "standalone",
