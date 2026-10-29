@@ -121,7 +121,7 @@ async function showPopups() {
   while (popups.length) {
     $('pop').innerHTML = popups.shift();
     $('pop').classList.add('show');
-    await new Promise(r => setTimeout(r, 6000));
+    await new Promise(r => setTimeout(r, 4000));
     $('pop').classList.remove('show');
     await new Promise(r => setTimeout(r, 600));
   }
