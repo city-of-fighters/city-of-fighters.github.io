@@ -35,7 +35,7 @@
 </head>
 <body class="locked">
 <main>
-  <header><img src="logo.png" alt=""><b>Remote</b><a href="admin.html">Full control panel</a></header>
+  <header><img src="logo.png" alt=""><b>Remote</b><a href="studio.html">Stream</a><a href="admin.html" style="margin-left:12px">Control panel</a></header>
 
   <form class="card" id="login">
     <h2>Control panel password</h2>
@@ -70,7 +70,7 @@ async function draw() {
       ? `<div class="win">${esc(m.winner === m.a ? m.aName : m.bName)} wins!</div>`
       : m.ready ? pad(m, 'a') + fix(m, 'a') + pad(m, 'b') + fix(m, 'b') : '<p class="dim">Waiting for players.</p>');
   const ready = S.matches.filter(x => x.ready && x.id !== S.streamMatch);
-  const champ = S.standings[0]?.place === 1 ? S.standings[0].name : null;
+  const champ = S.finished ? S.standings.filter(r => r.place === 1).map(r => r.name).join(' & ') : null;
   $('next').innerHTML = champ ? `<p class="win">🏆 ${esc(champ)} is champion!</p><p>Download the results image in the full control panel.</p>`
     : ready.map(x => `<div class="next"><div><div class="dim" style="font-size:13px">${esc(x.label)}</div><b>${esc(x.aName)}</b> vs <b>${esc(x.bName)}</b></div>
       ${btn('On stream', 'stream', { id: x.id }, 'primary')}</div>`).join('') || 'No other matches ready.';

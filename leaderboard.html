@@ -1,40 +1,5 @@
 <!doctype html>
-<html lang="en">
-<head>
 <meta charset="utf-8">
-<title>Standings</title>
-<style>
-  /* OBS Browser Source, 1920x1080, transparent background */
-  html, body { margin: 0; background: transparent; color: #fff; font-family: 'Arial Black', Impact, system-ui, sans-serif; }
-  #box { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: 900px; background: #0c0714e8; border-top: 6px solid #ff2d78; padding: 24px 32px; }
-  h1 { margin: 0 0 4px; font-size: 44px; }
-  h1 span { color: #ff2d78; }
-  .sub { color: #c77dff; letter-spacing: 2px; margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; font-size: 26px; }
-  td { padding: 8px 6px; border-bottom: 1px solid #2e2140; }
-  td.n { text-align: right; color: #aab; font-family: system-ui, sans-serif; font-weight: 700; }
-  tr:first-child td:first-child { color: #c77dff; }
-</style>
-</head>
-<body>
-<div id="box">
-  <img src="logo.png" alt="City of Fighters" style="width:200px;border-radius:8px">
-  <div class="sub" id="sub"></div>
-  <table><tbody id="rows"></tbody></table>
-</div>
-<script src="bracket.js"></script><script src="api.js"></script>
-<script>
-const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
-async function draw() {
-  const s = view(await rpc('cof_public'));
-  document.getElementById('sub').textContent = `${s.game.toUpperCase()} · STANDINGS`;
-  // shortcut: shows top 12 only; add paging if the field gets bigger.
-  document.getElementById('rows').innerHTML = s.standings.slice(0, 12).map(r => `<tr>
-    <td style="width:90px">${r.place ? ord(r.place) : '—'}</td><td>${esc(r.name)}</td>
-    <td class="n">${r.w}–${r.l}</td><td class="n">games ${r.gw}–${r.gl}</td></tr>`).join('');
-}
-draw();
-live(draw);
-</script>
-</body>
-</html>
+<title>City of Fighters</title>
+<!-- Old OBS link: everything now lives in overlay.html; this keeps the standings screen working. -->
+<script>location.replace('overlay.html?screen=standings' + location.search.replace('?', '&'));</script>

@@ -20,7 +20,8 @@ function view({ data, players }) {
   return {
     ...data, raw: data, ftRounds: B.FT_ROUNDS, ftGames: B.FT_GAMES, players: ordered,
     matches: data.matches.map(m => ({ ...m, label: B.label(data.matches, m), ready: B.isReady(m), aName: m.a && name(m.a), bName: m.b && name(m.b) })),
-    standings: B.standings(ordered, data.matches),
+    standings: B.standings(ordered, data.matches), finished: B.finished(data.matches),
+    format: data.format ?? 'double', screen: data.screen ?? 'scoreboard', // older saves have neither
   };
 }
 
