@@ -174,6 +174,35 @@ begin
   update cof_state set data = cof_default() || coalesce(p_data - 'matches' - 'order', '{}'::jsonb) where id = 1;
 end $$;
 
+-- Winner banner email (sent by the cof-winner-email Edge Function, which alone may call these two).
+-- Each champion gets the email once per tournament unless the organizer sends it again on purpose.
+create table if not exists public.cof_mail_log (tkey text not null, player uuid not null, sent_at timestamptz not null default now(), primary key (tkey, player));
+alter table public.cof_mail_log enable row level security;
+revoke all on public.cof_mail_log from anon, authenticated;
+
+create or replace function public.cof_winner_mail(p_token text, p_ids uuid[], p_force boolean default false) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare d jsonb; k text;
+begin
+  perform cof_auth(p_token);
+  select data into d from cof_state where id = 1;
+  if coalesce(d->>'status', '') <> 'finished' then raise exception 'The tournament is not finished yet'; end if;
+  k := coalesce(d->>'createdAt', '') || '|' || coalesce(d->>'name', '');
+  if not p_force and exists (select 1 from cof_mail_log where tkey = k and player = any(p_ids)) then
+    raise exception 'The winner banner was already emailed';
+  end if;
+  return jsonb_build_object('key', k, 'tournament', d->>'name', 'game', d->>'game', 'winners', coalesce((
+    select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'email', email)) from cof_players where id = any(p_ids)), '[]'::jsonb));
+end $$;
+
+create or replace function public.cof_winner_mailed(p_key text, p_ids uuid[]) returns void
+language sql security definer set search_path = public as $$
+  insert into cof_mail_log (tkey, player) select p_key, unnest(p_ids) on conflict do nothing
+$$;
+
+revoke all on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) from public, anon, authenticated;
+grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) to service_role;
+
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_register(text, text, boolean), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;

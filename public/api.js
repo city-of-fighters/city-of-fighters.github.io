@@ -5,6 +5,13 @@ const KEY = 'sb_publishable_OatiT521MtUNk6gLQIa0yQ_67echjry';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Device storage choice from the first-start screen (consent.js). The desktop app keeps its data on the user's own PC.
+function consentChoice() {
+  if (/Electron/.test(navigator.userAgent)) return 'all';
+  try { return localStorage.getItem('cofConsent'); } catch { return 'none'; }
+}
+const canSave = () => consentChoice() === 'all';
+
 async function rpc(fn, body = {}) {
   const r = await fetch(API + fn, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = r.status === 204 ? null : await r.json();

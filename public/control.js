@@ -5,7 +5,8 @@ const $ = id => document.getElementById(id);
 const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
 let S, token = '';
 try { token = localStorage.getItem('cofToken') || ''; } catch {}
-const saveToken = t => { token = t; try { t ? localStorage.setItem('cofToken', t) : localStorage.removeItem('cofToken'); } catch {} };
+// Kept on the device only if the visitor allowed saving; otherwise the login lasts until the page is closed.
+const saveToken = t => { token = t; try { t && canSave() ? localStorage.setItem('cofToken', t) : localStorage.removeItem('cofToken'); } catch {} };
 
 async function adminGet() {
   try { return await rpc('cof_admin_get', { p_token: token }); }
@@ -63,7 +64,7 @@ function newTournament(b) {
   if (b.regMode === 'at' && !at) throw new Error('Pick the date and time registration opens');
   return { status: 'setup', regOpen: true, regMode: at ? 'at' : 'open', regAt: at,
     name: String(b.name || 'City of Fighters').slice(0, 60), game: String(b.game || 'Tekken 8').slice(0, 40),
-    format: B.FORMATS[b.format] ? b.format : 'double', ...(b.rules ? { rules: String(b.rules).slice(0, 5000) } : {}) };
+    format: B.FORMATS[b.format] ? b.format : 'double', createdAt: new Date().toISOString(), ...(b.rules ? { rules: String(b.rules).slice(0, 5000) } : {}) };
 }
 const SCREENS = { scoreboard: 'Scoreboard', bracket: 'Bracket', standings: 'Standings', podium: 'Podium' };
 // After a result: show the podium the moment the tournament is decided. The finished match stays on stream
@@ -82,6 +83,7 @@ const undoStack = [];
 // Clicks run one at a time, each on fresh data, so fast "+ round" presses are never lost.
 let queue = Promise.resolve();
 const post = (act, body = {}) => (queue = queue.then(async () => {
+  let decided = false;
   try {
     if (act === 'removePlayer') await rpc('cof_admin_remove', { p_token: token, p_id: body.id });
     else if (act === 'create') await rpc('cof_admin_reset', { p_token: token, p_data: newTournament(body) });
@@ -97,11 +99,18 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
         await rpc('cof_admin_save', { p_token: token, p_data: d });
         undoStack.push(before);
         if (undoStack.length > 20) undoStack.shift();
+        decided = !B.finished(before.matches) && B.finished(d.matches);
       }
     }
     await draw();
+    if (decided) sendWinnerMail(); // the champion was just decided: email the winner banner (not awaited)
   } catch (e) { toast(e.message); }
 }));
+
+async function sendWinnerMail(force = false) {
+  try { const sent = await mailWinner(force); toast(`🏆 Winner banner emailed to ${sent.join(' & ')}`); }
+  catch (e) { toast('Winner email: ' + e.message); }
+}
 
 let polling = false;
 const startPolling = () => { if (!polling) { polling = true; live(draw); } };

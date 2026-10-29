@@ -81,6 +81,10 @@
     <h2>Tournament finished · results image</h2>
     <canvas id="png" width="1920" height="1080" style="width:100%;border-radius:6px"></canvas>
     <div class="row" style="margin-top:10px"><button class="primary" id="download">Download PNG</button></div>
+    <h2 style="margin-top:18px">Winner banner email</h2>
+    <p class="dim" style="margin-top:0">Sent to the champion automatically when the final result is entered. Use the button if it failed or to send it again.</p>
+    <canvas id="bannerPrev" width="1200" height="630" style="width:100%;max-width:600px;border-radius:6px;display:block"></canvas>
+    <div class="row" style="margin-top:10px"><button id="mailBtn" type="button">📧 Email the winner banner</button></div>
   </div>
 
   <div class="card live" id="streamCard">
@@ -111,7 +115,7 @@
 
 </main>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script><script src="control.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="bracketview.js"></script><script src="banner.js"></script><script src="control.js"></script>
 <script>
 const base = location.href.replace(/admin\.html.*$/, '');
 $('signup').href = $('signup').textContent = base;
@@ -135,6 +139,7 @@ $('createBtn').onclick = () => {
   $('newTour').open = false;
 };
 $('logoutBtn').onclick = logout;
+$('mailBtn').onclick = () => confirm('Email the winner banner to the champion now?') && sendWinnerMail(true);
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 function tourStatus() {
   if (S.status === 'none') return '⚪ No tournament in progress. Create one below.';
@@ -196,7 +201,7 @@ async function draw() {
 
   const finished = S.finished;
   $('resultsCard').hidden = !finished;
-  if (finished) drawResults();
+  if (finished) { drawResults(); drawBanner($('bannerPrev'), S, S.standings.filter(r => r.place === 1)); }
 }
 
 const logo = new Image();

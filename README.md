@@ -30,6 +30,22 @@ Data lives in Supabase (same project as Iron Fist Academy, tables start with `co
 
 Logging in gives the device a token for 24 hours. 3 wrong passwords lock the login for 15 minutes.
 
+## Winner banner email
+
+When a tournament's champion is decided, the control panel draws a winner banner and the `cof-winner-email`
+Edge Function emails it to the champion from a Gmail account (once per tournament; the dashboard can send it again).
+Setup, once:
+
+1. Google account of the Gmail you send from: turn on 2-Step Verification, then create an **App password** at https://myaccount.google.com/apppasswords
+2. Supabase → Edge Functions → **Secrets**: add `GMAIL_USER` (the Gmail address) and `GMAIL_APP_PASSWORD` (the 16-letter app password).
+3. Supabase → Edge Functions → **Deploy a new function → Via editor**, name it `cof-winner-email`, paste `supabase/functions/cof-winner-email/index.ts`, deploy.
+4. In that function's settings turn **Verify JWT** off (the function checks the organizer login itself).
+
+## Privacy
+
+`privacy.html` and `terms.html`; the first visit asks whether the app may save anything on the device (`consent.js`).
+Keep the privacy page in step with what the code collects.
+
 ## The app
 
 https://gaberpet.github.io/city-of-fighters/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (only while registration is open), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).

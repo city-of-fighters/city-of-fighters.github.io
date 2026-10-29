@@ -63,10 +63,11 @@
     <div id="next" class="dim"></div>
     <details class="card" id="bracketCard"><summary>Bracket</summary><div id="bracketWrap"></div></details>
   </div>
+  <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="index.html"><b>✍️</b>Register</a><a class="on" href="phone.html"><b>🔒</b>Admin</a></nav>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script><script src="control.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="bracketview.js"></script><script src="banner.js"></script><script src="control.js"></script>
 <script>
 const pips = (n, ft) => '<span class="pips">' + Array.from({ length: ft }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') + '</span>';
 const pad = (m, s) => `<button class="pad ${s}" data-act="score" data-body='${esc(JSON.stringify({ id: m.id, side: s, kind: 'round', delta: 1 }))}' aria-label="Round to ${esc(s === 'a' ? m.aName : m.bName)}">
