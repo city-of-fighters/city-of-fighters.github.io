@@ -100,3 +100,6 @@ document.addEventListener('click', e => {
 
 // Call at the end of the page script, after draw() exists.
 const boot = () => { if (pw) draw().then(startPolling, () => {}); };
+
+// Installable as an app (see manifest.webmanifest and sw.js).
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

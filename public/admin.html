@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="theme-color" content="#0c0714"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>City of Fighters Control</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="bracket.css">
 <style>
   .score { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; text-align: center; }
@@ -20,6 +21,17 @@
   <h1 class="brand"><img src="logo.png" alt="">City of <span>Fighters</span> · Control</h1>
   <nav class="tabs"><a class="on" href="admin.html">Control panel</a><a href="studio.html">Stream</a><a href="phone.html">Phone remote</a></nav>
   <div class="dim">Sign-up page: <a id="signup"></a> · OBS Browser Source (1920×1080): <code id="obs"></code></div>
+  <details class="card" id="apps">
+    <summary style="cursor:pointer"><b>📲 Get the apps</b> <span class="dim">(computer and phone)</span></summary>
+    <p><b>Computer</b>: the control panel, Stream tab and phone remote in their own window. It always shows the latest version.</p>
+    <div class="row">
+      <a class="btnlink" href="https://github.com/GaberPet/city-of-fighters/releases/latest/download/City-of-Fighters-Setup.exe">Windows installer (.exe)</a>
+      <a class="btnlink" href="https://github.com/GaberPet/city-of-fighters/releases/latest/download/City-of-Fighters-Portable.exe">Windows portable (.exe, no install)</a>
+      <a class="btnlink" href="https://github.com/GaberPet/city-of-fighters/releases/latest/download/City-of-Fighters.AppImage">Linux (AppImage)</a>
+    </div>
+    <p class="dim" style="font-size:13px">Windows may say “Windows protected your PC” because the app is not signed: click <b>More info → Run anyway</b>. On Linux, make the AppImage executable (right-click → Properties → Allow executing) and open it.</p>
+    <p><b>Phone</b>: open <a id="phoneLink" href="phone.html">the phone remote</a> on your phone and tap <b>Install app</b> (or the browser menu ⋮ → <b>Install</b> / <b>Add to Home screen</b>). It gets its own icon and opens full-screen.</p>
+  </details>
 
   <form class="card" id="login" style="max-width:420px">
     <h2>Control panel password</h2>

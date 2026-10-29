@@ -1,0 +1,36 @@
+{
+  "name": "city-of-fighters",
+  "productName": "City of Fighters",
+  "version": "1.0.0",
+  "description": "City of Fighters tournament control panel and stream control",
+  "main": "main.cjs",
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "GaberPet",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis portable --x64",
+    "dist:linux": "electron-builder --linux AppImage --x64"
+  },
+  "build": {
+    "appId": "io.github.gaberpet.cityoffighters",
+    "productName": "City of Fighters",
+    "files": ["main.cjs", "build/icon.png", "package.json"],
+    "directories": { "output": "release" },
+    "win": { "target": ["nsis", "portable"], "icon": "build/icon.png" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "City-of-Fighters-Setup.exe",
+      "shortcutName": "City of Fighters",
+      "uninstallDisplayName": "City of Fighters"
+    },
+    "portable": { "artifactName": "City-of-Fighters-Portable.exe" },
+    "linux": { "target": ["AppImage"], "icon": "build/icon.png", "category": "Game", "artifactName": "City-of-Fighters.AppImage" },
+    "publish": null
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

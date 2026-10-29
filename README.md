@@ -14,6 +14,11 @@ Website (GitHub Pages): https://gaberpet.github.io/city-of-fighters/
 
 The OBS page shows the scoreboard, bracket, standings or podium: pick one in the Stream tab, check the preview, press **Deploy to OBS**. The podium goes live by itself when the tournament ends. The old `bracket.html` / `leaderboard.html` links still work.
 
+## Apps
+
+- **Computer** (Windows installer / portable .exe, Linux AppImage): download from the [latest release](https://github.com/GaberPet/city-of-fighters/releases/latest) or the "Get the apps" box in the control panel. The app opens the live website in its own window. To build a new release, push a tag like `v1.0.1`; GitHub builds, tests and publishes the files (`.github/workflows/release.yml`, code in `desktop/`).
+- **Phone**: open the phone remote and tap **Install app** (or browser menu → Install / Add to Home screen).
+
 ## One-time setup
 
 Data lives in Supabase (same project as Iron Fist Academy, tables start with `cof_`).

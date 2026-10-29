@@ -1,0 +1,79 @@
+name: Release desktop app
+
+# Push a tag like v1.0.0: GitHub builds the Windows installer + portable .exe and the Linux AppImage,
+# smoke-tests them against the live website and publishes them as the latest release. The website links to
+# releases/latest/download/<file>, so the file names stay fixed.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: desktop
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Build installer and portable exe
+        run: npm run dist:win
+      - name: Smoke-test the packaged app
+        shell: pwsh
+        run: |
+          $env:COF_SMOKE = '1'
+          $env:COF_SMOKE_OUT = "$env:RUNNER_TEMP\smoke.json"
+          $p = Start-Process -FilePath "release\win-unpacked\City of Fighters.exe" -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw 'Smoke test timed out' }
+          Get-Content $env:COF_SMOKE_OUT
+          if ($p.ExitCode -ne 0) { throw "Smoke test failed with exit code $($p.ExitCode)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: desktop/release/*.exe
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Build AppImage
+        run: npm run dist:linux
+      - name: Smoke-test the packaged app
+        run: |
+          COF_SMOKE=1 COF_SMOKE_OUT="$RUNNER_TEMP/smoke.json" timeout 120 xvfb-run -a release/linux-unpacked/city-of-fighters --no-sandbox
+          cat "$RUNNER_TEMP/smoke.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: desktop/release/*.AppImage
+
+  release:
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Checksums
+        run: cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --latest --generate-notes \
+            --title "City of Fighters $GITHUB_REF_NAME" out/*

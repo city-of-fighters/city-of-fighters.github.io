@@ -2,3 +2,5 @@ data.json
 data.json.tmp
 .claude/
 node_modules/
+release/
+preview/

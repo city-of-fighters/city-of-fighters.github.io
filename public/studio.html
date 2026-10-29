@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="theme-color" content="#0c0714"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>City of Fighters Stream</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
 <style>
   main { max-width: 1300px; }
@@ -18,6 +19,9 @@
   #deploy:disabled { box-shadow: none; }
   .screenbox { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; border: 1px solid var(--line); background: #000; }
   .screenbox iframe { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; pointer-events: none; }
+  #obsHelp summary { cursor: pointer; }
+  .steps { line-height: 1.7; padding-left: 22px; }
+  .steps li { margin: 4px 0; }
   .tagline { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 6px; }
   .tagline b { text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
   #liveWrap { max-width: 420px; }
@@ -30,7 +34,19 @@
 <main>
   <h1 class="brand"><img src="logo.png" alt="">City of <span>Fighters</span> · Stream</h1>
   <nav class="tabs"><a href="admin.html">Control panel</a><a class="on" href="studio.html">Stream</a><a href="phone.html">Phone remote</a></nav>
-  <div class="dim">Add this once in OBS as a Browser Source (1920×1080): <code id="obs"></code> <button class="small" id="copy">Copy</button></div>
+  <details class="card" id="obsHelp">
+    <summary><b>How to connect to OBS</b> <span class="dim">(once, takes 2 minutes)</span></summary>
+    <ol class="steps">
+      <li>In OBS, open the scene you stream with (the one with your game capture).</li>
+      <li>Under <b>Sources</b> press <b>+</b> and choose <b>Browser</b>. Name it <i>City of Fighters</i> and press OK.</li>
+      <li>In <b>URL</b> paste this link: <code id="obs"></code> <button class="small" id="copy" type="button">Copy link</button></li>
+      <li>Set <b>Width 1920</b> and <b>Height 1080</b>. Leave <b>Custom CSS</b> as it is (it keeps the background see-through).</li>
+      <li>Tick <b>Refresh browser when scene becomes active</b>, then press OK.</li>
+      <li>In the Sources list, drag <i>City of Fighters</i> <b>above</b> your game capture so it sits on top. If it does not fill the screen, right-click it → <b>Transform → Fit to screen</b>.</li>
+      <li>Done. Everything you <b>Deploy</b> below appears on stream within 2 seconds. If OBS ever looks stuck, right-click the source → <b>Refresh</b>.</li>
+    </ol>
+    <p class="dim">Only this one source is needed: scoreboard, popups, bracket, standings, winner and podium all come through it. Nothing is shown to viewers until you deploy.</p>
+  </details>
 
   <form class="card" id="login" style="max-width:420px">
     <h2>Control panel password</h2>
@@ -67,6 +83,7 @@
 const base = location.href.replace(/studio\.html.*$/, '');
 $('obs').textContent = base + 'overlay.html';
 $('copy').onclick = () => navigator.clipboard.writeText(base + 'overlay.html').then(() => toast('Copied'), () => toast('Copy failed'));
+try { if (!localStorage.getItem('cofObsHelpSeen')) { $('obsHelp').open = true; localStorage.setItem('cofObsHelpSeen', '1'); } } catch {} // open the first time
 const ICONS = { scoreboard: '🎮', bracket: '🏆', standings: '📊', podium: '🥇' };
 let draft = null, dirty = false; // { screen, match } being previewed; follows what is live until you change it
 
