@@ -1,9 +1,18 @@
 // Draws the bracket as HTML (styles in bracket.css). Used by the control panel and the OBS bracket page.
-function bracketHTML(S) {
+// With prev (the matches from the last draw), players who just moved in and fresh results get animated.
+const knockedOut = (m, id) => m.winner && !m.auto && m.loser === id &&
+  (m.side === 'L' || m.id === 'GF2' || (m.id === 'GF1' && m.winner === m.a));
+
+function bracketHTML(S, prev) {
+  const before = prev && new Map(prev.map(m => [m.id, m]));
   const slot = (m, s) => {
-    const id = m[s], won = m.winner && !m.auto && m.winner === id;
+    const id = m[s], won = m.winner && !m.auto && m.winner === id, out = knockedOut(m, id);
+    const p = before?.get(m.id), real = id && id !== 'BYE';
+    const cls = [won && 'win', out && 'out', !real && 'dim',
+      real && p && p[s] !== id && 'new',                 // just moved into this spot
+      (won || out) && p && !p.winner && 'fresh'].filter(Boolean).join(' ');
     const name = id === 'BYE' ? 'bye' : (s === 'a' ? m.aName : m.bName) ?? 'TBD';
-    return `<div class="bs${won ? ' win' : ''}${id === 'BYE' || !id ? ' dim' : ''}"><span>${esc(name)}</span><b>${m.winner && !m.auto ? m['g' + s] : ''}</b></div>`;
+    return `<div class="bs ${cls}"><span>${out ? '✕ ' : ''}${esc(name)}</span><b>${m.winner && !m.auto ? m['g' + s] : ''}</b></div>`;
   };
   const box = m => m.a === 'BYE' && m.b === 'BYE'
     ? '<div class="bm gone"></div>'

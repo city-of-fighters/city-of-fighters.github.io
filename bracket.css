@@ -14,3 +14,10 @@
 .bs.win { background: #ff2d7822; font-weight: 700; }
 .bs.win b { color: #ff2d78; }
 .bs.dim { color: #6f6283; font-style: italic; }
+.bs.out span { color: #ff6b8a; text-decoration: line-through; }
+.bs.new { animation: arrive 1.4s cubic-bezier(.2, 1.2, .4, 1); }
+.bs.win.fresh { animation: winflash 1.6s ease-out; }
+.bs.out.fresh { animation: knockout 1s ease-out; }
+@keyframes arrive { 0% { transform: translateX(-40px); opacity: 0; background: #ff2d78; } 60% { opacity: 1; background: #ff2d7888; } 100% { transform: none; } }
+@keyframes winflash { 0% { background: #ff2d78; box-shadow: 0 0 24px #ff2d78; } 100% { background: #ff2d7822; } }
+@keyframes knockout { 0%, 100% { transform: none; } 15% { transform: translateX(-6px); background: #ff6b8a55; } 30% { transform: translateX(6px); } 45% { transform: translateX(-4px); } 60% { transform: translateX(3px); } }

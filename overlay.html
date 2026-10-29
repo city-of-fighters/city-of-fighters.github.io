@@ -4,37 +4,82 @@
 <meta charset="utf-8">
 <title>Scoreboard</title>
 <style>
-  /* OBS Browser Source, 1920x1080, transparent background */
-  html, body { margin: 0; background: transparent; font-family: 'Arial Black', Impact, system-ui, sans-serif; color: #fff; }
-  #bar { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; filter: drop-shadow(0 4px 10px #000a); }
-  .side { width: 560px; display: flex; align-items: center; background: linear-gradient(#22143a, #0c0714); border-bottom: 4px solid #ff2d78; height: 72px; padding: 0 20px; gap: 16px; }
-  .side.b { flex-direction: row-reverse; border-bottom-color: #9b4dff; }
-  .name { flex: 1; font-size: 34px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* OBS Browser Source, 1920x1080, transparent background. Sits at the bottom so Tekken's health bars stay clear. */
+  html, body { margin: 0; background: transparent; font-family: 'Arial Black', Impact, system-ui, sans-serif; color: #fff; overflow: hidden; }
+  #bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; filter: drop-shadow(0 4px 10px #000a); }
+  .side { width: 480px; display: flex; align-items: center; background: linear-gradient(#22143a, #0c0714); border-top: 4px solid #ff2d78; height: 64px; padding: 0 20px; }
+  .side.b { border-top-color: #9b4dff; }
+  .name { flex: 1; font-size: 32px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .b .name { text-align: right; }
-  .rounds { display: flex; gap: 6px; }
-  .rounds i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #c77dff; }
-  .rounds i.on { background: #c77dff; }
-  .games { width: 92px; display: grid; place-items: center; font-size: 52px; background: #ff2d78; text-shadow: 0 0 12px #fff8; box-shadow: inset 0 0 18px #0006; }
-  .b + .games, .games.b { background: #9b4dff; }
+  .games { width: 84px; display: grid; place-items: center; font-size: 46px; background: #ff2d78; text-shadow: 0 0 12px #fff8; box-shadow: inset 0 0 18px #0006; }
+  .games.b { background: #9b4dff; }
   #mid { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0714; padding: 0 18px; min-width: 200px; }
-  #event { font-size: 15px; color: #c77dff; letter-spacing: 2px; }
-  #label { font-size: 20px; text-transform: uppercase; }
+  #event { font-size: 14px; color: #c77dff; letter-spacing: 2px; }
+  #label { font-size: 19px; text-transform: uppercase; }
+
+  /* Popup for results of matches played off stream */
+  #pop { position: absolute; left: 50%; bottom: 110px; transform: translate(-50%, 40px); opacity: 0; transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), opacity .35s;
+         min-width: 640px; max-width: 1700px; white-space: nowrap; text-align: center; padding: 18px 36px; border-radius: 12px;
+         background: linear-gradient(135deg, #2a0f3dee, #0c0714ee); border: 2px solid #ff2d78; box-shadow: 0 0 30px #ff2d7888; }
+  #pop.show { transform: translate(-50%, 0); opacity: 1; }
+  #pop .tag { font-size: 14px; letter-spacing: 3px; color: #c77dff; }
+  #pop .main { font-size: 34px; margin: 4px 0; }
+  #pop .main b { color: #ff2d78; text-shadow: 0 0 16px #ff2d78aa; }
+  #pop .sub { font: 600 20px system-ui, sans-serif; color: #d8c8ee; }
+  #pop .sub.out { color: #ff6b8a; }
 </style>
 </head>
 <body>
 <div id="bar" style="opacity:0">
-  <div class="side a"><div class="name" id="an"></div><div class="rounds" id="ar"></div></div>
+  <div class="side a"><div class="name" id="an"></div></div>
   <div class="games" id="ag">0</div>
   <div id="mid"><div id="event">CITY OF FIGHTERS</div><div id="label"></div></div>
   <div class="games b" id="bg">0</div>
-  <div class="side b"><div class="name" id="bn"></div><div class="rounds" id="br"></div></div>
+  <div class="side b"><div class="name" id="bn"></div></div>
 </div>
+<div id="pop" aria-live="polite"></div>
 <script src="bracket.js"></script><script src="api.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const pips = (n, ft) => Array.from({ length: ft }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+let seen = null, lastStream = null;
+const popups = [];
+
+// What a finished match means for both players, e.g. "KEVIN has won and is moving on to the Winners Final".
+function resultText(s, m) {
+  const name = id => (id === m.a ? m.aName : m.bName).toUpperCase();
+  const champ = m.id === 'GF2' || (m.id === 'GF1' && m.winner === m.a);
+  const next = m.winTo && s.matches.find(x => x.id === m.winTo.id);
+  const main = champ ? `<b>${esc(name(m.winner))}</b> is the CHAMPION!`
+    : `<b>${esc(name(m.winner))}</b> has won and is moving on to the ${esc(next?.label ?? 'Grand Final Reset')}`;
+  const sub = m.id === 'GF1' && !champ ? `<div class="sub">${esc(name(m.loser))} gets one more chance in the reset</div>`
+    : m.loseTo ? `<div class="sub">${esc(name(m.loser))} drops to the losers bracket</div>`
+    : `<div class="sub out">${esc(name(m.loser))} is eliminated</div>`;
+  return `<div class="tag">${esc(m.label.toUpperCase())} · RESULT</div><div class="main">${main}</div>${sub}`;
+}
+
+async function showPopups() {
+  while (popups.length) {
+    $('pop').innerHTML = popups.shift();
+    $('pop').classList.add('show');
+    await new Promise(r => setTimeout(r, 6000));
+    $('pop').classList.remove('show');
+    await new Promise(r => setTimeout(r, 600));
+  }
+}
+
 async function draw() {
   const s = view(await rpc('cof_public'));
+  const done = s.matches.filter(x => x.winner && !x.auto);
+  // Pop up results of matches that finished since the last check, except the one the viewers just watched.
+  if (seen) {
+    const fresh = done.filter(x => !seen.has(x.id) && x.id !== lastStream);
+    const idle = !popups.length && !$('pop').classList.contains('show');
+    popups.push(...fresh.map(x => resultText(s, x)));
+    if (idle && popups.length) showPopups();
+  }
+  seen = new Set(done.map(x => x.id));
+  lastStream = s.streamMatch;
+
   const m = s.matches.find(x => x.id === s.streamMatch);
   $('bar').style.opacity = m ? 1 : 0;
   if (!m) return;
@@ -44,10 +89,7 @@ async function draw() {
   $('bn').textContent = m.bName ?? 'TBD';
   $('ag').textContent = m.ga;
   $('bg').textContent = m.gb;
-  $('ar').innerHTML = pips(m.ra, s.ftRounds);
-  $('br').innerHTML = pips(m.rb, s.ftRounds);
 }
-draw();
 live(draw);
 </script>
 </body>
