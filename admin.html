@@ -3,22 +3,23 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>City of Fighters Control</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="bracket.css">
 <style>
   .score { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; text-align: center; }
   .score .big { font-size: 48px; font-weight: 800; }
   .score .pname { font-size: 22px; font-weight: 700; }
   .score .ctl { display: grid; grid-template-columns: auto auto auto; gap: 6px; justify-content: center; align-items: center; margin-top: 8px; }
   .score .ctl button { font-size: 18px; padding: 6px 14px; }
-  .live { border-color: var(--red); }
-  body.locked main > .card:not(#login), body.locked .grid, body:not(.locked) #login { display: none; }
-  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #ff6b78; color: #000; padding: 8px 16px; border-radius: 6px; display: none; }
+  .live { border-color: var(--pink); }
+  body.locked main > .card:not(#login), body.locked main > .row, body.locked .grid, body:not(.locked) #login { display: none; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #ff6b9a; color: #000; padding: 8px 16px; border-radius: 6px; display: none; }
 </style>
 </head>
 <body class="locked">
 <main>
-  <h1>City of <span>Fighters</span> · Control</h1>
-  <div class="dim">Sign-up page: <a id="signup" style="color:var(--gold)"></a> · OBS: <code id="obs1"></code> and <code id="obs2"></code> (Browser Source, 1920×1080)</div>
+  <h1 class="brand"><img src="logo.png" alt="">City of <span>Fighters</span> · Control</h1>
+  <div class="dim">Sign-up page: <a id="signup"></a> · Phone remote: <a id="phone">phone.html</a><br>
+    OBS (Browser Source, 1920×1080): scoreboard <code id="obs1"></code> · standings <code id="obs2"></code> · bracket <code id="obs3"></code></div>
 
   <form class="card" id="login" style="max-width:420px">
     <h2>Control panel password</h2>
@@ -38,6 +39,8 @@
     <div id="streamBody" class="dim">No match on stream. Pick one below with “Put on stream”.</div>
   </div>
 
+  <div class="row" style="margin:-4px 0 4px"><button id="undoBtn" data-act="undo">↶ Undo last action</button></div>
+
   <div class="grid">
     <div class="card"><h2>Ready to play</h2><div id="ready" class="dim">Bracket not started.</div></div>
     <div class="card"><h2>Standings</h2><table><tbody id="standings"></tbody></table></div>
@@ -51,6 +54,8 @@
       <button class="primary" data-act="start" data-confirm="Start the bracket? Registration will close.">Start bracket</button>
     </div>
   </div>
+
+  <div class="card" id="bracketCard" hidden><h2>Bracket</h2><div style="overflow-x:auto" id="bracket"></div></div>
 
   <div class="card"><h2>Finished matches</h2><table><tbody id="done"></tbody></table></div>
 
@@ -73,78 +78,12 @@
   </div>
 </main>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script><script src="control.js"></script>
 <script>
-const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
 const base = location.href.replace(/admin\.html.*$/, '');
 $('signup').href = $('signup').textContent = base;
-$('obs1').textContent = base + 'overlay.html';
-$('obs2').textContent = base + 'leaderboard.html';
-let S, pw = '';
-try { pw = sessionStorage.getItem('cofPw') || ''; } catch {}
-
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => (t.style.display = 'none'), 3000); }
-
-const notStarted = d => { if (d.matches.length) throw new Error('Bracket already started'); };
-// When the streamed match ends, put the winner's next match on stream (or any ready match).
-function nextOnStream(d, id) {
-  const m = d.matches.find(x => x.id === id);
-  if (!m?.winner || d.streamMatch !== id) return;
-  const ready = d.matches.filter(B.isReady);
-  const next = ready.find(x => x.a === m.winner || x.b === m.winner) ?? ready[0];
-  if (next) d.streamMatch = next.id;
-}
-const actions = {
-  settings: (d, b) => {
-    if (typeof b.name === 'string') d.name = b.name.slice(0, 60);
-    if (typeof b.rules === 'string') d.rules = b.rules.slice(0, 5000);
-    if (typeof b.regOpen === 'boolean') d.regOpen = b.regOpen;
-  },
-  shuffle: d => { notStarted(d); d.order.sort(() => Math.random() - 0.5); },
-  move: (d, b) => { // seeding: move player up/down
-    notStarted(d);
-    const i = d.order.indexOf(b.id), j = i + (b.dir < 0 ? -1 : 1);
-    if (i >= 0 && j >= 0 && j < d.order.length) [d.order[i], d.order[j]] = [d.order[j], d.order[i]];
-  },
-  start: d => { notStarted(d); d.matches = B.build(d.order); d.regOpen = false; },
-  resetBracket: d => { d.matches = []; d.streamMatch = null; },
-  report: (d, b) => { B.report(d.matches, b.id, b.slot); nextOnStream(d, b.id); },
-  reopen: (d, b) => B.reopen(d.matches, b.id),
-  score: (d, b) => { B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1); nextOnStream(d, b.id); },
-  stream: (d, b) => { d.streamMatch = b.id || null; },
-};
-
-// Clicks run one at a time, each on fresh data, so fast "+ round" presses are never lost.
-let queue = Promise.resolve();
-const post = (act, body = {}) => (queue = queue.then(async () => {
-  try {
-    if (act === 'removePlayer') await rpc('cof_admin_remove', { p_pw: pw, p_id: body.id });
-    else if (act === 'resetAll') await rpc('cof_admin_reset', { p_pw: pw });
-    else {
-      const d = (await rpc('cof_admin_get', { p_pw: pw })).data;
-      actions[act](d, body);
-      await rpc('cof_admin_save', { p_pw: pw, p_data: d });
-    }
-    await draw();
-  } catch (e) { toast(e.message); }
-}));
-
-$('login').onsubmit = async e => {
-  e.preventDefault();
-  pw = $('pw').value;
-  try { await draw(); try { sessionStorage.setItem('cofPw', pw); } catch {} startPolling(); }
-  catch (err) { $('loginErr').textContent = err.message; }
-};
-let polling = false;
-const startPolling = () => { if (!polling) { polling = true; live(draw); } };
-
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-act]');
-  if (!b || (b.dataset.confirm && !confirm(b.dataset.confirm))) return;
-  post(b.dataset.act, b.dataset.body ? JSON.parse(b.dataset.body) : {});
-});
+$('phone').href = base + 'phone.html';
+for (const [id, page] of [['obs1', 'overlay'], ['obs2', 'leaderboard'], ['obs3', 'bracket']]) $(id).textContent = base + page + '.html';
 $('saveSettings').onclick = () => post('settings', { name: $('ename').value, rules: $('rules').value });
 $('regOpen').onchange = e => post('settings', { regOpen: e.target.checked });
 
@@ -189,6 +128,9 @@ async function draw() {
 
   $('standings').innerHTML = S.standings.map(r => `<tr><td>${r.place ?? '—'}</td><td>${esc(r.name)}</td><td class="dim">${r.w}–${r.l} (games ${r.gw}–${r.gl})</td></tr>`).join('');
 
+  $('bracketCard').hidden = !started;
+  if (started) $('bracket').innerHTML = bracketHTML(S);
+
   const finished = S.standings[0]?.place === 1;
   $('resultsCard').hidden = !finished;
   if (finished) drawResults();
@@ -198,47 +140,49 @@ const logo = new Image();
 logo.src = 'logo.png';
 const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
 
+// Results poster: the logo fills the left side and fades into the results on the right.
 async function drawResults() {
   await logo.decode().catch(() => {});
-  const c = $('png').getContext('2d'), F = 'Arial Black, Impact, sans-serif';
-  const bg = c.createLinearGradient(0, 0, 0, 1080);
-  bg.addColorStop(0, '#1a1c24'); bg.addColorStop(1, '#08090c');
-  c.fillStyle = bg; c.fillRect(0, 0, 1920, 1080);
-  c.fillStyle = '#e0283a'; c.fillRect(0, 0, 1920, 10); c.fillRect(0, 1070, 1920, 10);
-  if (logo.complete && logo.naturalWidth) c.drawImage(logo, 830, 24, 260, 260);
-  c.textAlign = 'center';
-  c.fillStyle = '#f2b632'; c.font = `30px ${F}`;
-  c.fillText(`${S.name.toUpperCase()} · ${S.game.toUpperCase()} · ${new Date().toLocaleDateString()}`, 960, 330);
+  const c = $('png').getContext('2d'), F = 'Arial Black, Impact, sans-serif', PINK = '#ff2d78', VIOLET = '#c77dff', DIM = '#a99bbd';
+  c.fillStyle = '#0c0714'; c.fillRect(0, 0, 1920, 1080);
+  if (logo.complete && logo.naturalWidth) c.drawImage(logo, -40, 0, 1080, 1080);
+  const fade = c.createLinearGradient(640, 0, 1100, 0);
+  fade.addColorStop(0, '#0c071400'); fade.addColorStop(1, '#0c0714');
+  c.fillStyle = fade; c.fillRect(640, 0, 1280, 1080);
+  const glow = c.createRadialGradient(1480, 330, 0, 1480, 330, 520);
+  glow.addColorStop(0, '#ff2d7833'); glow.addColorStop(1, '#ff2d7800');
+  c.fillStyle = glow; c.fillRect(1000, 0, 920, 1080);
+  c.fillStyle = PINK; c.fillRect(0, 0, 1920, 8); c.fillRect(0, 1072, 1920, 8);
 
-  const done = S.matches.filter(m => m.winner && !m.auto);
+  const X = 1480, top = S.standings, done = S.matches.filter(m => m.winner && !m.auto);
   const games = done.reduce((n, m) => n + m.ga + m.gb, 0);
-  c.fillStyle = '#9aa0b0'; c.font = '26px system-ui, sans-serif';
-  c.fillText(`${S.players.length} players  ·  ${done.length} matches  ·  ${games} games played`, 960, 375);
+  const text = (t, x, y, font, color, align = 'center', blur = 0) => {
+    c.font = font; c.fillStyle = color; c.textAlign = align; c.shadowColor = color; c.shadowBlur = blur;
+    c.fillText(t, x, y, 800); c.shadowBlur = 0;
+  };
+  text(`${S.game.toUpperCase()} · RESULTS`, X, 100, `34px ${F}`, VIOLET, 'center', 12);
+  text(`${new Date().toLocaleDateString()}  ·  ${S.players.length} players  ·  ${done.length} matches  ·  ${games} games`, X, 145, '24px system-ui, sans-serif', DIM);
 
-  // podium: 2nd left, 1st middle (taller), 3rd right
-  const top = S.standings;
-  const podium = [[top[1], 360, 470, '#c0c6d4'], [top[0], 960, 420, '#f2b632'], [top.find(r => r.place === 3), 1560, 500, '#cd7f4a']];
-  for (const [r, x, y, col] of podium) {
-    if (!r) continue;
-    const w = 520;
-    c.fillStyle = '#181a21'; c.fillRect(x - w / 2, y, w, 230);
-    c.fillStyle = col; c.fillRect(x - w / 2, y, w, 8);
-    c.font = `56px ${F}`; c.fillText(ord(r.place), x, y + 75);
-    c.fillStyle = '#ffffff'; c.font = `italic 50px ${F}`;
-    c.fillText(r.name.toUpperCase().slice(0, 16), x, y + 145, w - 30);
-    c.fillStyle = '#9aa0b0'; c.font = '28px system-ui, sans-serif';
-    c.fillText(`${r.w}–${r.l} in matches  ·  games ${r.gw}–${r.gl}`, x, y + 200);
-  }
+  text('CHAMPION', X, 250, `30px ${F}`, PINK, 'center', 16);
+  text(top[0].name.toUpperCase(), X, 345, `italic 92px ${F}`, '#ffffff', 'center', 28);
+  text(`${top[0].w}–${top[0].l} in matches  ·  games ${top[0].gw}–${top[0].gl}`, X, 395, '28px system-ui, sans-serif', DIM);
 
-  // places 4+ in two columns
-  // shortcut: shows up to 8 more players; bigger fields are cut off on the image.
-  const rest = top.filter(r => r.place > 3).slice(0, 8);
-  c.font = '28px system-ui, sans-serif';
-  rest.forEach((r, i) => {
-    const x = i < 4 ? 260 : 1060, y = 800 + (i % 4) * 58;
-    c.textAlign = 'left'; c.fillStyle = '#f2b632'; c.fillText(ord(r.place), x, y);
-    c.fillStyle = '#ffffff'; c.fillText(r.name.slice(0, 20), x + 100, y);
-    c.textAlign = 'right'; c.fillStyle = '#9aa0b0'; c.fillText(`${r.w}–${r.l}  ·  games ${r.gw}–${r.gl}`, x + 600, y);
+  // 2nd and 3rd side by side
+  [[top[1], X - 200, '#d9d2e6'], [top.find(r => r.place === 3), X + 200, '#e08a5a']].forEach(([r, x, col]) => {
+    if (!r) return;
+    c.fillStyle = '#170f24cc'; c.fillRect(x - 185, 450, 370, 190);
+    c.fillStyle = col; c.fillRect(x - 185, 450, 370, 6);
+    text(ord(r.place), x, 512, `44px ${F}`, col);
+    text(r.name.toUpperCase().slice(0, 16), x, 572, `italic 38px ${F}`, '#ffffff');
+    text(`${r.w}–${r.l}  ·  games ${r.gw}–${r.gl}`, x, 618, '24px system-ui, sans-serif', DIM);
+  });
+
+  // shortcut: lists 4th to 11th only; bigger fields are cut off on the image.
+  top.filter(r => r.place > 3).slice(0, 8).forEach((r, i) => {
+    const y = 720 + i * 46;
+    text(ord(r.place), X - 370, y, '30px system-ui, sans-serif', VIOLET, 'left');
+    text(r.name.slice(0, 20), X - 270, y, '30px system-ui, sans-serif', '#ffffff', 'left');
+    text(`${r.w}–${r.l}  ·  games ${r.gw}–${r.gl}`, X + 370, y, '30px system-ui, sans-serif', DIM, 'right');
   });
   c.textAlign = 'center';
 }
@@ -250,7 +194,7 @@ $('download').onclick = () => $('png').toBlob(b => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }, 'image/png');
-if (pw) draw().then(startPolling, () => {});
+boot();
 </script>
 </body>
 </html>

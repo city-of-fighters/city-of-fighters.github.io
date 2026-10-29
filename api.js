@@ -3,6 +3,8 @@
 const API = 'https://glqxyghdcindimggnwml.supabase.co/rest/v1/rpc/';
 const KEY = 'sb_publishable_OatiT521MtUNk6gLQIa0yQ_67echjry';
 
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 async function rpc(fn, body = {}) {
   const r = await fetch(API + fn, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const d = r.status === 204 ? null : await r.json();

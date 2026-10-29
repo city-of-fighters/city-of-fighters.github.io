@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bracket</title>
+<link rel="stylesheet" href="bracket.css">
+<style>
+  /* OBS Browser Source, 1920x1080, transparent background */
+  html, body { margin: 0; background: transparent; font-family: system-ui, sans-serif; overflow: hidden; }
+  #box { position: absolute; top: 20px; left: 50%; transform-origin: top center; background: #0c0714e8; border-top: 6px solid #ff2d78; padding: 18px 26px; border-radius: 0 0 10px 10px; }
+  #top { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #c77dff; letter-spacing: 2px; font: 700 20px system-ui, sans-serif; }
+  #top img { width: 70px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div id="box"><div id="top"><img src="logo.png" alt=""><span id="sub"></span></div><div id="b"></div></div>
+<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script>
+<script>
+async function draw() {
+  const s = view(await rpc('cof_public'));
+  document.getElementById('sub').textContent = `${s.game.toUpperCase()} · BRACKET`;
+  document.getElementById('b').innerHTML = s.matches.length ? bracketHTML(s) : '<span style="color:#a99bbd">Bracket not started yet.</span>';
+  const box = document.getElementById('box');
+  const k = Math.min(1, 1880 / box.offsetWidth, 1040 / box.offsetHeight); // shrink big brackets to fit the screen
+  box.style.transform = `translateX(-50%) scale(${k})`;
+}
+live(draw);
+</script>
+</body>
+</html>
