@@ -12,6 +12,7 @@
   header { display: flex; align-items: center; gap: 10px; }
   header img { width: 44px; border-radius: 6px; }
   header a { margin-left: auto; color: var(--dim); font-size: 14px; }
+  .seg { position: sticky; top: 0; z-index: 5; }
   #label { text-align: center; color: var(--violet); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 6px; font-weight: 700; }
   .pad { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 18px; border-radius: 14px;
          border: 2px solid var(--pink); background: #ff2d7818; text-align: left; margin-bottom: 8px; }
@@ -29,14 +30,19 @@
   .next { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .next div { flex: 1; min-width: 0; }
   .next button { padding: 10px 12px; }
-  .screens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
-  .screens button { padding: 10px 2px; font-size: 13px; }
+  .screens { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .screens button { padding: 16px 4px; font-size: 16px; font-weight: 700; }
   .screens button.on { border-color: var(--pink); background: #ff2d7826; font-weight: 700; }
   .next .res { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; margin-top: 8px; font-size: 14px; }
   .next .res button { padding: 8px 12px; }
   .next { flex-wrap: wrap; }
-  details.card summary { cursor: pointer; font-weight: 700; color: var(--violet); text-transform: uppercase; }
-  #bracketWrap { overflow-x: auto; margin-top: 10px; }
+  .sec { margin-top: 14px; }
+  .where { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0 8px; }
+  .tag { font-size: 12px; font-weight: 800; letter-spacing: 1px; padding: 3px 8px; border-radius: 6px; }
+  .tag.on { background: #ff2d78; color: #fff; } .tag.off { background: #2e2140; color: var(--dim); }
+  .next .sc { font-weight: 800; color: var(--pink); margin-left: 6px; }
+  .next .acts { display: flex; gap: 6px; flex-basis: 100%; margin-top: 8px; }
+  .next .acts button { flex: 1; }
   .win { text-align: center; font-size: 22px; font-weight: 800; color: var(--pink); margin: 10px 0; }
   body.locked #remote, body:not(.locked) #login { display: none; }
   #toast { position: fixed; bottom: 90px; left: 16px; right: 16px; z-index: 60; background: #ff6b9a; color: #000; padding: 10px 16px; border-radius: 8px; display: none; text-align: center; }
@@ -44,7 +50,7 @@
 </head>
 <body class="locked app">
 <main>
-  <header><img src="logo.png" alt=""><b>Admin</b><a href="admin.html">Dashboard</a><a href="studio.html" style="margin-left:12px">Stream</a><a href="#" id="logoutLink" style="margin-left:12px">Log out</a></header>
+  <header><img src="icon-192.png" alt=""><b>Admin remote</b><a href="#" id="logoutLink">Log out</a></header>
 
   <form class="card" id="login">
     <h2>Admin login</h2>
@@ -55,13 +61,13 @@
   </form>
 
   <div id="remote">
-    <div id="stream"></div>
-    <button id="undo" data-act="undo">↶ Undo</button>
-    <h2>Show on OBS</h2>
-    <div class="screens" id="screens"></div>
-    <h2>Other matches</h2>
-    <div id="next" class="dim"></div>
-    <details class="card" id="bracketCard"><summary>Bracket</summary><div id="bracketWrap"></div></details>
+    <div class="seg" role="tablist" id="tabs"></div>
+    <section class="sec" id="t-score"><div id="score"></div><button id="undo" data-act="undo">↶ Undo</button></section>
+    <section class="sec" id="t-matches"><div id="next" class="dim"></div></section>
+    <section class="sec" id="t-bracket"><div class="card" id="bracketWrap"></div></section>
+    <section class="sec" id="t-obs"><h2>Show on OBS</h2><div class="screens" id="screens"></div>
+      <p class="dim" style="font-size:13px">Changes what viewers see right away. The podium also appears by itself when the tournament ends.</p></section>
+    <p class="dim" style="font-size:13px;text-align:center">Create, schedule and start tournaments in the control panel on a computer.</p>
   </div>
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
@@ -75,28 +81,51 @@ const pad = (m, s) => `<button class="pad ${s}" data-act="score" data-body='${es
   <span>${pips(m['r' + s], S.ftRounds)} <span class="hint">tap = round won</span></span></button>`;
 const fix = (m, s) => `<div class="fix">${btn('− round', 'score', { id: m.id, side: s, kind: 'round', delta: -1 }, '')}${btn('+ game', 'score', { id: m.id, side: s, kind: 'game', delta: 1 }, '')}${btn('− game', 'score', { id: m.id, side: s, kind: 'game', delta: -1 }, '')}</div>`;
 
-let bracketKey = '';
+// Remote sections: Score (any match, on stream or not), Matches, Bracket, OBS. Kept on this device while it is open.
+let tab = 'score', scoring = null, round = null;
+const TABS = { score: '🎮 Score', matches: '📋 Matches', bracket: '🏆 Bracket', obs: '📺 OBS' };
+const winText = m => `${esc(m.winner === m.a ? m.aName : m.bName)} wins ${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)}!`;
+
 async function draw() {
   S = view(await adminGet());
   document.body.classList.remove('locked');
-  const m = S.matches.find(x => x.id === S.streamMatch);
-  $('stream').innerHTML = !S.matches.length ? '<p class="dim">Bracket not started. Start it in the full control panel.</p>'
-    : !m ? '<p class="dim">No match on stream. Pick one below.</p>'
-    : `<div id="label">${esc(m.label)}</div>` + (m.winner
-      ? `<div class="win">${esc(m.winner === m.a ? m.aName : m.bName)} wins ${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)}!</div><p class="dim" style="text-align:center">OBS shows the winner, then “waiting for the next match”. Put the next match on stream below.</p>`
-      : m.ready ? pad(m, 'a') + fix(m, 'a') + pad(m, 'b') + fix(m, 'b') : '<p class="dim">Waiting for players.</p>');
-  const ready = S.matches.filter(x => x.ready && x.id !== S.streamMatch);
-  const champ = S.finished ? S.standings.filter(r => r.place === 1).map(r => r.name).join(' & ') : null;
-  $('next').innerHTML = champ ? `<p class="win">🏆 ${esc(champ)} is champion!</p><p>Download the results image in the full control panel.</p>`
-    : ready.map(x => `<div class="next"><div><div class="dim" style="font-size:13px">${esc(x.label)}</div><b>${esc(x.aName)}</b> vs <b>${esc(x.bName)}</b></div>
-      ${btn('On stream', 'stream', { id: x.id }, 'primary')}
-      <div class="res" style="flex-basis:100%">${['a', 'b'].map(k => `<span>${esc(k === 'a' ? x.aName : x.bName)} won</span>
-        ${[0, 1].map(l => btn(`${S.ftGames}–${l}`, 'result', k === 'a' ? { id: x.id, ga: S.ftGames, gb: l } : { id: x.id, ga: l, gb: S.ftGames }, '')).join('')}`).join('')}</div></div>`).join('') || 'No other matches ready.';
-  $('screens').innerHTML = Object.entries(SCREENS).map(([k, v]) => `<button data-act="screen" data-body='${esc(JSON.stringify({ screen: k }))}' class="${k === S.screen ? 'on' : ''}">${v}</button>`).join('');
-  $('bracketCard').hidden = !S.matches.length;
-  const key = JSON.stringify([S.matches, S.streamMatch]); // redraw only on changes, so scrolling the bracket isn't reset
-  if (S.matches.length && key !== bracketKey) { $('bracketWrap').innerHTML = bracketHTML(S); bracketKey = key; }
+  render();
 }
+function render() {
+  $('tabs').innerHTML = Object.entries(TABS).map(([k, t]) => `<button type="button" role="tab" data-tab="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${t}</button>`).join('');
+  for (const k of Object.keys(TABS)) $('t-' + k).hidden = k !== tab;
+  const champ = S.finished ? S.standings.filter(r => r.place === 1).map(r => r.name).join(' & ') : null;
+
+  // Score: the match picked under Matches, otherwise the one on stream
+  const m = S.matches.find(x => x.id === scoring) ?? S.matches.find(x => x.id === S.streamMatch);
+  const live = m && m.id === S.streamMatch;
+  $('score').innerHTML = !S.matches.length ? '<p class="dim">No tournament running yet.</p>'
+    : champ ? `<p class="win">🏆 ${esc(champ)} is champion!</p>`
+    : !m ? '<p class="dim">Nothing to score. Pick a match under 📋 Matches.</p>'
+    : `<div class="where"><b>${esc(m.label)}</b>${live ? '<span class="tag on">● ON STREAM</span>' : '<span class="tag off">OFF STREAM</span>'}</div>`
+      + (m.winner ? `<div class="win">${winText(m)}</div>` + (live ? '<p class="dim" style="text-align:center">OBS shows the winner, then “waiting”. Pick the next match under 📋 Matches.</p>' : '')
+        : m.ready ? pad(m, 'a') + fix(m, 'a') + pad(m, 'b') + fix(m, 'b')
+          + (live ? '' : `<div class="row">${btn('📺 Put this match on stream', 'stream', { id: m.id }, 'primary')}</div><p class="dim" style="font-size:13px">Viewers don't see this score; when it ends, a short result popup shows on stream.</p>`)
+        : '<p class="dim">Waiting for players.</p>');
+
+  // Matches: everything that can be played now
+  const ready = S.matches.filter(x => x.ready);
+  $('next').innerHTML = champ ? `<p class="win">🏆 ${esc(champ)} is champion!</p>`
+    : ready.map(x => `<div class="next"><div><div class="dim" style="font-size:13px">${esc(x.label)}${x.id === S.streamMatch ? ' · <b style="color:var(--pink)">ON STREAM</b>' : ''}</div>
+        <b>${esc(x.aName)}</b> vs <b>${esc(x.bName)}</b>${x.ga || x.gb ? `<span class="sc">${x.ga}–${x.gb}</span>` : ''}</div>
+      <div class="acts"><button type="button" data-score="${esc(x.id)}">🎮 Score</button>${x.id === S.streamMatch ? '' : btn('📺 On stream', 'stream', { id: x.id }, '')}</div>
+      <div class="res" style="flex-basis:100%">${['a', 'b'].map(k => `<span>${esc(k === 'a' ? x.aName : x.bName)} won</span>
+        ${[0, 1].map(l => btn(`${S.ftGames}–${l}`, 'result', k === 'a' ? { id: x.id, ga: S.ftGames, gb: l } : { id: x.id, ga: l, gb: S.ftGames }, '')).join('')}`).join('')}</div></div>`).join('')
+      || (S.matches.length ? 'No matches ready right now.' : 'No tournament running yet.');
+
+  $('bracketWrap').innerHTML = S.matches.length ? mobileBracketHTML(S, round) : '<p class="dim">No tournament running yet.</p>';
+  $('screens').innerHTML = Object.entries(SCREENS).map(([k, v]) => `<button data-act="screen" data-body='${esc(JSON.stringify({ screen: k }))}' class="${k === S.screen ? 'on' : ''}">${v}</button>`).join('');
+}
+$('remote').addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]')?.dataset.tab, sc = e.target.closest('[data-score]')?.dataset.score, r = e.target.closest('[data-round]')?.dataset.round;
+  if (t) tab = t; else if (sc) { scoring = sc; tab = 'score'; scrollTo(0, 0); } else if (r) round = r; else return;
+  render();
+});
 $('logoutLink').onclick = e => { e.preventDefault(); logout(); };
 boot();
 </script>

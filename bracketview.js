@@ -32,3 +32,37 @@ function bracketHTML(S, prev) {
   return `<div class="bracket">${part('Winners', side('W'))}${part('Losers', side('L'))}
     ${part('Finals', gf.map(m => `<div class="bcol"><div class="bhead">${esc(m.label)}</div><div class="bstack">${box(m)}</div></div>`).join(''))}</div>`;
 }
+
+// Phone bracket: pick a round from buttons that wrap onto new lines, then see that round's matches as a list,
+// so nothing scrolls sideways. sel is the chosen round's key; by default the first round still being played.
+function bracketRounds(S) {
+  const groups = new Map();
+  for (const m of S.matches) {
+    if (m.skipped || m.a === 'BYE' || m.b === 'BYE' || (m.id === 'GF2' && !m.a)) continue; // byes aren't real matches; the reset only once it's on
+    const key = m.side === 'GF' ? m.id : `${m.side}${m.round}`;
+    if (!groups.has(key)) groups.set(key, { key, label: m.label, matches: [] });
+    groups.get(key).matches.push(m);
+  }
+  const order = { W: 0, R: 0, L: 1, GF: 2 };
+  return [...groups.values()].sort((x, y) => order[x.matches[0].side] - order[y.matches[0].side] || x.matches[0].round - y.matches[0].round);
+}
+
+function mobileBracketHTML(S, sel) {
+  const rounds = bracketRounds(S);
+  if (!rounds.length) return '<p class="dim">Not started yet.</p>';
+  const open = r => r.matches.some(m => !m.winner);
+  const cur = rounds.find(r => r.key === sel) ?? rounds.find(open) ?? rounds.at(-1);
+  const label = id => S.matches.find(x => x.id === id)?.label;
+  const row = (m, s) => {
+    const id = m[s], won = m.winner && !m.auto && m.winner === id, out = knockedOut(S, m, id);
+    const name = id === 'BYE' ? 'bye' : (s === 'a' ? m.aName : m.bName) ?? 'TBD';
+    return `<div class="mrow${won ? ' win' : ''}${out ? ' out' : ''}${!id || id === 'BYE' ? ' dim' : ''}"><span>${out ? '✕ ' : ''}${esc(name)}</span><b>${m.winner && !m.auto ? m['g' + s] : (m.ga || m.gb) && !m.winner ? m['g' + s] : ''}</b></div>`;
+  };
+  const badge = m => m.id === S.streamMatch && !m.winner ? '<i class="mb live">● LIVE</i>' : m.winner ? '<i class="mb">Done</i>'
+    : m.ready ? (m.ga || m.gb ? '<i class="mb ready">Playing</i>' : '<i class="mb ready">Ready</i>') : '<i class="mb">Waiting</i>';
+  const card = (m, i) => `<div class="mcard${m.id === S.streamMatch && !m.winner ? ' live' : ''}">
+    <div class="mhead"><span>Match ${i + 1}</span>${badge(m)}</div>${row(m, 'a')}${row(m, 'b')}
+    ${m.winTo || m.loseTo ? `<div class="mnext">${m.winTo ? `Winner → ${esc(label(m.winTo.id))}` : ''}${m.winTo && m.loseTo ? ' · ' : ''}${m.loseTo ? `Loser → ${esc(label(m.loseTo.id))}` : ''}</div>` : ''}</div>`;
+  return `<div class="mchips">${rounds.map(r => `<button type="button" class="mchip${r === cur ? ' on' : ''}${open(r) ? '' : ' done'}" data-round="${r.key}">${esc(r.label)}</button>`).join('')}</div>
+    <div class="mlist">${cur.matches.map(card).join('')}</div>`;
+}

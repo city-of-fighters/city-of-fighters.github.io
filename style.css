@@ -50,3 +50,10 @@ body.app { padding-bottom: 76px; }
 #consent li { margin: 6px 0; }
 .legal { text-align: center; font-size: 13px; color: var(--dim); margin: 18px 0 8px; }
 .legal a { color: var(--dim); }
+/* Nothing in the app scrolls sideways */
+body.app { overflow-x: hidden; }
+body.app main { overflow-x: hidden; }
+/* Segmented switch (Standings / Bracket, remote sections) */
+.seg { display: flex; gap: 4px; padding: 4px; background: #120a1e; border: 1px solid var(--line); border-radius: 12px; margin: 14px 0 0; }
+.seg button { flex: 1; padding: 10px 4px; border: 0; border-radius: 9px; background: transparent; color: var(--dim); font-weight: 700; font-size: 14px; }
+.seg button.on { background: var(--pink); color: #fff; box-shadow: 0 0 12px #ff2d7855; }

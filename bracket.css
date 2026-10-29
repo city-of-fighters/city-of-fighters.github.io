@@ -21,3 +21,19 @@
 @keyframes arrive { 0% { transform: translateX(-40px); opacity: 0; background: #ff2d78; } 60% { opacity: 1; background: #ff2d7888; } 100% { transform: none; } }
 @keyframes winflash { 0% { background: #ff2d78; box-shadow: 0 0 24px #ff2d78; } 100% { background: #ff2d7822; } }
 @keyframes knockout { 0%, 100% { transform: none; } 15% { transform: translateX(-6px); background: #ff6b8a55; } 30% { transform: translateX(6px); } 45% { transform: translateX(-4px); } 60% { transform: translateX(3px); } }
+/* Phone bracket (mobileBracketHTML): round buttons that wrap, matches as a list */
+.mchips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.mchip { padding: 6px 10px; font-size: 13px; border-radius: 999px; }
+.mchip.done { color: #a99bbd; }
+.mchip.on { border-color: #ff2d78; background: #ff2d7826; color: #fff; font-weight: 700; }
+.mlist { display: grid; gap: 8px; }
+.mcard { background: #120a1e; border: 1px solid #2e2140; border-radius: 10px; padding: 8px 10px; }
+.mcard.live { border-color: #ff2d78; box-shadow: 0 0 10px #ff2d7866; }
+.mhead { display: flex; justify-content: space-between; font-size: 12px; color: #a99bbd; margin-bottom: 4px; }
+.mb { font-style: normal; } .mb.live { color: #ff2d78; font-weight: 700; } .mb.ready { color: #c77dff; }
+.mrow { display: flex; justify-content: space-between; gap: 8px; padding: 4px 2px; font-size: 16px; }
+.mrow span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.mrow.win { font-weight: 800; } .mrow.win b { color: #ff2d78; }
+.mrow.out span { color: #ff6b8a; text-decoration: line-through; }
+.mrow.dim { color: #6f6283; font-style: italic; }
+.mnext { font-size: 12px; color: #a99bbd; margin-top: 4px; border-top: 1px solid #2e2140; padding-top: 4px; }
