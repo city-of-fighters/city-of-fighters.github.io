@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>City of Fighters Sign-up</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <main style="max-width:560px">
-  <h1 id="title"><img src="/logo.svg" alt="City of Fighters" style="width:100%;max-width:420px"></h1>
+  <h1 id="title"><img src="logo.svg" alt="City of Fighters" style="width:100%;max-width:420px"></h1>
   <div class="dim" id="game">Tekken 8 tournament</div>
 
   <div class="card" id="formCard">
@@ -31,22 +31,23 @@
   </div>
   <div class="card" id="closed" hidden><h2>Registration is closed</h2><p class="dim">See you on stream.</p></div>
 </main>
+<script src="bracket.js"></script><script src="api.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-fetch('/api/state').then(r => r.json()).then(s => {
+rpc('cof_public').then(view).then(s => {
   $('game').textContent = `${s.game} tournament · ${s.players.length} players signed up`;
   $('rules').textContent = s.rules;
   if (!s.regOpen || s.matches.length) { $('formCard').hidden = true; $('closed').hidden = false; }
-});
+}).catch(e => ($('err').textContent = e.message));
 $('f').onsubmit = async e => {
   e.preventDefault();
   $('err').textContent = '';
-  const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: $('name').value, email: $('email').value, agree: $('agree').checked }) });
-  const d = await r.json();
-  if (!r.ok) return ($('err').textContent = d.error);
+  const name = $('name').value.trim(), email = $('email').value.trim().toLowerCase();
+  let count;
+  try { count = await rpc('cof_register', { p_name: name, p_email: email, p_agree: $('agree').checked }); }
+  catch (err) { return ($('err').textContent = err.message); }
   $('formCard').hidden = true; $('done').hidden = false;
-  $('doneText').textContent = `${d.name} is registered for City of Fighters with ${d.email}. You are player #${d.count}.`;
+  $('doneText').textContent = `${name} is registered for City of Fighters with ${email}. You are player #${count}.`;
 };
 </script>
 </body>

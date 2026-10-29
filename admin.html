@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>City of Fighters Control</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="style.css">
 <style>
   .score { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; text-align: center; }
   .score .big { font-size: 48px; font-weight: 800; }
@@ -11,13 +11,21 @@
   .score .ctl { display: grid; grid-template-columns: auto auto auto; gap: 6px; justify-content: center; align-items: center; margin-top: 8px; }
   .score .ctl button { font-size: 18px; padding: 6px 14px; }
   .live { border-color: var(--red); }
+  body.locked main > .card:not(#login), body.locked .grid, body:not(.locked) #login { display: none; }
   #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #ff6b78; color: #000; padding: 8px 16px; border-radius: 6px; display: none; }
 </style>
 </head>
-<body>
+<body class="locked">
 <main>
   <h1>City of <span>Fighters</span> · Control</h1>
-  <div class="dim">Sign-up page: <a id="signup" style="color:var(--gold)"></a> · OBS: <code>/overlay</code> and <code>/leaderboard</code> (Browser Source, 1920×1080)</div>
+  <div class="dim">Sign-up page: <a id="signup" style="color:var(--gold)"></a> · OBS: <code id="obs1"></code> and <code id="obs2"></code> (Browser Source, 1920×1080)</div>
+
+  <form class="card" id="login" style="max-width:420px">
+    <h2>Control panel password</h2>
+    <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
+    <p class="err" id="loginErr"></p>
+    <button class="primary" type="submit">Unlock</button>
+  </form>
 
   <div class="card" id="resultsCard" hidden>
     <h2>Tournament finished · results image</h2>
@@ -65,17 +73,72 @@
   </div>
 </main>
 <div id="toast" role="alert"></div>
+<script src="bracket.js"></script><script src="api.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
-$('signup').href = $('signup').textContent = location.origin + '/';
-let S;
+const base = location.href.replace(/admin\.html.*$/, '');
+$('signup').href = $('signup').textContent = base;
+$('obs1').textContent = base + 'overlay.html';
+$('obs2').textContent = base + 'leaderboard.html';
+let S, pw = '';
+try { pw = sessionStorage.getItem('cofPw') || ''; } catch {}
 
-async function post(act, body = {}) {
-  const r = await fetch('/api/admin/' + act, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!r.ok) { const t = $('toast'); t.textContent = (await r.json()).error; t.style.display = 'block'; setTimeout(() => (t.style.display = 'none'), 3000); }
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => (t.style.display = 'none'), 3000); }
+
+const notStarted = d => { if (d.matches.length) throw new Error('Bracket already started'); };
+// When the streamed match ends, put the winner's next match on stream (or any ready match).
+function nextOnStream(d, id) {
+  const m = d.matches.find(x => x.id === id);
+  if (!m?.winner || d.streamMatch !== id) return;
+  const ready = d.matches.filter(B.isReady);
+  const next = ready.find(x => x.a === m.winner || x.b === m.winner) ?? ready[0];
+  if (next) d.streamMatch = next.id;
 }
+const actions = {
+  settings: (d, b) => {
+    if (typeof b.name === 'string') d.name = b.name.slice(0, 60);
+    if (typeof b.rules === 'string') d.rules = b.rules.slice(0, 5000);
+    if (typeof b.regOpen === 'boolean') d.regOpen = b.regOpen;
+  },
+  shuffle: d => { notStarted(d); d.order.sort(() => Math.random() - 0.5); },
+  move: (d, b) => { // seeding: move player up/down
+    notStarted(d);
+    const i = d.order.indexOf(b.id), j = i + (b.dir < 0 ? -1 : 1);
+    if (i >= 0 && j >= 0 && j < d.order.length) [d.order[i], d.order[j]] = [d.order[j], d.order[i]];
+  },
+  start: d => { notStarted(d); d.matches = B.build(d.order); d.regOpen = false; },
+  resetBracket: d => { d.matches = []; d.streamMatch = null; },
+  report: (d, b) => { B.report(d.matches, b.id, b.slot); nextOnStream(d, b.id); },
+  reopen: (d, b) => B.reopen(d.matches, b.id),
+  score: (d, b) => { B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1); nextOnStream(d, b.id); },
+  stream: (d, b) => { d.streamMatch = b.id || null; },
+};
+
+// Clicks run one at a time, each on fresh data, so fast "+ round" presses are never lost.
+let queue = Promise.resolve();
+const post = (act, body = {}) => (queue = queue.then(async () => {
+  try {
+    if (act === 'removePlayer') await rpc('cof_admin_remove', { p_pw: pw, p_id: body.id });
+    else if (act === 'resetAll') await rpc('cof_admin_reset', { p_pw: pw });
+    else {
+      const d = (await rpc('cof_admin_get', { p_pw: pw })).data;
+      actions[act](d, body);
+      await rpc('cof_admin_save', { p_pw: pw, p_data: d });
+    }
+    await draw();
+  } catch (e) { toast(e.message); }
+}));
+
+$('login').onsubmit = async e => {
+  e.preventDefault();
+  pw = $('pw').value;
+  try { await draw(); try { sessionStorage.setItem('cofPw', pw); } catch {} startPolling(); }
+  catch (err) { $('loginErr').textContent = err.message; }
+};
+let polling = false;
+const startPolling = () => { if (!polling) { polling = true; live(draw); } };
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
@@ -94,7 +157,8 @@ function side(m, s) {
 }
 
 async function draw() {
-  S = await (await fetch('/api/admin/state')).json();
+  S = view(await rpc('cof_admin_get', { p_pw: pw }));
+  document.body.classList.remove('locked');
   const started = S.matches.length > 0;
   if (document.activeElement !== $('ename')) $('ename').value = S.name;
   if (document.activeElement !== $('rules')) $('rules').value = S.rules;
@@ -131,7 +195,7 @@ async function draw() {
 }
 
 const logo = new Image();
-logo.src = '/logo.svg';
+logo.src = 'logo.svg';
 const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
 
 async function drawResults() {
@@ -186,8 +250,7 @@ $('download').onclick = () => $('png').toBlob(b => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }, 'image/png');
-draw();
-new EventSource('/events').onmessage = draw;
+if (pw) draw().then(startPolling, () => {});
 </script>
 </body>
 </html>

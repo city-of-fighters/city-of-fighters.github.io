@@ -29,11 +29,12 @@
   <div class="games b" id="bg">0</div>
   <div class="side b"><div class="name" id="bn"></div><div class="rounds" id="br"></div></div>
 </div>
+<script src="bracket.js"></script><script src="api.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const pips = (n, ft) => Array.from({ length: ft }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
 async function draw() {
-  const s = await (await fetch('/api/state')).json();
+  const s = view(await rpc('cof_public'));
   const m = s.matches.find(x => x.id === s.streamMatch);
   $('bar').style.opacity = m ? 1 : 0;
   if (!m) return;
@@ -47,7 +48,7 @@ async function draw() {
   $('br').innerHTML = pips(m.rb, s.ftRounds);
 }
 draw();
-new EventSource('/events').onmessage = draw;
+live(draw);
 </script>
 </body>
 </html>
