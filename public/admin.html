@@ -49,6 +49,7 @@
         <div><label for="ename">Event name</label><input type="text" id="ename" maxlength="60"></div>
         <div><label for="egame">Game</label><input type="text" id="egame" maxlength="40"></div>
       </div>
+      <label for="eventAt">📅 Tournament date and time (shown in the app)</label><input type="datetime-local" id="eventAt">
       <label for="rules">Rules (shown on the registration page)</label><textarea id="rules"></textarea>
       <fieldset class="regbox"><legend>Registration opens</legend>
         <label class="row"><input type="radio" name="regMode" value="open"> Right away (when the tournament is created)</label>
@@ -67,6 +68,7 @@
         <div><label for="nName">Event name</label><input type="text" id="nName" maxlength="60" value="City of Fighters"></div>
         <div><label for="nGame">Game</label><input type="text" id="nGame" maxlength="40" value="Tekken 8"></div>
       </div>
+      <label for="nEventAt">📅 Tournament date and time</label><input type="datetime-local" id="nEventAt">
       <label for="nFormat">Tournament type</label><select id="nFormat"></select>
       <fieldset class="regbox"><legend>Registration opens</legend>
         <label class="row"><input type="radio" name="nRegMode" value="open" checked> Right away</label>
@@ -129,13 +131,13 @@ $('nFormat').innerHTML = $('format').innerHTML;
 $('saveSettings').onclick = () => {
   if (radio('regMode') === 'at' && !$('regAt').value) return toast('Pick the date and time registration opens');
   post('settings', { name: $('ename').value, game: $('egame').value, rules: $('rules').value,
-    regMode: radio('regMode'), regAt: fromLocal($('regAt').value), regOpen: $('regOpen').checked });
+    regMode: radio('regMode'), regAt: fromLocal($('regAt').value), regOpen: $('regOpen').checked, eventAt: fromLocal($('eventAt').value) });
 };
 $('createBtn').onclick = () => {
   if (radio('nRegMode') === 'at' && !$('nRegAt').value) return toast('Pick the date and time registration opens');
   if (S.players.length && !confirm(`Create a new tournament? The ${S.players.length} players and all results of the current one are removed.`)) return;
   post('create', { name: $('nName').value, game: $('nGame').value, format: $('nFormat').value, rules: S.rules,
-    regMode: radio('nRegMode'), regAt: fromLocal($('nRegAt').value) });
+    regMode: radio('nRegMode'), regAt: fromLocal($('nRegAt').value), eventAt: fromLocal($('nEventAt').value) });
   $('newTour').open = false;
 };
 $('logoutBtn').onclick = logout;
@@ -143,7 +145,7 @@ $('mailBtn').onclick = () => confirm('Email the winner banner to the champion no
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 function tourStatus() {
   if (S.status === 'none') return '⚪ No tournament in progress. Create one below.';
-  const head = `<b>${esc(S.name)}</b> · ${esc(S.game)} · ${esc(B.FORMATS[S.format] ?? '')} · `;
+  const head = `<b>${esc(S.name)}</b> · ${esc(S.game)} · ${esc(B.FORMATS[S.format] ?? '')}${S.eventAt ? ` · 📅 ${esc(fmtDate(S.eventAt))}` : ''} · `;
   if (S.status === 'running') return head + '🟢 In progress';
   if (S.status === 'finished') return head + '🏆 Finished';
   return head + { open: '🟢 Registration open', soon: `🕒 Registration opens ${esc(fmtDate(S.regAt))}`, closed: '🔴 Registration closed' }[S.regState];
@@ -168,6 +170,7 @@ async function draw() {
     $('regOpen').checked = S.regOpen;
     document.querySelector(`input[name=regMode][value=${S.regMode === 'at' ? 'at' : 'open'}]`).checked = true;
     $('regAt').value = toLocal(S.regAt);
+    $('eventAt').value = toLocal(S.eventAt);
   }
   $('pc').textContent = S.players.length;
   $('playersCard').querySelectorAll('[data-act=shuffle],#startBtn,#format').forEach(b => (b.disabled = started));

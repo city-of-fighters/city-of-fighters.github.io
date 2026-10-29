@@ -53,7 +53,7 @@ function render() {
   if (!s || registered) return;
   const state = s.regState === 'soon' && Date.now() + clockSkew >= new Date(s.regAt) ? 'open' : s.regState;
   $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
-  $('game').textContent = s.status === 'none' ? '' : `${s.game} tournament · ${s.players.length} signed up`;
+  $('game').textContent = s.status === 'none' ? '' : `${s.game} tournament${s.eventAt ? ' · 📅 ' + fmtDate(s.eventAt) : ''} · ${s.players.length} signed up`;
   $('rules').textContent = s.rules;
   $('formCard').hidden = state !== 'open';
   $('msg').hidden = state === 'open';

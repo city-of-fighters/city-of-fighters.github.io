@@ -25,6 +25,7 @@ const actions = {
     if (typeof b.game === 'string') d.game = b.game.slice(0, 40);
     if (b.regMode === 'open' || b.regMode === 'at') d.regMode = b.regMode;
     if ('regAt' in b) d.regAt = b.regAt && !isNaN(new Date(b.regAt)) ? new Date(b.regAt).toISOString() : null;
+    if ('eventAt' in b) d.eventAt = b.eventAt && !isNaN(new Date(b.eventAt)) ? new Date(b.eventAt).toISOString() : null;
   },
   end: d => { Object.assign(d, { status: 'none', regOpen: false, streamMatch: null, screen: 'scoreboard' }); },
   shuffle: d => { notStarted(d); d.order.sort(() => Math.random() - 0.5); },
@@ -62,7 +63,8 @@ const actions = {
 function newTournament(b) {
   const at = b.regMode === 'at' && b.regAt && !isNaN(new Date(b.regAt)) ? new Date(b.regAt).toISOString() : null;
   if (b.regMode === 'at' && !at) throw new Error('Pick the date and time registration opens');
-  return { status: 'setup', regOpen: true, regMode: at ? 'at' : 'open', regAt: at,
+  const eventAt = b.eventAt && !isNaN(new Date(b.eventAt)) ? new Date(b.eventAt).toISOString() : null;
+  return { status: 'setup', regOpen: true, regMode: at ? 'at' : 'open', regAt: at, eventAt,
     name: String(b.name || 'City of Fighters').slice(0, 60), game: String(b.game || 'Tekken 8').slice(0, 40),
     format: B.FORMATS[b.format] ? b.format : 'double', createdAt: new Date().toISOString(), ...(b.rules ? { rules: String(b.rules).slice(0, 5000) } : {}) };
 }
