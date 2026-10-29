@@ -43,25 +43,37 @@
   @keyframes ring { from { transform: scale(1); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
 
   /* the match on stream ended: winner for 6 s, then "waiting" until a new match is put on stream */
-  .card { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); text-align: center; opacity: 0; pointer-events: none; }
-  #winCard { padding: 14px 60px 12px; background: linear-gradient(135deg, #3a0f45f0, #0c0714f0); border-radius: 12px; border: 2px solid #ffd24a; box-shadow: 0 0 40px #ffd24a66; overflow: hidden; }
-  #winCard.on { opacity: 1; animation: winIn .7s cubic-bezier(.2, 1.5, .4, 1); }
-  #winCard::before { content: ''; position: absolute; top: 0; bottom: 0; width: 120px; left: -160px; background: linear-gradient(90deg, transparent, #fff6, transparent); transform: skewX(-20deg); animation: sweep 1.6s .5s ease-in-out 2; }
-  #winCard .wl { font-size: 15px; letter-spacing: 4px; color: #c77dff; }
-  #winCard .wn { font-size: 54px; color: #ffd24a; text-shadow: 0 0 24px #ffd24aaa; text-transform: uppercase; line-height: 1.1; }
-  #winCard .ws { font: 700 24px system-ui, sans-serif; color: #f4eefc; }
-  #waitCard { padding: 4px; border-radius: 14px; overflow: hidden; }
-  #waitCard.on { opacity: 1; animation: fadeUp .6s both; }
-  #waitCard::before { content: ''; position: absolute; inset: -150%; background: conic-gradient(from 0deg, transparent 0 70%, #ff1a1a 85%, #ff7a7a 90%, transparent 95%); animation: spin 2.4s linear infinite; } /* red LED running round the box */
-  #waitCard .in { position: relative; padding: 14px 50px; border-radius: 11px; background: #0c0714f2; box-shadow: inset 0 0 24px #ff1a1a33; }
-  #waitCard .wt { font-size: 30px; letter-spacing: 3px; color: #fff; text-shadow: 0 0 14px #ff1a1a; animation: breathe 2s ease-in-out infinite; }
-  #waitCard .ws { font: 600 17px system-ui, sans-serif; color: #c9bddb; margin-top: 2px; }
-  #waitCard .dots i { display: inline-block; width: 10px; height: 10px; margin: 0 4px; border-radius: 50%; background: #ff2d2d; box-shadow: 0 0 10px #ff2d2d; animation: blink 1.2s infinite; }
+  .full { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+          opacity: 0; transition: opacity .5s; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, #2a0f3df2, #0c0714fa 70%); }
+  .full.on { opacity: 1; }
+  .full > * { position: relative; }
+  /* winner: logo drops in, name slams in, light rays turn behind it */
+  #winCard .rays { position: absolute; width: 1800px; height: 1800px; left: 50%; top: 50%; margin: -900px 0 0 -900px;
+                   background: repeating-conic-gradient(#ffd24a1c 0 6deg, transparent 6deg 18deg); animation: spin 40s linear infinite;
+                   -webkit-mask: radial-gradient(circle, #000 15%, transparent 55%); mask: radial-gradient(circle, #000 15%, transparent 55%); }
+  #winCard img { width: 400px; filter: drop-shadow(0 0 24px #ff2d78aa); animation: logoIn .8s both cubic-bezier(.2, 1.4, .4, 1); }
+  #winCard .wl { font-size: 30px; letter-spacing: 12px; color: #c77dff; margin-top: 16px; animation: fadeUp .6s .5s both; }
+  #winCard .wn { font-size: 150px; line-height: 1.05; font-style: italic; text-transform: uppercase; color: #ffd24a; overflow: hidden; padding: 0 40px;
+                 text-shadow: 0 0 40px #ffd24aaa; animation: slam .6s .8s both cubic-bezier(.2, 1.3, .4, 1), glowGold 1.6s 1.6s infinite alternate; }
+  #winCard .wn::after { content: ''; position: absolute; top: 0; bottom: 0; width: 160px; left: -200px; background: linear-gradient(90deg, transparent, #fff8, transparent); transform: skewX(-20deg); animation: sweep 1.4s 1.5s ease-in-out 2; }
+  #winCard .ws { font: 700 40px system-ui, sans-serif; color: #f4eefc; animation: fadeUp .6s 1.3s both; }
+  #winCard .ws b { color: #ffd24a; font-size: 52px; }
+  /* waiting: floating logo, red LED running round the message */
+  #waitCard img { width: 520px; filter: drop-shadow(0 0 24px #ff2d7888); animation: float 4s ease-in-out infinite; }
+  #waitCard .led { margin-top: 36px; padding: 6px; border-radius: 20px; overflow: hidden; }
+  #waitCard.on .led { animation: fadeUp .7s both; }
+  #waitCard .led::before { content: ''; position: absolute; inset: -200%; background: conic-gradient(from 0deg, transparent 0 70%, #ff1a1a 85%, #ff8a8a 90%, transparent 95%); animation: spin 2.4s linear infinite; }
+  #waitCard .in { position: relative; padding: 30px 90px; border-radius: 15px; background: #0c0714; box-shadow: inset 0 0 40px #ff1a1a33; }
+  #waitCard .wt { font-size: 64px; letter-spacing: 5px; color: #fff; text-shadow: 0 0 18px #ff1a1a; animation: breathe 2s ease-in-out infinite; }
+  #waitCard .ws { font: 600 30px system-ui, sans-serif; color: #c9bddb; margin-top: 8px; }
+  #waitCard .dots i { display: inline-block; width: 16px; height: 16px; margin: 0 6px; border-radius: 50%; background: #ff2d2d; box-shadow: 0 0 14px #ff2d2d; animation: blink 1.2s infinite; }
   #waitCard .dots i:nth-child(2) { animation-delay: .2s; } #waitCard .dots i:nth-child(3) { animation-delay: .4s; }
-  @keyframes winIn { from { transform: translateX(-50%) scale(.3); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+  @keyframes slam { from { transform: scale(3); opacity: 0; filter: blur(8px); } to { transform: none; opacity: 1; filter: none; } }
+  @keyframes glowGold { to { text-shadow: 0 0 70px #ffd24a, 0 0 10px #fff; } }
+  @keyframes float { 50% { transform: translateY(-16px); } }
   @keyframes sweep { to { left: 110%; } }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes breathe { 50% { text-shadow: 0 0 26px #ff1a1a, 0 0 4px #fff; } }
+  @keyframes breathe { 50% { text-shadow: 0 0 34px #ff1a1a, 0 0 6px #fff; } }
   @keyframes blink { 0%, 100% { opacity: .2; transform: scale(.7); } 40% { opacity: 1; transform: none; } }
 
   /* Bracket and standings panels */
@@ -120,9 +132,10 @@
     <div class="games b" id="bg">0</div>
     <div class="side b"><div class="name" id="bn"></div></div>
   </div>
-  <div class="card" id="winCard"></div>
-  <div class="card" id="waitCard"><div class="in"><div class="wt">WAITING FOR THE NEXT MATCH</div>
-    <div class="ws"><span class="dots"><i></i><i></i><i></i></span> <span id="waitSub"></span></div></div></div>
+  <div class="full" id="winCard"></div>
+  <div class="full" id="waitCard"><img src="logo-clear.png" alt="City of Fighters">
+    <div class="led"><div class="in"><div class="wt">WAITING FOR THE NEXT MATCH</div>
+      <div class="ws"><span class="dots"><i></i><i></i><i></i></span> <span id="waitSub"></span></div></div></div></div>
 </div>
 <div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
 <div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
@@ -188,8 +201,9 @@ function scoreboard(s, m) {
   const live = !!m && !m.winner;
   if (m?.winner && sbMatch === m.id && sbLive) { // the viewers just watched it end
     const w = m.winner === m.a ? 'a' : 'b';
-    $('winCard').innerHTML = `<div class="wl">${esc(m.label.toUpperCase())} · WINNER</div><div class="wn">🏆 ${esc(w === 'a' ? m.aName : m.bName)}</div>
-      <div class="ws">wins ${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)} against ${esc(w === 'a' ? m.bName : m.aName)}</div>`;
+    $('winCard').innerHTML = `<div class="rays"></div><img src="logo-clear.png" alt=""><div class="wl">${esc(m.label.toUpperCase())} · WINNER</div>
+      <div class="wn">${esc(w === 'a' ? m.aName : m.bName)}</div>
+      <div class="ws">wins <b>${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)}</b> against ${esc(w === 'a' ? m.bName : m.aName)}</div>`;
     winUntil = Date.now() + 6000; // the next draw after this switches to "waiting"
   }
   const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
