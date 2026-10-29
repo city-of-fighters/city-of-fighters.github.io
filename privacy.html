@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0c0714"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Privacy</title>
+<link rel="icon" href="icon-192.png"><link rel="stylesheet" href="style.css">
+<style> main { max-width: 760px; } .card h2 { margin-top: 0; } li { margin: 6px 0; } </style>
+</head>
+<body>
+<!-- Keep this page in step with what the code stores: supabase/city-of-fighters.sql, consent.js, control.js, the winner email function. -->
+<main>
+  <h1 class="brand"><img src="logo.png" alt="">Privacy policy</h1>
+  <p class="dim">Last updated 29 October 2026. <a href="app.html">Back to the app</a></p>
+
+  <div class="card"><h2>The short version</h2>
+    <p>City of Fighters runs Tekken tournaments for the City of Fighters Twitch stream. There are no player accounts, no cookies,
+      no analytics, no trackers and no adverts. We only collect what a tournament needs, and never sell or share it.</p>
+  </div>
+
+  <div class="card"><h2>What we collect when you register</h2>
+    <ul>
+      <li><b>Gamer tag:</b> shown publicly in the app, on the leaderboard, in the bracket and on the Twitch stream.</li>
+      <li><b>Email address:</b> seen only by the tournament organizers (who log in with a password). It is used to contact you
+        about the tournament you entered and, if you win, to send you a winner banner by email. Nothing else: no newsletters,
+        no marketing.</li>
+      <li><b>Your results</b> (matches, games and placing) are public, like any tournament result.</li>
+    </ul>
+    <p>This is stored in our database at <a href="https://supabase.com/privacy" target="_blank" rel="noreferrer">Supabase</a>.
+      The database cannot be read directly; the app only reaches it through checked functions, and emails are only ever returned
+      to a logged-in organizer.</p>
+  </div>
+
+  <div class="card"><h2>How long we keep it</h2>
+    <p>Registrations are kept until the organizers create the next tournament, which deletes all players and results of the
+      previous one. Want yours removed sooner? Ask an organizer, or open an issue on the
+      <a href="https://github.com/GaberPet/city-of-fighters/issues" target="_blank" rel="noreferrer">project's GitHub page</a>
+      (don't post your email there; just say which gamer tag).</p>
+  </div>
+
+  <div class="card"><h2>The winner email</h2>
+    <p>When a tournament ends, the champion is sent one email with a winner banner image. It is sent through a Gmail account of
+      the organizers, so Google handles that one email (see <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google's privacy policy</a>).
+      Other players receive no email.</p>
+  </div>
+
+  <div class="card"><h2>What is stored on your device</h2>
+    <p>Only if you choose <b>Allow saving</b> on the first visit, the app keeps in your browser's local storage:</p>
+    <ul>
+      <li><b>Organizer login:</b> a random login code (not the password) that expires after 24 hours. Players never have one.</li>
+      <li><b>Small settings:</b> that you hid the “Install the app” tip, and that the OBS help was already shown.</li>
+      <li><b>Your storage choice:</b> kept even if you choose “Don't save anything”, so you aren't asked every visit.</li>
+    </ul>
+    <p>If you choose <b>Don't save anything</b>, the app still works; organizers just log in again on every visit.
+      The installed app also keeps an offline copy of its own pages (no personal data). The desktop app stores the same small
+      settings on your own computer.</p>
+    <p><b>Your choice now:</b> <span id="choice"></span> <button class="small" id="change">Change</button></p>
+  </div>
+
+  <div class="card"><h2>Other services</h2>
+    <p>The app is hosted on GitHub Pages. Like any web host, GitHub receives standard request details such as your IP address and
+      browser type, and may log them for security (<a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noreferrer">GitHub's privacy statement</a>).
+      To stop password guessing, the database briefly remembers the internet address of wrong organizer logins and deletes it
+      after 15 minutes. The stream itself is on Twitch, which has its own privacy policy.</p>
+  </div>
+
+  <div class="card"><h2>Children</h2>
+    <p>If you are under 16, ask a parent or guardian before registering. A gamer tag can be any nickname; there's no need to use
+      your real name.</p>
+  </div>
+
+  <div class="card"><h2>Changes and contact</h2>
+    <p>If what the app collects changes, this page and the first-start screen are updated and the date above changes.
+      Questions: ask the organizers on the stream, or open an issue on the
+      <a href="https://github.com/GaberPet/city-of-fighters/issues" target="_blank" rel="noreferrer">project's GitHub page</a>.</p>
+  </div>
+  <p class="legal"><a href="terms.html">Terms</a> · <a href="app.html">Back to the app</a></p>
+</main>
+<script src="bracket.js"></script><script src="api.js"></script>
+<script>
+const show = () => (document.getElementById('choice').textContent =
+  { all: 'Allow saving', none: "Don't save anything" }[consentChoice()] ?? 'not chosen yet');
+show();
+document.getElementById('change').onclick = () => {
+  const next = consentChoice() === 'all' ? 'none' : 'all';
+  try {
+    localStorage.setItem('cofConsent', next);
+    if (next === 'none') for (const k of ['cofToken', 'cofInstallNo', 'cofObsHelpSeen']) localStorage.removeItem(k); // forget what was saved
+  } catch {}
+  show();
+};
+</script>
+</body>
+</html>

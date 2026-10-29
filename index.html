@@ -28,7 +28,7 @@
       <label for="email">Email</label>
       <input type="email" id="email" maxlength="120" required autocomplete="email">
       <div class="card" style="margin:14px 0"><h2>Rules</h2><pre class="rules" id="rules"></pre></div>
-      <label class="row" style="color:var(--text)"><input type="checkbox" id="agree" required> I have read and accept the rules</label>
+      <label class="row" style="color:var(--text);align-items:flex-start"><input type="checkbox" id="agree" required style="margin-top:4px"> <span>I accept the rules, the <a href="terms.html">terms</a> and the <a href="privacy.html">privacy policy</a>. My gamer tag is shown publicly; my email is only for the organizers and the winner banner.</span></label>
       <p class="err" id="err" role="alert"></p>
       <button class="primary" type="submit">Register</button>
     </form>
@@ -39,9 +39,10 @@
     <p id="doneText"></p>
     <p class="dim">Show this screen to the organizer if asked. Follow the tournament in the Leaderboard tab.</p>
   </div>
+  <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });

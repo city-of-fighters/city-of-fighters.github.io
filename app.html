@@ -34,9 +34,10 @@
   </div>
 
   <div id="body"></div>
+  <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a class="on" href="app.html"><b>🏆</b>Leaderboard</a><a href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="bracketview.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
@@ -88,7 +89,7 @@ addEventListener('beforeinstallprompt', e => {
   if (!dismissed()) { $('installCard').hidden = false; $('installBtn').hidden = false; $('installText').textContent = 'Get City of Fighters as an app on your home screen.'; }
 });
 $('installBtn').onclick = async () => { installEvent?.prompt(); await installEvent?.userChoice; $('installCard').hidden = true; };
-$('installClose').onclick = () => { $('installCard').hidden = true; try { localStorage.setItem('cofInstallNo', '1'); } catch {} };
+$('installClose').onclick = () => { $('installCard').hidden = true; try { if (canSave()) localStorage.setItem('cofInstallNo', '1'); } catch {} };
 addEventListener('appinstalled', () => ($('installCard').hidden = true));
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>

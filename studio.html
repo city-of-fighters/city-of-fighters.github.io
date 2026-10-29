@@ -79,12 +79,12 @@
   </div>
 </main>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="control.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="banner.js"></script><script src="control.js"></script>
 <script>
 const base = location.href.replace(/studio\.html.*$/, '');
 $('obs').textContent = base + 'overlay.html';
 $('copy').onclick = () => navigator.clipboard.writeText(base + 'overlay.html').then(() => toast('Copied'), () => toast('Copy failed'));
-try { if (!localStorage.getItem('cofObsHelpSeen')) { $('obsHelp').open = true; localStorage.setItem('cofObsHelpSeen', '1'); } } catch {} // open the first time
+try { if (!localStorage.getItem('cofObsHelpSeen')) { $('obsHelp').open = true; if (canSave()) localStorage.setItem('cofObsHelpSeen', '1'); } } catch {} // open the first time
 const ICONS = { scoreboard: '🎮', bracket: '🏆', standings: '📊', podium: '🥇' };
 let draft = null, dirty = false; // { screen, match } being previewed; follows what is live until you change it
 
