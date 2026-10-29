@@ -2,22 +2,25 @@
 
 Tekken 8 tournament manager for Twitch streams: player sign-up, double-elimination bracket, live OBS overlays, and a results image at the end.
 
-## Run
+Website (GitHub Pages): https://gaberpet.github.io/city-of-fighters/
 
-Needs [Node.js](https://nodejs.org) 18+. No install step.
-
-```bash
-node server.js
-```
-
-| Page | URL |
+| Page | Link |
 |---|---|
-| Control panel | http://localhost:3000/admin |
-| Player sign-up (same Wi‑Fi) | http://YOUR-PC-IP:3000/ |
-| OBS scoreboard | http://localhost:3000/overlay |
-| OBS standings | http://localhost:3000/leaderboard |
+| Player sign-up | https://gaberpet.github.io/city-of-fighters/ |
+| Control panel (password) | https://gaberpet.github.io/city-of-fighters/admin.html |
+| OBS scoreboard | https://gaberpet.github.io/city-of-fighters/overlay.html |
+| OBS standings | https://gaberpet.github.io/city-of-fighters/leaderboard.html |
 
 Add the OBS pages as **Browser Source**, 1920×1080. The background is transparent.
+
+## One-time setup
+
+Data lives in Supabase (same project as Iron Fist Academy, tables start with `cof_`).
+
+1. Open `supabase/city-of-fighters.sql`, change `CHANGE-ME` on the last line to your control panel password.
+2. Paste it into Supabase → SQL Editor → Run.
+
+To change the password later, run only the last line again with the new password.
 
 ## Rules built in
 
@@ -32,4 +35,4 @@ Add the OBS pages as **Browser Source**, 1920×1080. The background is transpare
 3. The winner moves on and the stream switches to their next match automatically. Use **Reopen** to fix a mistake.
 4. When the grand final ends, a results image appears in the control panel: **Download PNG**.
 
-Data is saved in `data.json` (not in git). `node test.js` checks the bracket logic.
+`node test.js` checks the bracket logic. Every push to `main` runs it and publishes `public/` to GitHub Pages.

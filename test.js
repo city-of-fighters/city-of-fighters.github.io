@@ -1,6 +1,6 @@
 // Run: node test.js — plays random full tournaments and checks double-elimination rules.
 const assert = require('assert');
-const B = require('./bracket');
+const B = require('./public/bracket');
 
 for (let n = 2; n <= 33; n++) for (let t = 0; t < 20; t++) {
   const ids = Array.from({ length: n }, (_, i) => 'p' + i);

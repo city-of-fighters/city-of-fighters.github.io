@@ -154,4 +154,5 @@ function standings(players, matches) {
   return list.sort((x, y) => (x.place ?? 0) - (y.place ?? 0) || y.w - x.w || (y.gw - y.gl) - (x.gw - x.gl));
 }
 
-module.exports = { build, report, reopen, score, label, standings, isReady, FT_ROUNDS, FT_GAMES };
+const B = { build, report, reopen, score, label, standings, isReady, FT_ROUNDS, FT_GAMES };
+if (typeof module === 'object') module.exports = B; // Node (tests); in the browser B is a global
