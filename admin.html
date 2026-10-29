@@ -195,7 +195,7 @@ async function draw() {
 }
 
 const logo = new Image();
-logo.src = 'logo.svg';
+logo.src = 'logo.png';
 const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
 
 async function drawResults() {
@@ -205,7 +205,7 @@ async function drawResults() {
   bg.addColorStop(0, '#1a1c24'); bg.addColorStop(1, '#08090c');
   c.fillStyle = bg; c.fillRect(0, 0, 1920, 1080);
   c.fillStyle = '#e0283a'; c.fillRect(0, 0, 1920, 10); c.fillRect(0, 1070, 1920, 10);
-  if (logo.complete && logo.naturalWidth) c.drawImage(logo, 660, 20, 600, 260);
+  if (logo.complete && logo.naturalWidth) c.drawImage(logo, 830, 24, 260, 260);
   c.textAlign = 'center';
   c.fillStyle = '#f2b632'; c.font = `30px ${F}`;
   c.fillText(`${S.name.toUpperCase()} · ${S.game.toUpperCase()} · ${new Date().toLocaleDateString()}`, 960, 330);
