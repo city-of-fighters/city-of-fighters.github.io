@@ -1,9 +1,17 @@
 // Control logic shared by the control panel (admin.html) and the phone remote (phone.html).
-// Each page has #login, #pw, #loginErr and #toast, and defines draw() which sets S.
+// Each page has #login, #pw, #loginErr and #toast, and defines draw() which sets S (using adminGet()).
+// Logging in swaps the password for a token (the database allows 3 wrong passwords per 15 minutes).
 const $ = id => document.getElementById(id);
 const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
-let S, pw = '';
-try { pw = sessionStorage.getItem('cofPw') || ''; } catch {}
+let S, token = '';
+try { token = localStorage.getItem('cofToken') || ''; } catch {}
+const saveToken = t => { token = t; try { t ? localStorage.setItem('cofToken', t) : localStorage.removeItem('cofToken'); } catch {} };
+
+async function adminGet() {
+  try { return await rpc('cof_admin_get', { p_token: token }); }
+  catch (e) { if (/log in/i.test(e.message)) { saveToken(''); document.body.classList.add('locked'); } throw e; }
+}
+async function logout() { await rpc('cof_logout', { p_token: token }).catch(() => {}); saveToken(''); location.reload(); }
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => (t.style.display = 'none'), 3000); }
 
@@ -13,7 +21,11 @@ const actions = {
     if (typeof b.name === 'string') d.name = b.name.slice(0, 60);
     if (typeof b.rules === 'string') d.rules = b.rules.slice(0, 5000);
     if (typeof b.regOpen === 'boolean') d.regOpen = b.regOpen;
+    if (typeof b.game === 'string') d.game = b.game.slice(0, 40);
+    if (b.regMode === 'open' || b.regMode === 'at') d.regMode = b.regMode;
+    if ('regAt' in b) d.regAt = b.regAt && !isNaN(new Date(b.regAt)) ? new Date(b.regAt).toISOString() : null;
   },
+  end: d => { Object.assign(d, { status: 'none', regOpen: false, streamMatch: null, screen: 'scoreboard' }); },
   shuffle: d => { notStarted(d); d.order.sort(() => Math.random() - 0.5); },
   move: (d, b) => { // seeding: move player up/down
     notStarted(d);
@@ -24,9 +36,9 @@ const actions = {
     notStarted(d);
     d.format = B.FORMATS[b.format] ? b.format : 'double';
     d.matches = B.build(d.order, d.format);
-    Object.assign(d, { regOpen: false, screen: 'scoreboard' });
+    Object.assign(d, { regOpen: false, screen: 'scoreboard', status: 'running' });
   },
-  resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard' }); },
+  resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard', status: 'setup' }); },
   report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
   reopen: (d, b) => B.reopen(d.matches, b.id),
   score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1)),
@@ -45,13 +57,22 @@ const actions = {
     if ('match' in b) d.streamMatch = b.match || null;
   },
 };
+// Settings for a brand-new tournament (the database clears players and results first).
+function newTournament(b) {
+  const at = b.regMode === 'at' && b.regAt && !isNaN(new Date(b.regAt)) ? new Date(b.regAt).toISOString() : null;
+  if (b.regMode === 'at' && !at) throw new Error('Pick the date and time registration opens');
+  return { status: 'setup', regOpen: true, regMode: at ? 'at' : 'open', regAt: at,
+    name: String(b.name || 'City of Fighters').slice(0, 60), game: String(b.game || 'Tekken 8').slice(0, 40),
+    format: B.FORMATS[b.format] ? b.format : 'double', ...(b.rules ? { rules: String(b.rules).slice(0, 5000) } : {}) };
+}
 const SCREENS = { scoreboard: 'Scoreboard', bracket: 'Bracket', standings: 'Standings', podium: 'Podium' };
 // After a result: show the podium the moment the tournament is decided. The finished match stays on stream
 // (the OBS page shows the winner, then "waiting") until the coordinator puts the next one on.
 function played(d, fn) {
   const was = B.finished(d.matches);
   fn();
-  if (!was && B.finished(d.matches)) d.screen = 'podium';
+  if (!was && B.finished(d.matches)) Object.assign(d, { screen: 'podium', status: 'finished' });
+  if (was && !B.finished(d.matches)) d.status = 'running';
 }
 
 // Undo steps back through this device's own last 20 actions (kept in memory, so the overlays
@@ -62,18 +83,18 @@ const undoStack = [];
 let queue = Promise.resolve();
 const post = (act, body = {}) => (queue = queue.then(async () => {
   try {
-    if (act === 'removePlayer') await rpc('cof_admin_remove', { p_pw: pw, p_id: body.id });
-    else if (act === 'resetAll') await rpc('cof_admin_reset', { p_pw: pw });
+    if (act === 'removePlayer') await rpc('cof_admin_remove', { p_token: token, p_id: body.id });
+    else if (act === 'create') await rpc('cof_admin_reset', { p_token: token, p_data: newTournament(body) });
     else {
-      const d = (await rpc('cof_admin_get', { p_pw: pw })).data;
+      const d = (await adminGet()).data;
       if (act === 'undo') {
         if (!undoStack.length) throw new Error('Nothing to undo');
         const prev = undoStack.pop();
-        try { await rpc('cof_admin_save', { p_pw: pw, p_data: prev }); } catch (e) { undoStack.push(prev); throw e; }
+        try { await rpc('cof_admin_save', { p_token: token, p_data: prev }); } catch (e) { undoStack.push(prev); throw e; }
       } else {
         const before = structuredClone(d);
         actions[act](d, body);
-        await rpc('cof_admin_save', { p_pw: pw, p_data: d });
+        await rpc('cof_admin_save', { p_token: token, p_data: d });
         undoStack.push(before);
         if (undoStack.length > 20) undoStack.shift();
       }
@@ -87,9 +108,13 @@ const startPolling = () => { if (!polling) { polling = true; live(draw); } };
 
 $('login').onsubmit = async e => {
   e.preventDefault();
-  pw = $('pw').value;
-  try { await draw(); try { sessionStorage.setItem('cofPw', pw); } catch {} startPolling(); }
-  catch (err) { $('loginErr').textContent = err.message; }
+  $('loginErr').textContent = '';
+  try {
+    const r = await rpc('cof_login', { p_pw: $('pw').value });
+    if (!r.ok) return ($('loginErr').textContent = r.error);
+    saveToken(r.token); $('pw').value = '';
+    await draw(); startPolling();
+  } catch (err) { $('loginErr').textContent = err.message; }
 };
 
 document.addEventListener('click', e => {
@@ -99,7 +124,7 @@ document.addEventListener('click', e => {
 });
 
 // Call at the end of the page script, after draw() exists.
-const boot = () => { if (pw) draw().then(startPolling, () => {}); };
+const boot = () => { if (token) draw().then(startPolling, () => {}); };
 
 // Installable as an app (see manifest.webmanifest and sw.js).
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

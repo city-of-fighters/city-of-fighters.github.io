@@ -6,7 +6,8 @@ Website (GitHub Pages): https://gaberpet.github.io/city-of-fighters/
 
 | Page | Link |
 |---|---|
-| Player sign-up | https://gaberpet.github.io/city-of-fighters/ |
+| App (leaderboard, register, admin) | https://gaberpet.github.io/city-of-fighters/app.html |
+| Player registration | https://gaberpet.github.io/city-of-fighters/ |
 | Control panel (password) | https://gaberpet.github.io/city-of-fighters/admin.html |
 | Stream tab: preview and deploy what OBS shows | https://gaberpet.github.io/city-of-fighters/studio.html |
 | Phone remote (password) | https://gaberpet.github.io/city-of-fighters/phone.html |
@@ -19,14 +20,19 @@ The OBS page shows the scoreboard, bracket, standings or podium: pick one in the
 - **Computer** (Windows installer / portable .exe, Linux AppImage): download from the [latest release](https://github.com/GaberPet/city-of-fighters/releases/latest) or the "Get the apps" box in the control panel. The app opens the live website in its own window. To build a new release, push a tag like `v1.0.1`; GitHub builds, tests and publishes the files (`.github/workflows/release.yml`, code in `desktop/`).
 - **Phone**: open the phone remote and tap **Install app** (or browser menu → Install / Add to Home screen).
 
-## One-time setup
+## Setup and updates
 
 Data lives in Supabase (same project as Iron Fist Academy, tables start with `cof_`).
 
-1. Paste `supabase/city-of-fighters.sql` into Supabase → SQL Editor and change `CHANGE-ME` on the last line there (never save your password in the file; the repo is public).
-2. Run.
+1. Paste the whole `supabase/city-of-fighters.sql` into Supabase → SQL Editor → Run. Run it again after updates: it keeps players, tournament and password.
+2. Set the admin password with this line on its own in the SQL Editor (never save it in the file, the repo is public):
+   `update public.cof_admin set pass_hash = extensions.crypt('YOUR-PASSWORD', extensions.gen_salt('bf'));`
 
-To change the password later, run only the last line again with the new password.
+Logging in gives the device a token for 24 hours. 3 wrong passwords lock the login for 15 minutes.
+
+## The app
+
+https://gaberpet.github.io/city-of-fighters/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (only while registration is open), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
 
 ## Rules built in
 

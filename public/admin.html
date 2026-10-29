@@ -34,11 +34,48 @@
   </details>
 
   <form class="card" id="login" style="max-width:420px">
-    <h2>Control panel password</h2>
+    <h2>Admin login</h2>
+    <p class="dim" style="margin-top:0">3 wrong passwords lock the login for 15 minutes.</p>
     <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
     <p class="err" id="loginErr"></p>
     <button class="primary" type="submit">Unlock</button>
   </form>
+
+  <div class="card" id="tourCard">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Tournament</h2><button class="small" id="logoutBtn" type="button">Log out</button></div>
+    <p id="tourStatus" style="font-size:18px;margin:8px 0 12px"></p>
+    <div id="tourEdit">
+      <div class="grid" style="gap:0 14px">
+        <div><label for="ename">Event name</label><input type="text" id="ename" maxlength="60"></div>
+        <div><label for="egame">Game</label><input type="text" id="egame" maxlength="40"></div>
+      </div>
+      <label for="rules">Rules (shown on the registration page)</label><textarea id="rules"></textarea>
+      <fieldset class="regbox"><legend>Registration opens</legend>
+        <label class="row"><input type="radio" name="regMode" value="open"> Right away (when the tournament is created)</label>
+        <label class="row"><input type="radio" name="regMode" value="at"> At a date and time: <input type="datetime-local" id="regAt"></label>
+        <label class="row"><input type="checkbox" id="regOpen"> Registration allowed (untick to close it early)</label>
+      </fieldset>
+      <div class="row" style="margin-top:10px">
+        <button class="primary" id="saveSettings" type="button">Save settings</button>
+        <button data-act="resetBracket" data-confirm="Delete the bracket and all results? Players stay and registration can reopen.">Reset bracket</button>
+        <button data-act="end" data-confirm="End this tournament? The app will show 'No tournament in progress'. Players and results stay until you create a new tournament.">End tournament</button>
+      </div>
+    </div>
+    <details id="newTour" style="margin-top:14px">
+      <summary style="cursor:pointer"><b>＋ Create a new tournament</b></summary>
+      <div class="grid" style="gap:0 14px">
+        <div><label for="nName">Event name</label><input type="text" id="nName" maxlength="60" value="City of Fighters"></div>
+        <div><label for="nGame">Game</label><input type="text" id="nGame" maxlength="40" value="Tekken 8"></div>
+      </div>
+      <label for="nFormat">Tournament type</label><select id="nFormat"></select>
+      <fieldset class="regbox"><legend>Registration opens</legend>
+        <label class="row"><input type="radio" name="nRegMode" value="open" checked> Right away</label>
+        <label class="row"><input type="radio" name="nRegMode" value="at"> At a date and time: <input type="datetime-local" id="nRegAt"></label>
+      </fieldset>
+      <p class="dim" style="font-size:13px">Creating a new tournament removes all players and results of the current one. Rules stay as they are.</p>
+      <button class="primary" id="createBtn" type="button">Create tournament</button>
+    </details>
+  </div>
 
   <div class="card" id="resultsCard" hidden>
     <h2>Tournament finished · results image</h2>
@@ -72,23 +109,6 @@
 
   <div class="card"><h2>Finished matches</h2><table><tbody id="done"></tbody></table></div>
 
-  <div class="card">
-    <h2>Settings</h2>
-    <label for="ename">Event name</label><input type="text" id="ename" maxlength="60">
-    <label for="rules">Rules (shown on sign-up page)</label><textarea id="rules"></textarea>
-    <div class="row" style="margin-top:10px">
-      <button id="saveSettings">Save</button>
-      <label class="row" style="margin:0;color:var(--text)"><input type="checkbox" id="regOpen"> Registration open</label>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Danger zone</h2>
-    <div class="row">
-      <button data-act="resetBracket" data-confirm="Delete the bracket and all results? Players stay.">Reset bracket</button>
-      <button data-act="resetAll" data-confirm="Delete EVERYTHING including all players?">Reset everything</button>
-    </div>
-  </div>
 </main>
 <div id="toast" role="alert"></div>
 <script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script><script src="control.js"></script>
@@ -98,8 +118,31 @@ $('signup').href = $('signup').textContent = base;
 $('obs').textContent = base + 'overlay.html';
 $('format').innerHTML = Object.entries(B.FORMATS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
 $('startBtn').onclick = () => confirm(`Start a ${B.FORMATS[$('format').value]} tournament? Registration will close.`) && post('start', { format: $('format').value });
-$('saveSettings').onclick = () => post('settings', { name: $('ename').value, rules: $('rules').value });
-$('regOpen').onchange = e => post('settings', { regOpen: e.target.checked });
+const radio = name => document.querySelector(`input[name=${name}]:checked`)?.value;
+const toLocal = iso => iso ? new Date(new Date(iso) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+const fromLocal = v => v ? new Date(v).toISOString() : null; // datetime-local is local time
+$('nFormat').innerHTML = $('format').innerHTML;
+$('saveSettings').onclick = () => {
+  if (radio('regMode') === 'at' && !$('regAt').value) return toast('Pick the date and time registration opens');
+  post('settings', { name: $('ename').value, game: $('egame').value, rules: $('rules').value,
+    regMode: radio('regMode'), regAt: fromLocal($('regAt').value), regOpen: $('regOpen').checked });
+};
+$('createBtn').onclick = () => {
+  if (radio('nRegMode') === 'at' && !$('nRegAt').value) return toast('Pick the date and time registration opens');
+  if (S.players.length && !confirm(`Create a new tournament? The ${S.players.length} players and all results of the current one are removed.`)) return;
+  post('create', { name: $('nName').value, game: $('nGame').value, format: $('nFormat').value, rules: S.rules,
+    regMode: radio('nRegMode'), regAt: fromLocal($('nRegAt').value) });
+  $('newTour').open = false;
+};
+$('logoutBtn').onclick = logout;
+const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function tourStatus() {
+  if (S.status === 'none') return '⚪ No tournament in progress. Create one below.';
+  const head = `<b>${esc(S.name)}</b> · ${esc(S.game)} · ${esc(B.FORMATS[S.format] ?? '')} · `;
+  if (S.status === 'running') return head + '🟢 In progress';
+  if (S.status === 'finished') return head + '🏆 Finished';
+  return head + { open: '🟢 Registration open', soon: `🕒 Registration opens ${esc(fmtDate(S.regAt))}`, closed: '🔴 Registration closed' }[S.regState];
+}
 
 function side(m, s) {
   const n = s === 'a' ? m.aName : m.bName, sc = (k, d, t) => btn(t, 'score', { id: m.id, side: s, kind: k, delta: d });
@@ -110,12 +153,17 @@ function side(m, s) {
 }
 
 async function draw() {
-  S = view(await rpc('cof_admin_get', { p_pw: pw }));
+  S = view(await adminGet());
   document.body.classList.remove('locked');
   const started = S.matches.length > 0;
-  if (document.activeElement !== $('ename')) $('ename').value = S.name;
-  if (document.activeElement !== $('rules')) $('rules').value = S.rules;
-  $('regOpen').checked = S.regOpen;
+  $('tourStatus').innerHTML = tourStatus();
+  $('tourEdit').hidden = S.status === 'none';
+  if (!$('tourCard').contains(document.activeElement)) { // don't overwrite what is being typed
+    $('ename').value = S.name; $('egame').value = S.game; $('rules').value = S.rules;
+    $('regOpen').checked = S.regOpen;
+    document.querySelector(`input[name=regMode][value=${S.regMode === 'at' ? 'at' : 'open'}]`).checked = true;
+    $('regAt').value = toLocal(S.regAt);
+  }
   $('pc').textContent = S.players.length;
   $('playersCard').querySelectorAll('[data-act=shuffle],#startBtn,#format').forEach(b => (b.disabled = started));
   if (started) $('format').value = S.format;

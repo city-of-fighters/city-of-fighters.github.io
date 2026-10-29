@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0c0714"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="bracket.css">
+<style>
+  main { max-width: 640px; }
+  .hero { text-align: center; padding-top: 6px; }
+  .hero img { width: 220px; max-width: 70%; filter: drop-shadow(0 0 16px #ff2d7866); }
+  .hero .ev { font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+  .empty { text-align: center; padding: 28px 16px; }
+  .empty .big { font-size: 22px; font-weight: 800; }
+  .champ { text-align: center; font-size: 22px; font-weight: 800; color: #ffd24a; text-shadow: 0 0 14px #ffd24a88; }
+  .lb td { padding: 9px 6px; }
+  .lb td.pl { width: 48px; color: var(--violet); font-weight: 800; }
+  .lb tr:first-child td.pl { color: #ffd24a; }
+  .lb td.r { text-align: right; color: var(--dim); font-size: 14px; white-space: nowrap; }
+  .vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; text-align: center; font-weight: 800; font-size: 18px; }
+  .vs .sc { font-size: 30px; color: var(--pink); }
+  #bracketWrap { overflow-x: auto; margin-top: 10px; }
+  details.card summary { cursor: pointer; font-weight: 700; color: var(--violet); text-transform: uppercase; }
+</style>
+</head>
+<body class="app">
+<main>
+  <div class="hero"><img src="logo-clear.png" alt="City of Fighters"><div class="ev" id="ev"></div><div class="dim" id="sub"></div></div>
+
+  <div class="card" id="installCard" hidden>
+    <h2>Install the app</h2>
+    <p id="installText" style="margin:0 0 10px"></p>
+    <div class="row"><button class="primary" id="installBtn" hidden>Install app</button><button id="installClose">Not now</button></div>
+  </div>
+
+  <div id="body"></div>
+</main>
+<nav class="appnav"><a class="on" href="app.html"><b>🏆</b>Leaderboard</a><a href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+let lastKey = '', bracketOpen = false;
+
+// Public, read-only: anyone can look, only the admin can change anything.
+async function draw() {
+  const s = view(await rpc('cof_public'));
+  const key = JSON.stringify([s.raw, s.players.length, s.regState]);
+  if (key === lastKey) return; // only redraw on changes, so scrolling and the open bracket stay put
+  lastKey = key;
+  $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
+  $('sub').textContent = s.status === 'none' ? '' : `${s.game} · ${B.FORMATS[s.format] ?? ''}`;
+  if (s.status === 'none' || s.status === 'setup') {
+    const reg = s.status === 'none' ? '' : {
+      open: `<p>Registration is open · ${s.players.length} signed up</p><a class="btnlink" href="index.html">Register now</a>`,
+      soon: `<p>Registration opens ${esc(fmtDate(s.regAt))}</p>`,
+      closed: `<p>${s.players.length} players signed up · registration closed</p>` }[s.regState];
+    $('body').innerHTML = `<div class="card empty"><div class="big">No tournament in progress.</div>${reg}</div>`;
+    return;
+  }
+  const pts = s.format === 'robin' || s.format === 'swiss';
+  const m = s.matches.find(x => x.id === s.streamMatch && !x.winner);
+  const champ = s.finished ? s.standings.filter(r => r.place === 1).map(r => r.name).join(' & ') : '';
+  bracketOpen = document.getElementById('bracketCard')?.open ?? false;
+  $('body').innerHTML = (champ ? `<div class="card champ">🏆 ${esc(champ)} is the champion!</div>` : '')
+    + (m ? `<div class="card"><h2>🔴 Now on stream · ${esc(m.label)}</h2><div class="vs"><div>${esc(m.aName)}</div>
+        <div class="sc">${m.ga} – ${m.gb}</div><div>${esc(m.bName)}</div></div></div>` : '')
+    + `<div class="card"><h2>Leaderboard</h2><table class="lb">${s.standings.map(r => `<tr><td class="pl">${r.place ? ord(r.place) : '–'}</td>
+        <td><b>${esc(r.name)}</b></td><td class="r">${pts ? `${r.pts} pts` : `${r.w}–${r.l}`} · games ${r.gw}–${r.gl}</td></tr>`).join('')}</table>
+        ${pts ? '' : '<p class="dim" style="font-size:13px;margin-bottom:0">Placings fill in as players are knocked out.</p>'}</div>`
+    + `<details class="card" id="bracketCard"${bracketOpen ? ' open' : ''}><summary>${pts ? 'Matches' : 'Bracket'}</summary><div id="bracketWrap">${bracketHTML(s)}</div></details>`;
+}
+live(draw);
+
+// Offer to install as an app (Chrome shows a real button; Firefox and iPhone get directions).
+let installEvent = null;
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const dismissed = () => { try { return localStorage.getItem('cofInstallNo') === '1'; } catch { return false; } };
+if (!standalone && !dismissed()) {
+  $('installCard').hidden = false;
+  $('installText').textContent = /iPhone|iPad/.test(navigator.userAgent)
+    ? 'Get City of Fighters as an app: tap the Share button, then “Add to Home Screen”.'
+    : 'Get City of Fighters as an app: open the browser menu (⋮) and tap “Install” or “Add to Home screen”.';
+}
+addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); installEvent = e;
+  if (!dismissed()) { $('installCard').hidden = false; $('installBtn').hidden = false; $('installText').textContent = 'Get City of Fighters as an app on your home screen.'; }
+});
+$('installBtn').onclick = async () => { installEvent?.prompt(); await installEvent?.userChoice; $('installCard').hidden = true; };
+$('installClose').onclick = () => { $('installCard').hidden = true; try { localStorage.setItem('cofInstallNo', '1'); } catch {} };
+addEventListener('appinstalled', () => ($('installCard').hidden = true));
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
