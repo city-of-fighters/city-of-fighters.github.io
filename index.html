@@ -1,17 +1,27 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>City of Fighters Sign-up</title>
+<meta charset="utf-8"><meta name="theme-color" content="#0c0714"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Registration</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
+<style>
+  .hero { text-align: center; }
+  .hero img { width: 220px; max-width: 70%; filter: drop-shadow(0 0 16px #ff2d7866); }
+  .hero .ev { font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+  .msg { text-align: center; padding: 24px 16px; }
+  .msg .big { font-size: 22px; font-weight: 800; }
+  .count { font-size: 30px; font-weight: 800; color: var(--pink); letter-spacing: 2px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+</style>
 </head>
-<body>
+<body class="app">
 <main style="max-width:560px">
-  <h1 id="title"><img src="logo.png" alt="City of Fighters" style="width:100%;max-width:260px;border-radius:12px"></h1>
-  <div class="dim" id="game">Tekken 8 tournament</div>
+  <div class="hero"><img src="logo-clear.png" alt="City of Fighters"><div class="ev" id="ev"></div><div class="dim" id="game"></div></div>
 
-  <div class="card" id="formCard">
-    <h2>Enter the tournament</h2>
+  <div class="card msg" id="msg" hidden></div>
+
+  <div class="card" id="formCard" hidden>
+    <h2>Register for the tournament</h2>
     <form id="f">
       <label for="name">Gamer tag</label>
       <input type="text" id="name" maxlength="24" required autocomplete="nickname">
@@ -20,25 +30,52 @@
       <div class="card" style="margin:14px 0"><h2>Rules</h2><pre class="rules" id="rules"></pre></div>
       <label class="row" style="color:var(--text)"><input type="checkbox" id="agree" required> I have read and accept the rules</label>
       <p class="err" id="err" role="alert"></p>
-      <button class="primary" type="submit">Sign up</button>
+      <button class="primary" type="submit">Register</button>
     </form>
   </div>
 
   <div class="card" id="done" hidden>
     <h2 class="ok">You're in! ✔</h2>
     <p id="doneText"></p>
-    <p class="dim">Show this screen to the organizer if asked.</p>
+    <p class="dim">Show this screen to the organizer if asked. Follow the tournament in the Leaderboard tab.</p>
   </div>
-  <div class="card" id="closed" hidden><h2>Registration is closed</h2><p class="dim">See you on stream.</p></div>
 </main>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
 <script src="bracket.js"></script><script src="api.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-rpc('cof_public').then(view).then(s => {
-  $('game').textContent = `${s.game} tournament · ${s.players.length} players signed up`;
+const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+let s = null, clockSkew = 0, registered = false;
+
+// The form only shows while registration is open; the database checks again when you press Register.
+function render() {
+  if (!s || registered) return;
+  const state = s.regState === 'soon' && Date.now() + clockSkew >= new Date(s.regAt) ? 'open' : s.regState;
+  $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
+  $('game').textContent = s.status === 'none' ? '' : `${s.game} tournament · ${s.players.length} signed up`;
   $('rules').textContent = s.rules;
-  if (!s.regOpen || s.matches.length) { $('formCard').hidden = true; $('closed').hidden = false; }
-}).catch(e => ($('err').textContent = e.message));
+  $('formCard').hidden = state !== 'open';
+  $('msg').hidden = state === 'open';
+  if (state === 'open') return;
+  if (state === 'soon') {
+    const left = Math.max(0, new Date(s.regAt) - (Date.now() + clockSkew)) / 1000;
+    const d = Math.floor(left / 86400), h = Math.floor(left / 3600) % 24, m = Math.floor(left / 60) % 60, sec = Math.floor(left % 60);
+    $('msg').innerHTML = `<div class="big">Registration opens soon</div><p>${esc(fmtDate(s.regAt))}</p>
+      <div class="count">${d ? d + 'd ' : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}</div>`;
+  } else $('msg').innerHTML = s.status === 'none' ? '<div class="big">No tournament in progress.</div><p class="dim">Registration opens when the next tournament is announced.</p>'
+    : '<div class="big">Registration is closed</div><p class="dim">See you on stream! Follow it in the Leaderboard tab.</p>';
+}
+async function load() {
+  try {
+    const raw = await rpc('cof_public');
+    if (raw.now) clockSkew = new Date(raw.now) - Date.now();
+    s = view(raw); render();
+  } catch (e) { $('msg').hidden = false; $('msg').textContent = e.message; }
+}
+load();
+setInterval(load, 15000);  // registration may open or close meanwhile
+setInterval(render, 1000); // countdown
+
 $('f').onsubmit = async e => {
   e.preventDefault();
   $('err').textContent = '';
@@ -46,9 +83,11 @@ $('f').onsubmit = async e => {
   let count;
   try { count = await rpc('cof_register', { p_name: name, p_email: email, p_agree: $('agree').checked }); }
   catch (err) { return ($('err').textContent = err.message); }
+  registered = true;
   $('formCard').hidden = true; $('done').hidden = false;
-  $('doneText').textContent = `${name} is registered for City of Fighters with ${email}. You are player #${count}.`;
+  $('doneText').textContent = `${name} is registered for ${s?.name ?? 'City of Fighters'} with ${email}. You are player #${count}.`;
 };
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
 </html>

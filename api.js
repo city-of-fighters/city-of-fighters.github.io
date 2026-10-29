@@ -13,7 +13,16 @@ async function rpc(fn, body = {}) {
 }
 
 // Same shape the pages used from the old local server: players in seeding order, labelled matches, standings.
-function view({ data, players }) {
+// Registration: 'none' (no tournament), 'soon' (opens at regAt), 'open' or 'closed'. Uses the database clock.
+function regState(d, now) {
+  const status = d.status ?? (d.matches.length ? 'running' : 'setup');
+  if (status === 'none') return 'none';
+  if (status !== 'setup' || d.matches.length || !d.regOpen) return 'closed';
+  if (d.regMode === 'at' && d.regAt && new Date(now ?? Date.now()) < new Date(d.regAt)) return 'soon';
+  return 'open';
+}
+
+function view({ data, players, now }) {
   const byId = new Map(players.map(p => [p.id, p]));
   const ordered = data.order.map(id => byId.get(id)).filter(Boolean);
   const name = id => byId.get(id)?.name ?? id;
@@ -22,6 +31,7 @@ function view({ data, players }) {
     matches: data.matches.map(m => ({ ...m, label: B.label(data.matches, m), ready: B.isReady(m), aName: m.a && name(m.a), bName: m.b && name(m.b) })),
     standings: B.standings(ordered, data.matches), finished: B.finished(data.matches),
     format: data.format ?? 'double', screen: data.screen ?? 'scoreboard', // older saves have neither
+    status: data.status ?? (data.matches.length ? 'running' : 'setup'), regState: regState(data, now),
   };
 }
 

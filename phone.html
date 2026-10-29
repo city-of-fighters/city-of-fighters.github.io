@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0c0714">
-<title>City of Fighters Remote</title>
+<title>City of Fighters Admin</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="bracket.css">
 <style>
@@ -39,21 +39,16 @@
   #bracketWrap { overflow-x: auto; margin-top: 10px; }
   .win { text-align: center; font-size: 22px; font-weight: 800; color: var(--pink); margin: 10px 0; }
   body.locked #remote, body:not(.locked) #login { display: none; }
-  #toast { position: fixed; bottom: 16px; left: 16px; right: 16px; background: #ff6b9a; color: #000; padding: 10px 16px; border-radius: 8px; display: none; text-align: center; }
+  #toast { position: fixed; bottom: 90px; left: 16px; right: 16px; z-index: 60; background: #ff6b9a; color: #000; padding: 10px 16px; border-radius: 8px; display: none; text-align: center; }
 </style>
 </head>
-<body class="locked">
+<body class="locked app">
 <main>
-  <header><img src="logo.png" alt=""><b>Remote</b><a href="studio.html">Stream</a><a href="admin.html" style="margin-left:12px">Control panel</a></header>
-
-  <div class="card" id="installCard" hidden>
-    <h2>Install the app</h2>
-    <p id="installText" style="margin:0 0 10px">Get the remote as an app on your home screen: it opens full-screen with its own icon.</p>
-    <div class="row"><button class="primary" id="installBtn" hidden>Install app</button><button id="installClose">Not now</button></div>
-  </div>
+  <header><img src="logo.png" alt=""><b>Admin</b><a href="admin.html">Dashboard</a><a href="studio.html" style="margin-left:12px">Stream</a><a href="#" id="logoutLink" style="margin-left:12px">Log out</a></header>
 
   <form class="card" id="login">
-    <h2>Control panel password</h2>
+    <h2>Admin login</h2>
+    <p class="dim" style="margin-top:0">For organizers only. 3 wrong passwords lock the login for 15 minutes.</p>
     <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
     <p class="err" id="loginErr"></p>
     <button class="primary" type="submit" style="width:100%;padding:12px">Unlock</button>
@@ -69,6 +64,7 @@
     <details class="card" id="bracketCard"><summary>Bracket</summary><div id="bracketWrap"></div></details>
   </div>
 </main>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="index.html"><b>✍️</b>Register</a><a class="on" href="phone.html"><b>🔒</b>Admin</a></nav>
 <div id="toast" role="alert"></div>
 <script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script><script src="control.js"></script>
 <script>
@@ -80,7 +76,7 @@ const fix = (m, s) => `<div class="fix">${btn('− round', 'score', { id: m.id, 
 
 let bracketKey = '';
 async function draw() {
-  S = view(await rpc('cof_admin_get', { p_pw: pw }));
+  S = view(await adminGet());
   document.body.classList.remove('locked');
   const m = S.matches.find(x => x.id === S.streamMatch);
   $('stream').innerHTML = !S.matches.length ? '<p class="dim">Bracket not started. Start it in the full control panel.</p>'
@@ -100,23 +96,7 @@ async function draw() {
   const key = JSON.stringify([S.matches, S.streamMatch]); // redraw only on changes, so scrolling the bracket isn't reset
   if (S.matches.length && key !== bracketKey) { $('bracketWrap').innerHTML = bracketHTML(S); bracketKey = key; }
 }
-// Offer to install as an app (Chrome shows a real button; Firefox and iPhone get directions).
-let installEvent = null;
-const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-const dismissed = () => { try { return localStorage.getItem('cofInstallNo') === '1'; } catch { return false; } };
-if (!standalone && !dismissed()) {
-  $('installCard').hidden = false;
-  $('installText').textContent = /iPhone|iPad/.test(navigator.userAgent)
-    ? 'Get the remote as an app: tap the Share button, then “Add to Home Screen”.'
-    : 'Get the remote as an app: open the browser menu (⋮) and tap “Install” or “Add to Home screen”.';
-}
-addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); installEvent = e;
-  if (!dismissed()) { $('installCard').hidden = false; $('installBtn').hidden = false; $('installText').textContent = 'Get the remote as an app on your home screen: it opens full-screen with its own icon.'; }
-});
-$('installBtn').onclick = async () => { installEvent?.prompt(); await installEvent?.userChoice; $('installCard').hidden = true; };
-$('installClose').onclick = () => { $('installCard').hidden = true; try { localStorage.setItem('cofInstallNo', '1'); } catch {} };
-addEventListener('appinstalled', () => ($('installCard').hidden = true));
+$('logoutLink').onclick = e => { e.preventDefault(); logout(); };
 boot();
 </script>
 </body>
