@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0c0714">
 <title>City of Fighters Remote</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="bracket.css">
 <style>
   main { max-width: 520px; padding: 12px 16px 40px; }
   * { touch-action: manipulation; }
@@ -28,6 +28,14 @@
   .next { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .next div { flex: 1; min-width: 0; }
   .next button { padding: 10px 12px; }
+  .screens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
+  .screens button { padding: 10px 2px; font-size: 13px; }
+  .screens button.on { border-color: var(--pink); background: #ff2d7826; font-weight: 700; }
+  .next .res { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; margin-top: 8px; font-size: 14px; }
+  .next .res button { padding: 8px 12px; }
+  .next { flex-wrap: wrap; }
+  details.card summary { cursor: pointer; font-weight: 700; color: var(--violet); text-transform: uppercase; }
+  #bracketWrap { overflow-x: auto; margin-top: 10px; }
   .win { text-align: center; font-size: 22px; font-weight: 800; color: var(--pink); margin: 10px 0; }
   body.locked #remote, body:not(.locked) #login { display: none; }
   #toast { position: fixed; bottom: 16px; left: 16px; right: 16px; background: #ff6b9a; color: #000; padding: 10px 16px; border-radius: 8px; display: none; text-align: center; }
@@ -47,12 +55,15 @@
   <div id="remote">
     <div id="stream"></div>
     <button id="undo" data-act="undo">↶ Undo</button>
-    <h2>Up next</h2>
+    <h2>Show on OBS</h2>
+    <div class="screens" id="screens"></div>
+    <h2>Other matches</h2>
     <div id="next" class="dim"></div>
+    <details class="card" id="bracketCard"><summary>Bracket</summary><div id="bracketWrap"></div></details>
   </div>
 </main>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="control.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script><script src="control.js"></script>
 <script>
 const pips = (n, ft) => '<span class="pips">' + Array.from({ length: ft }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') + '</span>';
 const pad = (m, s) => `<button class="pad ${s}" data-act="score" data-body='${esc(JSON.stringify({ id: m.id, side: s, kind: 'round', delta: 1 }))}' aria-label="Round to ${esc(s === 'a' ? m.aName : m.bName)}">
@@ -60,6 +71,7 @@ const pad = (m, s) => `<button class="pad ${s}" data-act="score" data-body='${es
   <span>${pips(m['r' + s], S.ftRounds)} <span class="hint">tap = round won</span></span></button>`;
 const fix = (m, s) => `<div class="fix">${btn('− round', 'score', { id: m.id, side: s, kind: 'round', delta: -1 }, '')}${btn('+ game', 'score', { id: m.id, side: s, kind: 'game', delta: 1 }, '')}${btn('− game', 'score', { id: m.id, side: s, kind: 'game', delta: -1 }, '')}</div>`;
 
+let bracketKey = '';
 async function draw() {
   S = view(await rpc('cof_admin_get', { p_pw: pw }));
   document.body.classList.remove('locked');
@@ -67,13 +79,19 @@ async function draw() {
   $('stream').innerHTML = !S.matches.length ? '<p class="dim">Bracket not started. Start it in the full control panel.</p>'
     : !m ? '<p class="dim">No match on stream. Pick one below.</p>'
     : `<div id="label">${esc(m.label)}</div>` + (m.winner
-      ? `<div class="win">${esc(m.winner === m.a ? m.aName : m.bName)} wins!</div>`
+      ? `<div class="win">${esc(m.winner === m.a ? m.aName : m.bName)} wins ${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)}!</div><p class="dim" style="text-align:center">OBS shows the winner, then “waiting for the next match”. Put the next match on stream below.</p>`
       : m.ready ? pad(m, 'a') + fix(m, 'a') + pad(m, 'b') + fix(m, 'b') : '<p class="dim">Waiting for players.</p>');
   const ready = S.matches.filter(x => x.ready && x.id !== S.streamMatch);
   const champ = S.finished ? S.standings.filter(r => r.place === 1).map(r => r.name).join(' & ') : null;
   $('next').innerHTML = champ ? `<p class="win">🏆 ${esc(champ)} is champion!</p><p>Download the results image in the full control panel.</p>`
     : ready.map(x => `<div class="next"><div><div class="dim" style="font-size:13px">${esc(x.label)}</div><b>${esc(x.aName)}</b> vs <b>${esc(x.bName)}</b></div>
-      ${btn('On stream', 'stream', { id: x.id }, 'primary')}</div>`).join('') || 'No other matches ready.';
+      ${btn('On stream', 'stream', { id: x.id }, 'primary')}
+      <div class="res" style="flex-basis:100%">${['a', 'b'].map(k => `<span>${esc(k === 'a' ? x.aName : x.bName)} won</span>
+        ${[0, 1].map(l => btn(`${S.ftGames}–${l}`, 'result', k === 'a' ? { id: x.id, ga: S.ftGames, gb: l } : { id: x.id, ga: l, gb: S.ftGames }, '')).join('')}`).join('')}</div></div>`).join('') || 'No other matches ready.';
+  $('screens').innerHTML = Object.entries(SCREENS).map(([k, v]) => `<button data-act="screen" data-body='${esc(JSON.stringify({ screen: k }))}' class="${k === S.screen ? 'on' : ''}">${v}</button>`).join('');
+  $('bracketCard').hidden = !S.matches.length;
+  const key = JSON.stringify([S.matches, S.streamMatch]); // redraw only on changes, so scrolling the bracket isn't reset
+  if (S.matches.length && key !== bracketKey) { $('bracketWrap').innerHTML = bracketHTML(S); bracketKey = key; }
 }
 boot();
 </script>

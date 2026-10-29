@@ -33,7 +33,9 @@ To change the password later, run only the last line again with the new password
 
 1. Start the bracket in the control panel (registration closes).
 2. Put a match on stream, press **+ round** for each round won. 3 rounds wins a game, 2 games wins the match.
-3. The winner moves on and the stream switches to their next match automatically. Made a mistake? Press **Undo** (steps back through your last 20 actions on that device) or **Reopen** a finished match.
+3. The winner moves on in the bracket. OBS shows the winner for 6 seconds, then "Waiting for the next match" until you put the next match on stream. Made a mistake? Press **Undo** (steps back through your last 20 actions on that device) or **Reopen** a finished match.
+Matches played off stream: enter the result (2–0 / 2–1) on the phone remote or with the "won" buttons in the control panel; a short popup shows it on stream.
+
 4. When the grand final ends, a results image appears in the control panel: **Download PNG**.
 
 `node test.js` checks the bracket logic. Every push to `main` runs it and publishes `public/` to GitHub Pages.
