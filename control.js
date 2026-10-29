@@ -8,14 +8,6 @@ try { pw = sessionStorage.getItem('cofPw') || ''; } catch {}
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => (t.style.display = 'none'), 3000); }
 
 const notStarted = d => { if (d.matches.length) throw new Error('Bracket already started'); };
-// When the streamed match ends, put the winner's next match on stream (or any ready match).
-function nextOnStream(d, id) {
-  const m = d.matches.find(x => x.id === id);
-  if (!m?.winner || d.streamMatch !== id) return;
-  const ready = d.matches.filter(B.isReady);
-  const next = ready.find(x => x.a === m.winner || x.b === m.winner) ?? ready[0];
-  if (next) d.streamMatch = next.id;
-}
 const actions = {
   settings: (d, b) => {
     if (typeof b.name === 'string') d.name = b.name.slice(0, 60);
@@ -35,10 +27,18 @@ const actions = {
     Object.assign(d, { regOpen: false, screen: 'scoreboard' });
   },
   resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard' }); },
-  report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot), b.id),
+  report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
   reopen: (d, b) => B.reopen(d.matches, b.id),
-  score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1), b.id),
+  score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1)),
   stream: (d, b) => { d.streamMatch = b.id || null; },
+  result: (d, b) => played(d, () => { // quick final score for a match played off stream, e.g. 2–1
+    const m = d.matches.find(x => x.id === b.id);
+    if (!m || !B.isReady(m)) throw new Error('Match is not ready');
+    const ga = Number(b.ga), gb = Number(b.gb);
+    if (Math.max(ga, gb) !== B.FT_GAMES || Math.min(ga, gb) < 0 || Math.min(ga, gb) >= B.FT_GAMES) throw new Error('Bad score');
+    Object.assign(m, { ga, gb, ra: 0, rb: 0 });
+    B.report(d.matches, m.id, ga > gb ? 'a' : 'b');
+  }),
   screen: (d, b) => { if (SCREENS[b.screen]) d.screen = b.screen; }, // what the OBS page shows
   deploy: (d, b) => { // Stream tab: put the previewed layout (and match) live on OBS
     if (SCREENS[b.screen]) d.screen = b.screen;
@@ -46,11 +46,11 @@ const actions = {
   },
 };
 const SCREENS = { scoreboard: 'Scoreboard', bracket: 'Bracket', standings: 'Standings', podium: 'Podium' };
-// After a result: move the stream on, and show the podium the moment the tournament is decided.
-function played(d, fn, id) {
+// After a result: show the podium the moment the tournament is decided. The finished match stays on stream
+// (the OBS page shows the winner, then "waiting") until the coordinator puts the next one on.
+function played(d, fn) {
   const was = B.finished(d.matches);
   fn();
-  nextOnStream(d, id);
   if (!was && B.finished(d.matches)) d.screen = 'podium';
 }
 

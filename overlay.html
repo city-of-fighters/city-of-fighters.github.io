@@ -14,16 +14,55 @@
   .screen.on { opacity: 1; }
 
   /* Scoreboard at the bottom, so Tekken's health bars stay clear */
-  #bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; filter: drop-shadow(0 4px 10px #000a); }
+  #bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; filter: drop-shadow(0 4px 10px #000a); transition: opacity .4s; }
   .side { width: 480px; display: flex; align-items: center; background: linear-gradient(#22143a, #0c0714); border-top: 4px solid #ff2d78; height: 64px; padding: 0 20px; }
   .side.b { border-top-color: #9b4dff; }
   .name { flex: 1; font-size: 32px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .b .name { text-align: right; }
   .games { width: 84px; display: grid; place-items: center; font-size: 46px; background: #ff2d78; text-shadow: 0 0 12px #fff8; box-shadow: inset 0 0 18px #0006; }
   .games.b { background: #9b4dff; }
-  #mid { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0c0714; padding: 0 18px; min-width: 200px; }
-  #event { font-size: 14px; color: #c77dff; letter-spacing: 2px; }
-  #label { font-size: 19px; text-transform: uppercase; }
+  #mid { position: relative; width: 230px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; } /* no background: the game shows through */
+  #mid img { position: absolute; bottom: 22px; width: 210px; filter: drop-shadow(0 0 10px #ff2d7899); }
+  #label { font-size: 15px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; text-shadow: 0 0 6px #000, 0 0 12px #000; white-space: nowrap; }
+  /* a match comes on stream: sides slide in, logo drops in, scores pop */
+  #bar.enter .side.a { animation: fromL .7s cubic-bezier(.2, 1.1, .3, 1) both; }
+  #bar.enter .side.b { animation: fromR .7s cubic-bezier(.2, 1.1, .3, 1) both; }
+  #bar.enter .games { animation: pop .5s .45s both cubic-bezier(.2, 1.6, .4, 1); }
+  #bar.enter #mid img { animation: logoIn .8s .2s both cubic-bezier(.2, 1.4, .4, 1); }
+  #bar.enter #label { animation: fadeUp .5s .7s both; }
+  /* a game is won: the number bursts */
+  .games { position: relative; }
+  .games.bump { animation: bump .7s cubic-bezier(.2, 1.6, .4, 1); }
+  .games.bump::after { content: ''; position: absolute; inset: 0; border: 3px solid #fff; animation: ring .7s ease-out forwards; }
+  @keyframes fromL { from { transform: translateX(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes fromR { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes pop { from { transform: scale(0); } to { transform: none; } }
+  @keyframes logoIn { from { transform: translateY(-80px) scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes fadeUp { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes bump { 0% { transform: scale(1); } 30% { transform: scale(1.45); background: #fff; color: #ff2d78; } 100% { transform: none; } }
+  @keyframes ring { from { transform: scale(1); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
+
+  /* the match on stream ended: winner for 6 s, then "waiting" until a new match is put on stream */
+  .card { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); text-align: center; opacity: 0; pointer-events: none; }
+  #winCard { padding: 14px 60px 12px; background: linear-gradient(135deg, #3a0f45f0, #0c0714f0); border-radius: 12px; border: 2px solid #ffd24a; box-shadow: 0 0 40px #ffd24a66; overflow: hidden; }
+  #winCard.on { opacity: 1; animation: winIn .7s cubic-bezier(.2, 1.5, .4, 1); }
+  #winCard::before { content: ''; position: absolute; top: 0; bottom: 0; width: 120px; left: -160px; background: linear-gradient(90deg, transparent, #fff6, transparent); transform: skewX(-20deg); animation: sweep 1.6s .5s ease-in-out 2; }
+  #winCard .wl { font-size: 15px; letter-spacing: 4px; color: #c77dff; }
+  #winCard .wn { font-size: 54px; color: #ffd24a; text-shadow: 0 0 24px #ffd24aaa; text-transform: uppercase; line-height: 1.1; }
+  #winCard .ws { font: 700 24px system-ui, sans-serif; color: #f4eefc; }
+  #waitCard { padding: 4px; border-radius: 14px; overflow: hidden; }
+  #waitCard.on { opacity: 1; animation: fadeUp .6s both; }
+  #waitCard::before { content: ''; position: absolute; inset: -150%; background: conic-gradient(from 0deg, transparent 0 70%, #ff1a1a 85%, #ff7a7a 90%, transparent 95%); animation: spin 2.4s linear infinite; } /* red LED running round the box */
+  #waitCard .in { position: relative; padding: 14px 50px; border-radius: 11px; background: #0c0714f2; box-shadow: inset 0 0 24px #ff1a1a33; }
+  #waitCard .wt { font-size: 30px; letter-spacing: 3px; color: #fff; text-shadow: 0 0 14px #ff1a1a; animation: breathe 2s ease-in-out infinite; }
+  #waitCard .ws { font: 600 17px system-ui, sans-serif; color: #c9bddb; margin-top: 2px; }
+  #waitCard .dots i { display: inline-block; width: 10px; height: 10px; margin: 0 4px; border-radius: 50%; background: #ff2d2d; box-shadow: 0 0 10px #ff2d2d; animation: blink 1.2s infinite; }
+  #waitCard .dots i:nth-child(2) { animation-delay: .2s; } #waitCard .dots i:nth-child(3) { animation-delay: .4s; }
+  @keyframes winIn { from { transform: translateX(-50%) scale(.3); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+  @keyframes sweep { to { left: 110%; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes breathe { 50% { text-shadow: 0 0 26px #ff1a1a, 0 0 4px #fff; } }
+  @keyframes blink { 0%, 100% { opacity: .2; transform: scale(.7); } 40% { opacity: 1; transform: none; } }
 
   /* Bracket and standings panels */
   .panel { position: absolute; top: 20px; left: 50%; transform-origin: top center; background: #0c0714e8; border-top: 6px solid #ff2d78; padding: 18px 26px; border-radius: 0 0 10px 10px; }
@@ -61,7 +100,7 @@
   @keyframes fall { to { transform: translateY(1140px) rotate(720deg); } }
 
   /* Popup for results of matches played off stream */
-  #pop { position: absolute; left: 50%; bottom: 96px; transform: translate(-50%, 40px); opacity: 0; transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), opacity .35s;
+  #pop { position: absolute; left: 50%; bottom: 120px; transform: translate(-50%, 40px); opacity: 0; transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), opacity .35s;
          max-width: 1200px; white-space: nowrap; text-align: center; padding: 8px 22px; border-radius: 10px;
          background: linear-gradient(135deg, #2a0f3dee, #0c0714ee); border: 2px solid #ff2d78; box-shadow: 0 0 30px #ff2d7888; }
   #pop.show { transform: translate(-50%, 0); opacity: 1; }
@@ -77,10 +116,13 @@
   <div id="bar">
     <div class="side a"><div class="name" id="an"></div></div>
     <div class="games" id="ag">0</div>
-    <div id="mid"><div id="event">CITY OF FIGHTERS</div><div id="label"></div></div>
+    <div id="mid"><img src="logo-clear.png" alt="City of Fighters"><div id="label"></div></div>
     <div class="games b" id="bg">0</div>
     <div class="side b"><div class="name" id="bn"></div></div>
   </div>
+  <div class="card" id="winCard"></div>
+  <div class="card" id="waitCard"><div class="in"><div class="wt">WAITING FOR THE NEXT MATCH</div>
+    <div class="ws"><span class="dots"><i></i><i></i><i></i></span> <span id="waitSub"></span></div></div></div>
 </div>
 <div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
 <div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
@@ -139,6 +181,36 @@ function podiumHTML(s) {
     <div class="stands">${stand(2, at(2))}${stand(1, at(1))}${stand(3, at(3))}</div><div class="confetti">${confetti}</div>`;
 }
 
+// --- Scoreboard: live match, then winner for 6 s, then "waiting" until a new match goes on stream ---
+const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {};
+function scoreboard(s, m) {
+  const live = !!m && !m.winner;
+  if (m?.winner && sbMatch === m.id && sbLive) { // the viewers just watched it end
+    const w = m.winner === m.a ? 'a' : 'b';
+    $('winCard').innerHTML = `<div class="wl">${esc(m.label.toUpperCase())} · WINNER</div><div class="wn">🏆 ${esc(w === 'a' ? m.aName : m.bName)}</div>
+      <div class="ws">wins ${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)} against ${esc(w === 'a' ? m.bName : m.aName)}</div>`;
+    winUntil = Date.now() + 6000; // the next draw after this switches to "waiting"
+  }
+  const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
+  if (live && (sbMatch !== m.id || !sbLive)) { restart($('bar'), 'enter'); prevGames = { a: m.ga, b: m.gb }; }
+  if (live) {
+    $('label').textContent = m.label;
+    $('an').textContent = m.aName ?? 'TBD';
+    $('bn').textContent = m.bName ?? 'TBD';
+    for (const k of ['a', 'b']) {
+      if (m['g' + k] > (prevGames[k] ?? 0)) restart($(k + 'g'), 'bump');
+      $(k + 'g').textContent = m['g' + k];
+    }
+    prevGames = { a: m.ga, b: m.gb };
+  }
+  $('bar').style.opacity = live ? 1 : 0;
+  $('winCard').classList.toggle('on', phase === 'winner');
+  $('waitCard').classList.toggle('on', phase === 'waiting');
+  $('waitSub').textContent = s.finished ? 'The tournament is over' : 'Next match coming up soon';
+  sbMatch = m?.id ?? null; sbLive = live;
+}
+
 let shown = null, lastBracket = null, bracketKey = '', podiumKey = '';
 async function draw() {
   const s = view(await rpc('cof_public'));
@@ -161,17 +233,7 @@ async function draw() {
     shown = screen;
   }
 
-  // scoreboard
-  const m = s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch)); // ?match= previews another match
-  $('bar').style.opacity = m ? 1 : 0;
-  if (m) {
-    $('event').textContent = s.name.toUpperCase();
-    $('label').textContent = m.label;
-    $('an').textContent = m.aName ?? 'TBD';
-    $('bn').textContent = m.bName ?? 'TBD';
-    $('ag').textContent = m.ga;
-    $('bg').textContent = m.gb;
-  }
+  scoreboard(s, s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch))); // ?match= previews another match
 
   // bracket: redraw only on changes, so each animation plays once
   const key = JSON.stringify([s.matches, s.streamMatch, s.game]);
