@@ -17,8 +17,8 @@ Add the OBS pages as **Browser Source**, 1920×1080. The background is transpare
 
 Data lives in Supabase (same project as Iron Fist Academy, tables start with `cof_`).
 
-1. Open `supabase/city-of-fighters.sql`, change `CHANGE-ME` on the last line to your control panel password.
-2. Paste it into Supabase → SQL Editor → Run.
+1. Paste `supabase/city-of-fighters.sql` into Supabase → SQL Editor and change `CHANGE-ME` on the last line there (never save your password in the file; the repo is public).
+2. Run.
 
 To change the password later, run only the last line again with the new password.
 

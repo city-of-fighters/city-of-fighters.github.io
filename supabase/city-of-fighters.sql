@@ -117,6 +117,6 @@ revoke all on function public.cof_default(), public.cof_check(text), public.cof_
 grant execute on function public.cof_public(), public.cof_register(text, text, boolean), public.cof_admin_get(text),
   public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text) to anon;
 
--- Control panel password. Change it, then Run. Run just this line again later to change the password.
+-- Control panel password: change CHANGE-ME in the Supabase SQL Editor only, never save your password in this file (it is public on GitHub).
 insert into public.cof_admin values (1, extensions.crypt('CHANGE-ME', extensions.gen_salt('bf')))
   on conflict (id) do update set pass_hash = excluded.pass_hash;
