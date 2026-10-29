@@ -2,22 +2,22 @@
 
 Tekken 8 tournament manager for Twitch streams: player sign-up, double-elimination bracket, live OBS overlays, and a results image at the end.
 
-Website (GitHub Pages): https://gaberpet.github.io/city-of-fighters/
+Website (GitHub Pages): https://city-of-fighters.github.io/
 
 | Page | Link |
 |---|---|
-| App (leaderboard, register, admin) | https://gaberpet.github.io/city-of-fighters/app.html |
-| Player registration | https://gaberpet.github.io/city-of-fighters/ |
-| Control panel (password) | https://gaberpet.github.io/city-of-fighters/admin.html |
-| Stream tab: preview and deploy what OBS shows | https://gaberpet.github.io/city-of-fighters/studio.html |
-| Phone remote (password) | https://gaberpet.github.io/city-of-fighters/phone.html |
-| **OBS Browser Source** (1920×1080, the only one needed) | https://gaberpet.github.io/city-of-fighters/overlay.html |
+| App (leaderboard, register, admin) | https://city-of-fighters.github.io/app.html |
+| Player registration | https://city-of-fighters.github.io/ |
+| Control panel (password) | https://city-of-fighters.github.io/admin.html |
+| Stream tab: preview and deploy what OBS shows | https://city-of-fighters.github.io/studio.html |
+| Phone remote (password) | https://city-of-fighters.github.io/phone.html |
+| **OBS Browser Source** (1920×1080, the only one needed) | https://city-of-fighters.github.io/overlay.html |
 
 The OBS page shows the scoreboard, bracket, standings or podium: pick one in the Stream tab, check the preview, press **Deploy to OBS**. The podium goes live by itself when the tournament ends. The old `bracket.html` / `leaderboard.html` links still work.
 
 ## Apps
 
-- **Computer** (Windows installer / portable .exe, Linux AppImage): download from the [latest release](https://github.com/GaberPet/city-of-fighters/releases/latest) or the "Get the apps" box in the control panel. The app opens the live website in its own window. To build a new release, push a tag like `v1.0.1`; GitHub builds, tests and publishes the files (`.github/workflows/release.yml`, code in `desktop/`).
+- **Computer** (Windows installer / portable .exe, Linux AppImage): download from the [latest release](https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest) or the "Get the apps" box in the control panel. The app opens the live website in its own window. To build a new release, push a tag like `v1.0.1`; GitHub builds, tests and publishes the files (`.github/workflows/release.yml`, code in `desktop/`).
 - **Phone**: open the phone remote and tap **Install app** (or browser menu → Install / Add to Home screen).
 
 ## Setup and updates
@@ -48,7 +48,7 @@ Keep the privacy page in step with what the code collects.
 
 ## The app
 
-https://gaberpet.github.io/city-of-fighters/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (only while registration is open), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
+https://city-of-fighters.github.io/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (only while registration is open), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
 
 ## Rules built in
 

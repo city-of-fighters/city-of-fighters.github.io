@@ -4,7 +4,7 @@ const { app, BrowserWindow, Menu, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-const SITE = 'https://gaberpet.github.io/city-of-fighters/';
+const SITE = 'https://city-of-fighters.github.io/';
 const SMOKE = !!process.env.COF_SMOKE; // `COF_SMOKE=1 electron .` checks a build without a display, then exits
 
 const OFFLINE = `data:text/html;charset=utf-8,${encodeURIComponent(`<body style="margin:0;height:100vh;display:grid;place-items:center;
