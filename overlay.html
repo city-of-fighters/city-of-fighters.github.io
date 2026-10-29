@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scoreboard</title>
+<style>
+  /* OBS Browser Source, 1920x1080, transparent background */
+  html, body { margin: 0; background: transparent; font-family: 'Arial Black', Impact, system-ui, sans-serif; color: #fff; }
+  #bar { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; filter: drop-shadow(0 4px 10px #000a); }
+  .side { width: 560px; display: flex; align-items: center; background: linear-gradient(#1c1e26, #0d0e12); border-bottom: 4px solid #e0283a; height: 72px; padding: 0 20px; gap: 16px; }
+  .side.b { flex-direction: row-reverse; border-bottom-color: #2f7de0; }
+  .name { flex: 1; font-size: 34px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .b .name { text-align: right; }
+  .rounds { display: flex; gap: 6px; }
+  .rounds i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #f2b632; }
+  .rounds i.on { background: #f2b632; }
+  .games { width: 92px; display: grid; place-items: center; font-size: 52px; background: #e0283a; }
+  .b + .games, .games.b { background: #2f7de0; }
+  #mid { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0d0e12; padding: 0 18px; min-width: 200px; }
+  #event { font-size: 15px; color: #f2b632; letter-spacing: 2px; }
+  #label { font-size: 20px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div id="bar" style="opacity:0">
+  <div class="side a"><div class="name" id="an"></div><div class="rounds" id="ar"></div></div>
+  <div class="games" id="ag">0</div>
+  <div id="mid"><div id="event">CITY OF FIGHTERS</div><div id="label"></div></div>
+  <div class="games b" id="bg">0</div>
+  <div class="side b"><div class="name" id="bn"></div><div class="rounds" id="br"></div></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const pips = (n, ft) => Array.from({ length: ft }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
+async function draw() {
+  const s = await (await fetch('/api/state')).json();
+  const m = s.matches.find(x => x.id === s.streamMatch);
+  $('bar').style.opacity = m ? 1 : 0;
+  if (!m) return;
+  $('event').textContent = s.name.toUpperCase();
+  $('label').textContent = m.label;
+  $('an').textContent = m.aName ?? 'TBD';
+  $('bn').textContent = m.bName ?? 'TBD';
+  $('ag').textContent = m.ga;
+  $('bg').textContent = m.gb;
+  $('ar').innerHTML = pips(m.ra, s.ftRounds);
+  $('br').innerHTML = pips(m.rb, s.ftRounds);
+}
+draw();
+new EventSource('/events').onmessage = draw;
+</script>
+</body>
+</html>

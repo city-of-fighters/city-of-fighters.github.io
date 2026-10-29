@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Control</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  .score { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; text-align: center; }
+  .score .big { font-size: 48px; font-weight: 800; }
+  .score .pname { font-size: 22px; font-weight: 700; }
+  .score .ctl { display: grid; grid-template-columns: auto auto auto; gap: 6px; justify-content: center; align-items: center; margin-top: 8px; }
+  .score .ctl button { font-size: 18px; padding: 6px 14px; }
+  .live { border-color: var(--red); }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #ff6b78; color: #000; padding: 8px 16px; border-radius: 6px; display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>City of <span>Fighters</span> · Control</h1>
+  <div class="dim">Sign-up page: <a id="signup" style="color:var(--gold)"></a> · OBS: <code>/overlay</code> and <code>/leaderboard</code> (Browser Source, 1920×1080)</div>
+
+  <div class="card" id="resultsCard" hidden>
+    <h2>Tournament finished · results image</h2>
+    <canvas id="png" width="1920" height="1080" style="width:100%;border-radius:6px"></canvas>
+    <div class="row" style="margin-top:10px"><button class="primary" id="download">Download PNG</button></div>
+  </div>
+
+  <div class="card live" id="streamCard">
+    <h2>On stream</h2>
+    <div id="streamBody" class="dim">No match on stream. Pick one below with “Put on stream”.</div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h2>Ready to play</h2><div id="ready" class="dim">Bracket not started.</div></div>
+    <div class="card"><h2>Standings</h2><table><tbody id="standings"></tbody></table></div>
+  </div>
+
+  <div class="card" id="playersCard">
+    <h2>Players (<span id="pc">0</span>) · seeding order</h2>
+    <table><tbody id="players"></tbody></table>
+    <div class="row" style="margin-top:12px">
+      <button data-act="shuffle">Shuffle seeds</button>
+      <button class="primary" data-act="start" data-confirm="Start the bracket? Registration will close.">Start bracket</button>
+    </div>
+  </div>
+
+  <div class="card"><h2>Finished matches</h2><table><tbody id="done"></tbody></table></div>
+
+  <div class="card">
+    <h2>Settings</h2>
+    <label for="ename">Event name</label><input type="text" id="ename" maxlength="60">
+    <label for="rules">Rules (shown on sign-up page)</label><textarea id="rules"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="saveSettings">Save</button>
+      <label class="row" style="margin:0;color:var(--text)"><input type="checkbox" id="regOpen"> Registration open</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Danger zone</h2>
+    <div class="row">
+      <button data-act="resetBracket" data-confirm="Delete the bracket and all results? Players stay.">Reset bracket</button>
+      <button data-act="resetAll" data-confirm="Delete EVERYTHING including all players?">Reset everything</button>
+    </div>
+  </div>
+</main>
+<div id="toast" role="alert"></div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
+$('signup').href = $('signup').textContent = location.origin + '/';
+let S;
+
+async function post(act, body = {}) {
+  const r = await fetch('/api/admin/' + act, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { const t = $('toast'); t.textContent = (await r.json()).error; t.style.display = 'block'; setTimeout(() => (t.style.display = 'none'), 3000); }
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || (b.dataset.confirm && !confirm(b.dataset.confirm))) return;
+  post(b.dataset.act, b.dataset.body ? JSON.parse(b.dataset.body) : {});
+});
+$('saveSettings').onclick = () => post('settings', { name: $('ename').value, rules: $('rules').value });
+$('regOpen').onchange = e => post('settings', { regOpen: e.target.checked });
+
+function side(m, s) {
+  const n = s === 'a' ? m.aName : m.bName, sc = (k, d, t) => btn(t, 'score', { id: m.id, side: s, kind: k, delta: d });
+  return `<div><div class="pname">${esc(n)}</div>
+    <div class="big">${m['g' + s]}</div><div class="dim">games</div>
+    <div class="ctl">${sc('round', -1, '−')}<span>Round wins: <b>${m['r' + s]}</b></span>${sc('round', 1, '+ round')}</div>
+    <div class="ctl">${sc('game', -1, '−')}<span>Games</span>${sc('game', 1, '+ game')}</div></div>`;
+}
+
+async function draw() {
+  S = await (await fetch('/api/admin/state')).json();
+  const started = S.matches.length > 0;
+  if (document.activeElement !== $('ename')) $('ename').value = S.name;
+  if (document.activeElement !== $('rules')) $('rules').value = S.rules;
+  $('regOpen').checked = S.regOpen;
+  $('pc').textContent = S.players.length;
+  $('playersCard').querySelectorAll('[data-act=shuffle],[data-act=start]').forEach(b => (b.disabled = started));
+
+  $('players').innerHTML = S.players.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.name)}</b></td><td class="dim">${esc(p.email)}</td>
+    <td>${started ? '' : btn('▲', 'move', { id: p.id, dir: -1 }) + ' ' + btn('▼', 'move', { id: p.id, dir: 1 }) + ' ' + btn('Remove', 'removePlayer', { id: p.id })}</td></tr>`).join('')
+    || '<tr><td class="dim">No sign-ups yet.</td></tr>';
+
+  const m = S.matches.find(x => x.id === S.streamMatch);
+  $('streamBody').innerHTML = !m ? 'No match on stream. Pick one below with “Put on stream”.' : `
+    <div class="dim" style="text-align:center;margin-bottom:8px">${esc(m.label)} · first to ${S.ftGames} games, ${S.ftRounds} rounds per game
+      ${m.winner ? ` · <b class="ok">${esc(m.winner === m.a ? m.aName : m.bName)} wins!</b>` : ''}</div>
+    ${m.ready ? `<div class="score">${side(m, 'a')}<div class="big">vs</div>${side(m, 'b')}</div>` : ''}
+    <div class="row" style="justify-content:center;margin-top:12px">${btn('Take off stream', 'stream', { id: null })}</div>`;
+
+  const ready = S.matches.filter(x => x.ready);
+  $('ready').innerHTML = !started ? 'Bracket not started.' : !ready.length ? 'No matches waiting.' : '<table>' + ready.map(x => `<tr>
+    <td class="dim">${esc(x.label)}</td><td><b>${esc(x.aName)}</b> vs <b>${esc(x.bName)}</b></td>
+    <td>${x.id === S.streamMatch ? '<span class="ok">LIVE</span>' : btn('Put on stream', 'stream', { id: x.id })}
+    ${btn(esc(x.aName) + ' won', 'report', { id: x.id, slot: 'a' })} ${btn(esc(x.bName) + ' won', 'report', { id: x.id, slot: 'b' })}</td></tr>`).join('') + '</table>';
+
+  $('done').innerHTML = S.matches.filter(x => x.winner && !x.auto).map(x => `<tr><td class="dim">${esc(x.label)}</td>
+    <td><b>${esc(x.winner === x.a ? x.aName : x.bName)}</b> beat ${esc(x.loser === x.a ? x.aName : x.bName)} (${Math.max(x.ga, x.gb)}–${Math.min(x.ga, x.gb)})</td>
+    <td>${btn('Reopen', 'reopen', { id: x.id })}</td></tr>`).join('') || '<tr><td class="dim">None yet.</td></tr>';
+
+  $('standings').innerHTML = S.standings.map(r => `<tr><td>${r.place ?? '—'}</td><td>${esc(r.name)}</td><td class="dim">${r.w}–${r.l} (games ${r.gw}–${r.gl})</td></tr>`).join('');
+
+  const finished = S.standings[0]?.place === 1;
+  $('resultsCard').hidden = !finished;
+  if (finished) drawResults();
+}
+
+const logo = new Image();
+logo.src = '/logo.svg';
+const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+
+async function drawResults() {
+  await logo.decode().catch(() => {});
+  const c = $('png').getContext('2d'), F = 'Arial Black, Impact, sans-serif';
+  const bg = c.createLinearGradient(0, 0, 0, 1080);
+  bg.addColorStop(0, '#1a1c24'); bg.addColorStop(1, '#08090c');
+  c.fillStyle = bg; c.fillRect(0, 0, 1920, 1080);
+  c.fillStyle = '#e0283a'; c.fillRect(0, 0, 1920, 10); c.fillRect(0, 1070, 1920, 10);
+  if (logo.complete && logo.naturalWidth) c.drawImage(logo, 660, 20, 600, 260);
+  c.textAlign = 'center';
+  c.fillStyle = '#f2b632'; c.font = `30px ${F}`;
+  c.fillText(`${S.name.toUpperCase()} · ${S.game.toUpperCase()} · ${new Date().toLocaleDateString()}`, 960, 330);
+
+  const done = S.matches.filter(m => m.winner && !m.auto);
+  const games = done.reduce((n, m) => n + m.ga + m.gb, 0);
+  c.fillStyle = '#9aa0b0'; c.font = '26px system-ui, sans-serif';
+  c.fillText(`${S.players.length} players  ·  ${done.length} matches  ·  ${games} games played`, 960, 375);
+
+  // podium: 2nd left, 1st middle (taller), 3rd right
+  const top = S.standings;
+  const podium = [[top[1], 360, 470, '#c0c6d4'], [top[0], 960, 420, '#f2b632'], [top.find(r => r.place === 3), 1560, 500, '#cd7f4a']];
+  for (const [r, x, y, col] of podium) {
+    if (!r) continue;
+    const w = 520;
+    c.fillStyle = '#181a21'; c.fillRect(x - w / 2, y, w, 230);
+    c.fillStyle = col; c.fillRect(x - w / 2, y, w, 8);
+    c.font = `56px ${F}`; c.fillText(ord(r.place), x, y + 75);
+    c.fillStyle = '#ffffff'; c.font = `italic 50px ${F}`;
+    c.fillText(r.name.toUpperCase().slice(0, 16), x, y + 145, w - 30);
+    c.fillStyle = '#9aa0b0'; c.font = '28px system-ui, sans-serif';
+    c.fillText(`${r.w}–${r.l} in matches  ·  games ${r.gw}–${r.gl}`, x, y + 200);
+  }
+
+  // places 4+ in two columns
+  // shortcut: shows up to 8 more players; bigger fields are cut off on the image.
+  const rest = top.filter(r => r.place > 3).slice(0, 8);
+  c.font = '28px system-ui, sans-serif';
+  rest.forEach((r, i) => {
+    const x = i < 4 ? 260 : 1060, y = 800 + (i % 4) * 58;
+    c.textAlign = 'left'; c.fillStyle = '#f2b632'; c.fillText(ord(r.place), x, y);
+    c.fillStyle = '#ffffff'; c.fillText(r.name.slice(0, 20), x + 100, y);
+    c.textAlign = 'right'; c.fillStyle = '#9aa0b0'; c.fillText(`${r.w}–${r.l}  ·  games ${r.gw}–${r.gl}`, x + 600, y);
+  });
+  c.textAlign = 'center';
+}
+
+$('download').onclick = () => $('png').toBlob(b => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  a.download = `city-of-fighters-${new Date().toISOString().slice(0, 10)}.png`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}, 'image/png');
+draw();
+new EventSource('/events').onmessage = draw;
+</script>
+</body>
+</html>

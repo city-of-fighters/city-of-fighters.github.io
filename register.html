@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Sign-up</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main style="max-width:560px">
+  <h1 id="title"><img src="/logo.svg" alt="City of Fighters" style="width:100%;max-width:420px"></h1>
+  <div class="dim" id="game">Tekken 8 tournament</div>
+
+  <div class="card" id="formCard">
+    <h2>Enter the tournament</h2>
+    <form id="f">
+      <label for="name">Gamer tag</label>
+      <input type="text" id="name" maxlength="24" required autocomplete="nickname">
+      <label for="email">Email</label>
+      <input type="email" id="email" maxlength="120" required autocomplete="email">
+      <div class="card" style="margin:14px 0"><h2>Rules</h2><pre class="rules" id="rules"></pre></div>
+      <label class="row" style="color:var(--text)"><input type="checkbox" id="agree" required> I have read and accept the rules</label>
+      <p class="err" id="err" role="alert"></p>
+      <button class="primary" type="submit">Sign up</button>
+    </form>
+  </div>
+
+  <div class="card" id="done" hidden>
+    <h2 class="ok">You're in! ✔</h2>
+    <p id="doneText"></p>
+    <p class="dim">Show this screen to the organizer if asked.</p>
+  </div>
+  <div class="card" id="closed" hidden><h2>Registration is closed</h2><p class="dim">See you on stream.</p></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+fetch('/api/state').then(r => r.json()).then(s => {
+  $('game').textContent = `${s.game} tournament · ${s.players.length} players signed up`;
+  $('rules').textContent = s.rules;
+  if (!s.regOpen || s.matches.length) { $('formCard').hidden = true; $('closed').hidden = false; }
+});
+$('f').onsubmit = async e => {
+  e.preventDefault();
+  $('err').textContent = '';
+  const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: $('name').value, email: $('email').value, agree: $('agree').checked }) });
+  const d = await r.json();
+  if (!r.ok) return ($('err').textContent = d.error);
+  $('formCard').hidden = true; $('done').hidden = false;
+  $('doneText').textContent = `${d.name} is registered for City of Fighters with ${d.email}. You are player #${d.count}.`;
+};
+</script>
+</body>
+</html>
