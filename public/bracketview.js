@@ -4,7 +4,7 @@ const knockedOut = (m, id) => m.winner && !m.auto && m.loser === id &&
   (m.side === 'L' || m.id === 'GF2' || (m.id === 'GF1' && m.winner === m.a));
 
 function bracketHTML(S, prev) {
-  const before = prev && new Map(prev.map(m => [m.id, m]));
+  const before = prev ? new Map(prev.map(m => [m.id, m])) : null;
   const slot = (m, s) => {
     const id = m[s], won = m.winner && !m.auto && m.winner === id, out = knockedOut(m, id);
     const p = before?.get(m.id), real = id && id !== 'BYE';
