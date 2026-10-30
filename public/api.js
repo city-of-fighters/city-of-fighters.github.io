@@ -36,12 +36,26 @@ function view({ data, players, now }) {
   return {
     ...data, raw: data, ftRounds: B.FT_ROUNDS, ftGames: B.FT_GAMES, players: ordered,
     matches: data.matches.map(m => ({ ...m, label: B.label(data.matches, m), ready: B.isReady(m), aName: m.a && name(m.a), bName: m.b && name(m.b),
-      aTeam: byId.get(m.a)?.team ?? null, bTeam: byId.get(m.b)?.team ?? null })),
+      aTeam: byId.get(m.a)?.team ?? null, bTeam: byId.get(m.b)?.team ?? null, aPlayer: byId.get(m.a) ?? null, bPlayer: byId.get(m.b) ?? null })),
     standings: B.standings(ordered, data.matches), finished: B.finished(data.matches),
     format: data.format ?? 'double', screen: data.screen ?? 'scoreboard', // older saves have neither
     status: data.status ?? (data.matches.length ? 'running' : 'setup'), regState: regState(data, now),
   };
 }
+
+// Player photos are optional. photoOf() returns the photo (a data URL) once it has loaded, else null and starts loading it;
+// when it arrives, a 'cof-photo' event tells the page to draw again. Each photo version loads only once.
+const photoCache = new Map();
+function photoOf(p) {
+  if (!p?.photo) return null;
+  const k = p.id + ':' + p.photo;
+  if (!photoCache.has(k)) {
+    photoCache.set(k, null);
+    rpc('cof_photo', { p_id: p.id }).then(d => { photoCache.set(k, d || null); dispatchEvent(new Event('cof-photo')); }, () => {});
+  }
+  return photoCache.get(k);
+}
+const photoImg = (p, cls = 'photo') => { const src = photoOf(p); return src ? `<img class="${cls}" src="${src}" alt="">` : ''; }; // nothing at all without a photo
 
 // Redraw every 1.5 s; skips a tick while a request is still running.
 function live(draw) {

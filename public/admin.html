@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="theme-color" content="#0c0714"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>City of Fighters Control</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="bracket.css">
@@ -18,8 +18,8 @@
 </head>
 <body class="locked">
 <main>
-  <h1 class="brand"><img src="logo.png" alt="">City of <span>Fighters</span> · Control</h1>
-  <nav class="tabs"><a class="on" href="admin.html">Control panel</a><a href="studio.html">Stream</a></nav>
+  <h1 class="brand"><img src="hud/cof-logo.png" alt="">City of <span>Fighters</span> · Control</h1>
+  <nav class="tabs"><a class="on" href="admin.html">Control panel</a><a href="players.html">Players</a><a href="studio.html">Stream</a></nav>
   <div class="dim">Sign-up page: <a id="signup"></a> · OBS Browser Source (1920×1080): <code id="obs"></code></div>
   <details class="card" id="apps">
     <summary style="cursor:pointer"><b>📲 Get the apps</b> <span class="dim">(computer and phone)</span></summary>
@@ -224,14 +224,14 @@ const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd'
 // Results poster: the logo fills the left side and fades into the results on the right.
 async function drawResults() {
   await logo.decode().catch(() => {});
-  const c = $('png').getContext('2d'), F = 'Arial Black, Impact, sans-serif', PINK = '#ff2d78', VIOLET = '#c77dff', DIM = '#a99bbd';
-  c.fillStyle = '#0c0714'; c.fillRect(0, 0, 1920, 1080);
+  const c = $('png').getContext('2d'), F = 'Arial Black, Impact, sans-serif', PINK = '#ff0a6c', VIOLET = '#3cc9d4', DIM = '#9d9daa';
+  c.fillStyle = '#0e0e10'; c.fillRect(0, 0, 1920, 1080);
   if (logo.complete && logo.naturalWidth) c.drawImage(logo, -40, 0, 1080, 1080);
   const fade = c.createLinearGradient(640, 0, 1100, 0);
-  fade.addColorStop(0, '#0c071400'); fade.addColorStop(1, '#0c0714');
+  fade.addColorStop(0, '#0e0e1000'); fade.addColorStop(1, '#0e0e10');
   c.fillStyle = fade; c.fillRect(640, 0, 1280, 1080);
   const glow = c.createRadialGradient(1480, 330, 0, 1480, 330, 520);
-  glow.addColorStop(0, '#ff2d7833'); glow.addColorStop(1, '#ff2d7800');
+  glow.addColorStop(0, '#ff0a6c33'); glow.addColorStop(1, '#ff0a6c00');
   c.fillStyle = glow; c.fillRect(1000, 0, 920, 1080);
   c.fillStyle = PINK; c.fillRect(0, 0, 1920, 8); c.fillRect(0, 1072, 1920, 8);
 
@@ -251,7 +251,7 @@ async function drawResults() {
   // 2nd and 3rd side by side
   [[top[1], X - 200, '#d9d2e6'], [top.find(r => r.place === 3), X + 200, '#e08a5a']].forEach(([r, x, col]) => {
     if (!r) return;
-    c.fillStyle = '#170f24cc'; c.fillRect(x - 185, 450, 370, 190);
+    c.fillStyle = '#18181bcc'; c.fillRect(x - 185, 450, 370, 190);
     c.fillStyle = col; c.fillRect(x - 185, 450, 370, 6);
     text(ord(r.place), x, 512, `44px ${F}`, col);
     text(r.name.toUpperCase().slice(0, 16), x, 572, `italic 38px ${F}`, '#ffffff');

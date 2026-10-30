@@ -66,7 +66,8 @@ function runSmokeTest(win) {
 Menu.setApplicationMenu(Menu.buildFromTemplate([
   { label: 'App', submenu: [
     { label: 'Control panel', accelerator: 'CmdOrCtrl+1', click: (_, w) => w?.loadURL(SITE + 'admin.html') },
-    { label: 'Stream', accelerator: 'CmdOrCtrl+2', click: (_, w) => w?.loadURL(SITE + 'studio.html') },
+    { label: 'Players', accelerator: 'CmdOrCtrl+2', click: (_, w) => w?.loadURL(SITE + 'players.html') },
+    { label: 'Stream', accelerator: 'CmdOrCtrl+3', click: (_, w) => w?.loadURL(SITE + 'studio.html') },
     { type: 'separator' }, { role: 'quit' },
   ] },
   { label: 'View', submenu: [{ role: 'reload' }, { role: 'togglefullscreen' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'resetZoom' }] },

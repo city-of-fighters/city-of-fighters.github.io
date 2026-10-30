@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="theme-color" content="#0c0714"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>City of Fighters Stream</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
@@ -11,7 +11,7 @@
   @media (max-width: 860px) { .studio { grid-template-columns: 1fr; } }
   .layouts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .layouts button { padding: 14px 8px; text-align: center; font-weight: 700; }
-  .layouts button.sel { border-color: var(--pink); background: #ff2d7826; box-shadow: 0 0 12px #ff2d7844; }
+  .layouts button.sel { border-color: var(--pink); background: #ff0a6c26; box-shadow: 0 0 12px #ff0a6c44; }
   .layouts button .ic { display: block; font-size: 26px; }
   .layouts button .live { display: block; font-size: 11px; color: var(--ok); font-weight: 600; min-height: 1em; }
   select { width: 100%; }
@@ -26,14 +26,21 @@
   .tagline b { text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
   #liveWrap { max-width: 420px; }
   .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ff3b3b; margin-right: 6px; box-shadow: 0 0 8px #ff3b3b; }
-  body.locked .studio, body:not(.locked) #login { display: none; }
+  body.locked .studio, body.locked #obsCard, body:not(.locked) #login { display: none; }
+  #obsCard h3 { font: 700 18px var(--display); text-transform: uppercase; letter-spacing: 2px; color: var(--teal); margin: 18px 0 8px; }
+  .cam { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--panel2); border-left: 4px solid var(--teal); }
+  .cam b { font: 700 18px var(--display); letter-spacing: 1px; min-width: 130px; }
+  .cam select { flex: 1 1 240px; min-width: 0; }
+  .cam .on { background: var(--teal); color: #061214; border-color: var(--teal); font-weight: 700; }
+  .cuPick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }
+  .cuPick label { margin: 0; } .cuPick select { width: 100%; margin-top: 4px; }
   #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #ff6b9a; color: #000; padding: 8px 16px; border-radius: 6px; display: none; }
 </style>
 </head>
 <body class="locked">
 <main>
-  <h1 class="brand"><img src="logo.png" alt="">City of <span>Fighters</span> · Stream</h1>
-  <nav class="tabs"><a href="admin.html">Control panel</a><a class="on" href="studio.html">Stream</a></nav>
+  <h1 class="brand"><img src="hud/cof-logo.png" alt="">City of <span>Fighters</span> · Stream</h1>
+  <nav class="tabs"><a href="admin.html">Control panel</a><a href="players.html">Players</a><a class="on" href="studio.html">Stream</a></nav>
   <details class="card" id="obsHelp">
     <summary><b>How to connect to OBS</b> <span class="dim">(once, takes 2 minutes)</span></summary>
     <ol class="steps">
@@ -77,9 +84,33 @@
       </div>
     </div>
   </div>
+
+  <section class="card" id="obsCard">
+    <h2>3 · OBS on this computer: cameras and Coming Up screen</h2>
+    <p class="dim">This changes OBS directly. OBS must be open on this computer, with <b>Tools → WebSocket Server Settings → Enable WebSocket server</b> ticked. The password is under <b>Show Connect Info</b> in that window.</p>
+    <form class="row" id="obsForm" autocomplete="off">
+      <input type="text" id="obsUrl" value="ws://127.0.0.1:4455" aria-label="OBS address" style="max-width:220px">
+      <input type="password" id="obsPw" placeholder="OBS WebSocket password" aria-label="OBS WebSocket password" style="max-width:260px">
+      <button class="primary" type="submit" id="obsConnect">Connect to OBS</button>
+    </form>
+    <p id="obsStatus" class="dim" role="status">Not connected.</p>
+    <div id="obsBody" hidden>
+      <h3>Cameras</h3>
+      <div id="camList"></div>
+      <div class="row" style="margin-top:8px"><button type="button" id="camAdd">＋ Add camera</button></div>
+      <h3>Coming Up screen (between matches)</h3>
+      <p class="dim" style="margin-top:0">Uses the Coming Up artwork: the big window shows the shared screen, the small windows show each player's camera. OBS switches to it when a match on stream ends and back when the next match goes on stream.</p>
+      <div class="cuPick">
+        <label>Shared screen (big window)<select id="cuScreen"></select></label>
+        <label>Player 1 camera<select id="cuCam1"></select></label>
+        <label>Player 2 camera<select id="cuCam2"></select></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" id="cuBuild">Set up Coming Up scene in OBS</button><button type="button" id="cuPreview">Preview Coming Up</button></div>
+    </div>
+  </section>
 </main>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="banner.js"></script><script src="control.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="banner.js"></script><script src="control.js"></script><script src="obs.js"></script>
 <script>
 const base = location.href.replace(/studio\.html.*$/, '');
 $('obs').textContent = base + 'overlay.html';
@@ -93,16 +124,18 @@ const fitFrame = (box, frame) => new ResizeObserver(() => (frame.style.transform
 fitFrame($('previewBox'), $('preview'));
 fitFrame($('liveBox'), $('live'));
 
+let previewOverride = false; // true while the Coming Up preview is shown
 function showPreview() {
+  if (previewOverride) return;
   const src = `overlay.html?preview=1&screen=${draft.screen}&match=${encodeURIComponent(draft.match)}`;
   if (!$('preview').src.endsWith(src)) $('preview').src = src;
   $('previewName').textContent = SCREENS[draft.screen];
 }
 $('layouts').onclick = e => {
   const b = e.target.closest('[data-screen]');
-  if (b) { draft.screen = b.dataset.screen; dirty = true; render(); }
+  if (b) { draft.screen = b.dataset.screen; dirty = true; previewOverride = false; render(); }
 };
-$('match').onchange = e => { draft.match = e.target.value; dirty = true; render(); };
+$('match').onchange = e => { draft.match = e.target.value; dirty = true; previewOverride = false; render(); };
 $('deploy').onclick = () => { dirty = false; post('deploy', { screen: draft.screen, match: draft.match }); };
 
 function render() {
@@ -125,6 +158,65 @@ async function draw() {
   if (!draft || !dirty) draft = { screen: S.screen, match: S.streamMatch || '' };
   render();
 }
+// --- OBS: cameras and the Coming Up scene (talks to OBS on this computer) ---
+const obs = new OBSRemote();
+const obsStatus = (t, ok) => { $('obsStatus').textContent = t; $('obsStatus').className = ok ? 'ok' : 'dim'; };
+try { const o = JSON.parse(localStorage.getItem('cofObs') || '{}'); if (o.url) $('obsUrl').value = o.url; if (o.pw) $('obsPw').value = o.pw; } catch {}
+$('obsForm').onsubmit = async e => {
+  e.preventDefault();
+  obsStatus('Connecting…');
+  try {
+    await obs.connect($('obsUrl').value.trim(), $('obsPw').value);
+    try { if (canSave()) localStorage.setItem('cofObs', JSON.stringify({ url: $('obsUrl').value.trim(), pw: $('obsPw').value })); } catch {}
+    $('obsBody').hidden = false;
+    await obsRefresh();
+  } catch (err) { $('obsBody').hidden = true; obsStatus(err.message); }
+};
+let camState = null;
+async function obsRefresh() {
+  camState = await obs.cameras();
+  const { scene, cameras } = camState;
+  obsStatus(`Connected to OBS · main scene “${scene}” · ${cameras.length ? cameras.length + ' camera' + (cameras.length > 1 ? 's' : '') : 'no cameras yet'}`, true);
+  $('camList').innerHTML = cameras.map(c => `<div class="cam" data-cam="${esc(c.name)}"><b>${esc(c.name)}</b>
+      ${c.devices.length ? `<select data-dev aria-label="Camera device">${c.devices.map(d => `<option value="${esc(d.itemValue)}"${d.itemValue === c.device ? ' selected' : ''}>${esc(d.itemName)}</option>`).join('')}</select>`
+        : '<span class="err" style="margin:0">No camera connected to this computer</span>'}
+      <button type="button" data-show class="${c.enabled ? 'on' : ''}">${c.enabled ? '● In the stream' : 'Hidden'}</button>
+      <button type="button" data-remove>Remove</button></div>`).join('') || '<p class="dim">No cameras in OBS yet. Press “Add camera” to add the one connected to this computer.</p>';
+  const opts = (list, none) => `<option value="">${none}</option>` + list.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  const keep = id => $(id).value;
+  const prev = [keep('cuScreen'), keep('cuCam1'), keep('cuCam2')];
+  $('cuScreen').innerHTML = opts(await obs.videoSources(), '— none (show the next match instead) —');
+  $('cuCam1').innerHTML = opts(cameras.map(c => c.name), '— none (show the player instead) —');
+  $('cuCam2').innerHTML = $('cuCam1').innerHTML;
+  ['cuScreen', 'cuCam1', 'cuCam2'].forEach((id, i) => { if ([...$(id).options].some(o => o.value === prev[i])) $(id).value = prev[i]; });
+}
+const obsDo = async (fn, done) => { try { await fn(); await obsRefresh(); if (done) toast(done); } catch (err) { toast(err.message); } };
+$('camList').addEventListener('change', e => {
+  const row = e.target.closest('[data-cam]'), c = camState.cameras.find(x => x.name === row?.dataset.cam);
+  if (c && e.target.matches('[data-dev]')) obsDo(() => obs.setCameraDevice(c.name, c.prop, e.target.value), 'Camera changed');
+});
+$('camList').addEventListener('click', e => {
+  const row = e.target.closest('[data-cam]'), c = camState?.cameras.find(x => x.name === row?.dataset.cam);
+  if (!c) return;
+  if (e.target.closest('[data-show]')) obsDo(() => obs.showCamera(c.name, !c.enabled), c.enabled ? 'Camera hidden from the stream' : 'Camera is in the stream');
+  if (e.target.closest('[data-remove]') && confirm(`Remove ${c.name} from OBS? The game and everything else keep running.`)) obsDo(() => obs.removeCamera(c.name), 'Camera removed');
+});
+$('camAdd').onclick = () => obsDo(async () => {
+  const { devices } = await obs.addCamera();
+  if (!devices.length) toast('Camera added, but no camera is connected to this computer. Plug one in and pick it from the list.');
+}, 'Camera added to the stream');
+$('cuBuild').onclick = () => obsDo(async () => {
+  let main = await obs.mainScene();
+  if (main === OBS_COMING_UP) throw new Error('Switch OBS to your normal stream scene first, then press this again.');
+  await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, overlayUrl: base + 'overlay.html', mainScene: main });
+}, 'Coming Up scene is ready in OBS');
+$('cuPreview').onclick = () => {
+  const has = [$('cuScreen').value && 'screen', $('cuCam1').value && 'cam1', $('cuCam2').value && 'cam2'].filter(Boolean).join(',');
+  previewOverride = true;
+  $('preview').src = `overlay.html?preview=1&screen=comingup&has=${has}`;
+  $('previewName').textContent = 'Coming Up (live video goes in the empty windows)';
+  $('previewBox').scrollIntoView({ behavior: 'smooth' });
+};
 boot();
 </script>
 </body>

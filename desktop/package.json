@@ -1,7 +1,7 @@
 {
   "name": "city-of-fighters",
   "productName": "City of Fighters",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "City of Fighters tournament control panel and stream control",
   "main": "main.cjs",
   "private": true,

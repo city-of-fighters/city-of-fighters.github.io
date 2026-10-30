@@ -12,6 +12,12 @@ create table if not exists public.cof_players (
   created_at timestamptz not null default now()
 );
 alter table public.cof_players add column if not exists team text check (char_length(team) <= 24); -- optional, shown on the stream HUD
+alter table public.cof_players alter column email drop not null; -- players added by an organizer may have no email
+-- Optional player photos (small JPEG data URLs made in the browser), kept apart so the live data stays small.
+create table if not exists public.cof_photos (player uuid primary key references public.cof_players(id) on delete cascade,
+  data text not null check (char_length(data) <= 400000), updated_at timestamptz not null default now());
+alter table public.cof_photos enable row level security;
+revoke all on public.cof_photos from anon, authenticated;
 create unique index if not exists cof_players_name on public.cof_players (lower(name));
 create unique index if not exists cof_players_email on public.cof_players (lower(email));
 
@@ -98,8 +104,9 @@ end $$;
 create or replace function public.cof_view(p_emails boolean) returns jsonb
 language sql security definer set search_path = public stable as $$
   select jsonb_build_object('data', s.data, 'players', coalesce((
-    select jsonb_agg(case when p_emails then jsonb_build_object('id', p.id, 'name', p.name, 'team', p.team, 'email', p.email)
-                          else jsonb_build_object('id', p.id, 'name', p.name, 'team', p.team) end order by p.created_at)
+    select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'team', p.team,
+                        'photo', (select extract(epoch from f.updated_at)::bigint from cof_photos f where f.player = p.id))  -- photo version, or null
+                     || case when p_emails then jsonb_build_object('email', p.email) else '{}'::jsonb end order by p.created_at)
     from cof_players p), '[]'::jsonb), 'now', now())
   from cof_state s where s.id = 1
 $$;
@@ -168,6 +175,45 @@ begin
   update cof_state set data = jsonb_set(data, '{order}', data->'order' - p_id::text) where id = 1;
 end $$;
 
+-- A player's photo for the app and stream (public, like the gamer tag).
+create or replace function public.cof_photo(p_id uuid) returns text
+language sql security definer set search_path = public stable as $$ select data from cof_photos where player = p_id $$;
+
+-- Players tab: add a player (p_id null) or edit one. Email is optional here.
+create or replace function public.cof_admin_player_save(p_token text, p_id uuid, p_name text, p_team text, p_email text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare pid uuid := p_id;
+begin
+  perform cof_auth(p_token);
+  p_name := trim(coalesce(p_name, '')); p_team := nullif(trim(coalesce(p_team, '')), ''); p_email := nullif(lower(trim(coalesce(p_email, ''))), '');
+  if char_length(p_name) not between 2 and 24 then raise exception 'Gamer tag must be 2–24 characters'; end if;
+  if char_length(p_team) > 24 then raise exception 'Team name must be at most 24 characters'; end if;
+  if p_email is not null and (p_email !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' or char_length(p_email) > 120) then raise exception 'Enter a valid email or leave it empty'; end if;
+  if exists (select 1 from cof_players where lower(name) = lower(p_name) and id is distinct from pid) then raise exception 'That gamer tag is taken'; end if;
+  if p_email is not null and exists (select 1 from cof_players where lower(email) = p_email and id is distinct from pid) then raise exception 'That email is already registered'; end if;
+  if pid is null then
+    if exists (select 1 from cof_state where id = 1 and jsonb_array_length(data->'matches') > 0) then raise exception 'The bracket has started: players can only be edited now'; end if;
+    insert into cof_players (name, team, email) values (p_name, p_team, p_email) returning id into pid;
+    update cof_state set data = jsonb_set(data, '{order}', (data->'order') || to_jsonb(pid::text)) where id = 1;
+  else
+    update cof_players set name = p_name, team = p_team, email = p_email where id = pid;
+    if not found then raise exception 'Player not found'; end if;
+  end if;
+  return pid;
+end $$;
+
+-- Players tab: set (JPEG/PNG/WebP data URL up to ~300 KB) or remove (null) a player's photo.
+create or replace function public.cof_admin_photo(p_token text, p_id uuid, p_data text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  if p_data is null then delete from cof_photos where player = p_id; return; end if;
+  if p_data !~ '^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$' or char_length(p_data) > 400000 then raise exception 'The photo must be a JPEG, PNG or WebP under 300 KB'; end if;
+  if not exists (select 1 from cof_players where id = p_id) then raise exception 'Player not found'; end if;
+  insert into cof_photos (player, data, updated_at) values (p_id, p_data, now())
+  on conflict (player) do update set data = excluded.data, updated_at = now();
+end $$;
+
 -- Organizer sets or clears a player's team (shown on the stream HUD).
 create or replace function public.cof_admin_team(p_token text, p_id uuid, p_team text) returns void
 language plpgsql security definer set search_path = public as $$
@@ -217,7 +263,8 @@ revoke all on function public.cof_winner_mail(text, uuid[], boolean), public.cof
 grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) to service_role;
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
-grant execute on function public.cof_public(), public.cof_register(text, text, boolean, text), public.cof_admin_team(text, uuid, text), public.cof_login(text), public.cof_logout(text),
+grant execute on function public.cof_public(), public.cof_register(text, text, boolean, text), public.cof_admin_team(text, uuid, text),
+  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;
 
 -- Control panel password. A first install sets CHANGE-ME (the panel refuses to open until you change it);

@@ -8,7 +8,8 @@
 <style>
   /* The one OBS Browser Source (1920x1080, transparent). The Stream tab of the website picks what it shows:
      scoreboard, bracket, standings or podium. ?screen=… forces one screen, ?preview=1 adds a stand-in game background. */
-  html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; font-family: 'Arial Black', Impact, system-ui, sans-serif; color: #fff; overflow: hidden; }
+  :root { --hud-font: 'Rajdhani', 'Arial Narrow', sans-serif; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: transparent; font-family: var(--hud-font); font-weight: 700; color: #fff; overflow: hidden; }
   body.preview { background: radial-gradient(circle at 30% 60%, #3a1d5c, #120a1f 55%), #120a1f; }
   body.preview::before { content: 'GAME FOOTAGE'; position: fixed; inset: 0; display: grid; place-items: center; color: #ffffff12; font: 900 140px system-ui; letter-spacing: 10px; }
   .screen { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; pointer-events: none; }
@@ -26,6 +27,7 @@
            font: 700 25px 'Rajdhani', 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 1px; color: #fff; }
   .hinfo .team { font-size: 17px; letter-spacing: 2px; color: #3cc9d4; flex: none; }
   .hinfo .pn { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .hinfo .ph { width: 34px; height: 34px; object-fit: cover; flex: none; border: 2px solid #3cc9d4; }
   #ai { left: 312px; } #bi { left: 1215px; justify-content: flex-end; }
   #hlabel { position: absolute; top: 0; left: 738px; width: 442px; height: 21px; display: grid; place-items: center;
             font: 700 13px 'Rajdhani', sans-serif; letter-spacing: 4px; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px #6a0030; }
@@ -61,35 +63,52 @@
   @keyframes pop { from { transform: scale(0); } to { transform: none; } }
   @keyframes logoIn { from { transform: translateY(-80px) scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes fadeUp { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
-  @keyframes bump { 0% { transform: scale(1); } 30% { transform: scale(1.45); background: #fff; color: #ff2d78; } 100% { transform: none; } }
+  @keyframes bump { 0% { transform: scale(1); } 30% { transform: scale(1.45); background: #fff; color: #ff0a6c; } 100% { transform: none; } }
   @keyframes ring { from { transform: scale(1); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }
 
   /* the match on stream ended: winner for 6 s, then "waiting" until a new match is put on stream */
   .full { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-          opacity: 0; transition: opacity .5s; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, #2a0f3df2, #0c0714fa 70%); }
+          opacity: 0; transition: opacity .5s; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 50% 45%, #26262af2, #0e0e10fa 70%); }
   .full.on { opacity: 1; }
   .full > * { position: relative; }
   /* winner: logo drops in, name slams in, light rays turn behind it */
   #winCard .rays { position: absolute; width: 1800px; height: 1800px; left: 50%; top: 50%; margin: -900px 0 0 -900px;
                    background: repeating-conic-gradient(#ffd24a1c 0 6deg, transparent 6deg 18deg); animation: spin 40s linear infinite;
                    -webkit-mask: radial-gradient(circle, #000 15%, transparent 55%); mask: radial-gradient(circle, #000 15%, transparent 55%); }
-  #winCard img { width: 400px; filter: drop-shadow(0 0 24px #ff2d78aa); animation: logoIn .8s both cubic-bezier(.2, 1.4, .4, 1); }
-  #winCard .wl { font-size: 30px; letter-spacing: 12px; color: #c77dff; margin-top: 16px; animation: fadeUp .6s .5s both; }
+  #winCard img { width: 400px; filter: drop-shadow(0 0 24px #ff0a6caa); animation: logoIn .8s both cubic-bezier(.2, 1.4, .4, 1); }
+  #winCard img.wph { width: 220px; height: 220px; object-fit: cover; margin-top: 14px; border: 5px solid #ffd24a; box-shadow: 0 0 30px #ffd24a88; filter: none; animation: pop .6s .6s both cubic-bezier(.2, 1.4, .4, 1); }
+  #winCard .wl { font-size: 30px; letter-spacing: 12px; color: #3cc9d4; margin-top: 16px; animation: fadeUp .6s .5s both; }
   #winCard .wn { font-size: 150px; line-height: 1.05; font-style: italic; text-transform: uppercase; color: #ffd24a; overflow: hidden; padding: 0 40px;
                  text-shadow: 0 0 40px #ffd24aaa; animation: slam .6s .8s both cubic-bezier(.2, 1.3, .4, 1), glowGold 1.6s 1.6s infinite alternate; }
   #winCard .wn::after { content: ''; position: absolute; top: 0; bottom: 0; width: 160px; left: -200px; background: linear-gradient(90deg, transparent, #fff8, transparent); transform: skewX(-20deg); animation: sweep 1.4s 1.5s ease-in-out 2; }
-  #winCard .ws { font: 700 40px system-ui, sans-serif; color: #f4eefc; animation: fadeUp .6s 1.3s both; }
+  #winCard .ws { font: 700 40px system-ui, sans-serif; color: #f2f2f5; animation: fadeUp .6s 1.3s both; }
   #winCard .ws b { color: #ffd24a; font-size: 52px; }
-  /* waiting: floating logo, red LED running round the message */
-  #waitCard img { width: 520px; filter: drop-shadow(0 0 24px #ff2d7888); animation: float 4s ease-in-out infinite; }
-  #waitCard .led { margin-top: 36px; padding: 6px; border-radius: 20px; overflow: hidden; }
-  #waitCard.on .led { animation: fadeUp .7s both; }
-  #waitCard .led::before { content: ''; position: absolute; inset: -200%; background: conic-gradient(from 0deg, transparent 0 70%, #ff1a1a 85%, #ff8a8a 90%, transparent 95%); animation: spin 2.4s linear infinite; }
-  #waitCard .in { position: relative; padding: 30px 90px; border-radius: 15px; background: #0c0714; box-shadow: inset 0 0 40px #ff1a1a33; }
-  #waitCard .wt { font-size: 64px; letter-spacing: 5px; color: #fff; text-shadow: 0 0 18px #ff1a1a; animation: breathe 2s ease-in-out infinite; }
-  #waitCard .ws { font: 600 30px system-ui, sans-serif; color: #c9bddb; margin-top: 8px; }
-  #waitCard .dots i { display: inline-block; width: 16px; height: 16px; margin: 0 6px; border-radius: 50%; background: #ff2d2d; box-shadow: 0 0 14px #ff2d2d; animation: blink 1.2s infinite; }
-  #waitCard .dots i:nth-child(2) { animation-delay: .2s; } #waitCard .dots i:nth-child(3) { animation-delay: .4s; }
+  /* Coming Up (between matches): the Cof_Coming_Up_Screen_P1 artwork. In the OBS "CoF Coming Up" scene its windows are
+     see-through and OBS shows the shared screen and player cameras in them; anything missing gets a filler here instead. */
+  .cu { position: absolute; inset: 0; }
+  .cu .bg { position: absolute; inset: 0; width: 1920px; height: 1080px; }
+  .cu .title { position: absolute; left: 400px; top: 150px; height: 52px; display: flex; align-items: center; gap: 14px; max-width: 860px;
+               font: 700 34px var(--hud-font); text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 2px 8px #000, 0 0 2px #000; white-space: nowrap; }
+  .cu .title i { font-style: normal; color: #3cc9d4; font-size: 26px; }
+  .cu .title small { font-size: 20px; color: #ff4f95; letter-spacing: 3px; }
+  .cu .win { position: absolute; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+             background: radial-gradient(ellipse at 50% 40%, #2b1020, #08080a 70%); }
+  .cu .win.big .logo { width: 360px; filter: drop-shadow(0 0 18px #ff0a6c77); }
+  .cu .win.big .vs { font: 700 64px var(--hud-font); text-transform: uppercase; letter-spacing: 3px; color: #fff; margin-top: 10px; }
+  .cu .win.big .vs i { font-style: normal; color: #ff0a6c; margin: 0 22px; }
+  .cu .win.big .note { font: 600 24px var(--hud-font); letter-spacing: 4px; color: #3cc9d4; text-transform: uppercase; margin-top: 6px; }
+  .cu .win.cam .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cu .win.cam .nm { position: relative; font: 700 46px var(--hud-font); text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 2px 8px #000; }
+  .cu .win.cam .tm { position: relative; font: 700 22px var(--hud-font); letter-spacing: 4px; color: #3cc9d4; text-transform: uppercase; }
+  .cu .tag { position: absolute; left: 1324px; width: 532px; height: 50px; display: flex; align-items: center; gap: 12px; padding: 0 16px;
+             background: linear-gradient(90deg, #ff0a6c, #b0074b); clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+             font: 700 28px var(--hud-font); text-transform: uppercase; letter-spacing: 2px; color: #fff; white-space: nowrap; overflow: hidden; }
+  .cu .tag img { width: 40px; height: 40px; object-fit: cover; border: 2px solid #fff; }
+  .cu .tag .tm { font-size: 17px; letter-spacing: 3px; color: #ffe0ec; }
+  .cu .tag.t1 { top: 510px; } .cu .tag.t2 { top: 882px; }
+  #cuCard.on .tag, #cuCard.on .title { animation: fadeUp .6s .3s both; }
+  #s-scoreboard:has(#cuCard.on) .plate { opacity: 0; } /* the Coming Up artwork has its own branding */
+  .plate { transition: opacity .5s; }
   @keyframes slam { from { transform: scale(3); opacity: 0; filter: blur(8px); } to { transform: none; opacity: 1; filter: none; } }
   @keyframes glowGold { to { text-shadow: 0 0 70px #ffd24a, 0 0 10px #fff; } }
   @keyframes float { 50% { transform: translateY(-16px); } }
@@ -99,24 +118,24 @@
   @keyframes blink { 0%, 100% { opacity: .2; transform: scale(.7); } 40% { opacity: 1; transform: none; } }
 
   /* Bracket and standings panels */
-  .panel { position: absolute; top: 20px; left: 50%; transform-origin: top center; background: #0c0714e8; border-top: 6px solid #ff2d78; padding: 18px 26px; border-radius: 0 0 10px 10px; }
-  .ptop { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #c77dff; letter-spacing: 2px; font: 700 20px system-ui, sans-serif; }
+  .panel { position: absolute; top: 20px; left: 50%; transform-origin: top center; background: #0e0e10e8; border-top: 6px solid #ff0a6c; padding: 18px 26px; border-radius: 0 0 10px 10px; }
+  .ptop { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; color: #3cc9d4; letter-spacing: 2px; font: 700 20px system-ui, sans-serif; }
   .ptop img { width: 70px; border-radius: 6px; }
   #stand { width: 1000px; font-size: 26px; }
   #stand table { width: 100%; border-collapse: collapse; }
-  #stand td { padding: 8px 6px; border-bottom: 1px solid #2e2140; }
-  #stand td.n { text-align: right; color: #c9bddb; font: 700 24px system-ui, sans-serif; }
-  #stand tr:first-child td:first-child { color: #ff2d78; }
+  #stand td { padding: 8px 6px; border-bottom: 1px solid #2e2e35; }
+  #stand td.n { text-align: right; color: #c9c9d1; font: 700 24px system-ui, sans-serif; }
+  #stand tr:first-child td:first-child { color: #ff0a6c; }
 
   /* Podium */
-  #podium { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; background: radial-gradient(ellipse at 50% 100%, #ff2d7833, #0c0714f0 65%); }
-  #podium .logo { width: 210px; margin-top: 40px; border-radius: 12px; box-shadow: 0 0 40px #ff2d7877; animation: drop .8s both cubic-bezier(.2, 1.3, .4, 1); }
-  #podium h1 { margin: 18px 0 0; font-size: 46px; letter-spacing: 6px; color: #c77dff; text-shadow: 0 0 20px #c77dff99; animation: fade .8s .3s both; }
+  #podium { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; background: radial-gradient(ellipse at 50% 100%, #ff0a6c33, #0e0e10f0 65%); }
+  #podium .logo { width: 210px; margin-top: 40px; border-radius: 12px; box-shadow: 0 0 40px #ff0a6c77; animation: drop .8s both cubic-bezier(.2, 1.3, .4, 1); }
+  #podium h1 { margin: 18px 0 0; font-size: 46px; letter-spacing: 6px; color: #3cc9d4; text-shadow: 0 0 20px #3cc9d499; animation: fade .8s .3s both; }
   .stands { display: flex; align-items: flex-end; gap: 26px; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
   .stand { width: 380px; display: flex; flex-direction: column; align-items: center; }
   .stand .who { text-align: center; margin-bottom: 18px; animation: drop .7s both cubic-bezier(.2, 1.3, .4, 1); }
   .stand .pname { font-size: 46px; font-style: italic; text-transform: uppercase; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .stand .rec { font: 600 22px system-ui, sans-serif; color: #d8c8ee; }
+  .stand .rec { font: 600 22px system-ui, sans-serif; color: #c9c9d1; }
   .stand .block { width: 100%; display: grid; place-items: start center; padding-top: 20px; font-size: 90px; border-radius: 10px 10px 0 0;
                   background: linear-gradient(#2a1240, #120a1f); border-top: 8px solid var(--c); color: var(--c); text-shadow: 0 0 24px var(--c);
                   transform-origin: bottom; animation: rise .9s both cubic-bezier(.2, 1.1, .4, 1); }
@@ -125,6 +144,7 @@
   .stand.p2 .block { height: 270px; animation-delay: 1s; }   .stand.p2 .who { animation-delay: 1.8s; }
   .stand.p3 .block { height: 190px; animation-delay: .4s; }  .stand.p3 .who { animation-delay: 1.2s; }
   .stand.p1 .pname { color: #ffd24a; text-shadow: 0 0 24px #ffd24aaa; animation: glow 1.6s 3.2s infinite alternate; font-size: 58px; }
+  .stand .pph { display: block; width: 150px; height: 150px; object-fit: cover; margin: 0 auto 10px; border: 4px solid var(--c); box-shadow: 0 0 24px var(--c); }
   .crown { font-size: 54px; animation: drop .7s 2.8s both cubic-bezier(.2, 1.3, .4, 1); }
   .confetti i { position: absolute; top: -30px; width: 12px; height: 20px; animation: fall linear infinite; opacity: .9; }
   @keyframes rise { from { transform: scaleY(0); } to { transform: none; } }
@@ -133,16 +153,17 @@
   @keyframes glow { to { text-shadow: 0 0 40px #ffd24a, 0 0 8px #fff; } }
   @keyframes fall { to { transform: translateY(1140px) rotate(720deg); } }
 
-  /* Popup for results of matches played off stream */
-  #pop { position: absolute; left: 50%; bottom: 120px; transform: translate(-50%, 40px); opacity: 0; transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), opacity .35s;
-         max-width: 1200px; white-space: nowrap; text-align: center; padding: 8px 22px; border-radius: 10px;
-         background: linear-gradient(135deg, #2a0f3dee, #0c0714ee); border: 2px solid #ff2d78; box-shadow: 0 0 30px #ff2d7888; }
-  #pop.show { transform: translate(-50%, 0); opacity: 1; }
-  #pop .tag { font-size: 11px; letter-spacing: 2px; color: #c77dff; }
-  #pop .main { font-size: 22px; margin: 2px 0; }
-  #pop .main b { color: #ff2d78; text-shadow: 0 0 16px #ff2d78aa; }
-  #pop .sub { font: 600 15px system-ui, sans-serif; color: #d8c8ee; }
-  #pop .sub.out { color: #ff6b8a; }
+  /* Result popup for matches played off stream: fades in, stays 5 s, fades out. Styled like the HUD panels. */
+  #pop { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); opacity: 0; transition: opacity .6s ease;
+         max-width: 1200px; white-space: nowrap; text-align: center; padding: 8px 40px 10px;
+         background: linear-gradient(#26262a, #0e0e10); border-top: 3px solid #ff0a6c; box-shadow: 0 6px 18px #000b;
+         clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 100%, 0 100%); font-family: var(--hud-font); }
+  #pop.show { opacity: 1; }
+  #pop .tag { font: 700 13px var(--hud-font); letter-spacing: 4px; color: #3cc9d4; }
+  #pop .main { font: 700 26px var(--hud-font); text-transform: uppercase; letter-spacing: 1px; margin: 1px 0; }
+  #pop .main b { color: #ff0a6c; }
+  #pop .sub { font: 600 17px var(--hud-font); letter-spacing: 1px; color: #c9c9d1; }
+  #pop .sub.out { color: #ff5a8f; }
 </style>
 </head>
 <body>
@@ -151,21 +172,20 @@
     <img class="poster" src="hud/hud-bar.png" alt="">
     <video src="hud/hud-bar.webm" autoplay loop muted playsinline></video>
     <div class="hscore" id="ag"><span>0</span></div>
-    <div class="hinfo" id="ai"><span class="team"></span><span class="pn"></span></div>
+    <div class="hinfo" id="ai"><img class="ph" alt="" hidden><span class="team"></span><span class="pn"></span></div>
     <div id="hlabel"></div>
-    <div class="hinfo" id="bi"><span class="pn"></span><span class="team"></span></div>
+    <div class="hinfo" id="bi"><span class="pn"></span><span class="team"></span><img class="ph" alt="" hidden></div>
     <div class="hscore" id="bg"><span>0</span></div>
   </div>
   <div class="full" id="winCard"></div>
-  <div class="full" id="waitCard"><img src="logo-clear.png" alt="City of Fighters">
-    <div class="led"><div class="in"><div class="wt">WAITING FOR THE NEXT MATCH</div>
-      <div class="ws"><span class="dots"><i></i><i></i><i></i></span> <span id="waitSub"></span></div></div></div></div>
+  <div class="full" id="cuCard"><div class="cu" id="cuWait"></div></div>
   <div class="plate" id="brand"><img class="gm" src="hud/gaming-malta-logo.png" alt="Gaming Malta"><span class="sep"></span><img class="cof" src="hud/cof-logo.png" alt="City of Fighters"></div>
   <div class="plate" id="sponsors"><div class="view"><div class="track"></div></div></div>
 </div>
-<div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
-<div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
+<div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
+<div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
 <div class="screen" id="s-podium"><div id="podium"></div></div>
+<div class="screen" id="s-comingup"><div class="cu" id="cuLive"></div></div>
 <div id="pop" aria-live="polite"></div>
 <script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script>
 <script>
@@ -201,10 +221,10 @@ function resultText(s, m) {
 async function showPopups() {
   while (popups.length) {
     $('pop').innerHTML = popups.shift();
-    $('pop').classList.add('show');
-    await new Promise(r => setTimeout(r, 4000));
-    $('pop').classList.remove('show');
-    await new Promise(r => setTimeout(r, 600));
+    $('pop').classList.add('show');                       // fade in (0.6 s)
+    await new Promise(r => setTimeout(r, 600 + 5000));    // fully visible for 5 s
+    $('pop').classList.remove('show');                    // fade out (0.6 s)
+    await new Promise(r => setTimeout(r, 600 + 400));     // gone completely before the next one
   }
 }
 
@@ -212,11 +232,11 @@ async function showPopups() {
 function podiumHTML(s) {
   const at = p => s.standings.filter(r => r.place === p);
   const stand = (p, rows) => !rows.length ? '<div class="stand"></div>' : `<div class="stand p${p}"><div class="who">
-      ${p === 1 ? '<div class="crown">👑</div>' : ''}<div class="pname">${rows.map(r => esc(r.name)).join(' & ')}</div>
+      ${p === 1 ? '<div class="crown">👑</div>' : ''}${rows.length === 1 ? photoImg(s.players.find(x => x.id === rows[0].id), 'pph') : ''}<div class="pname">${rows.map(r => esc(r.name)).join(' & ')}</div>
       <div class="rec">${esc(record(s, rows[0]))}</div></div><div class="block">${ord(p)}</div></div>`;
-  const colors = ['#ff2d78', '#c77dff', '#ffd24a', '#ffffff', '#9b4dff'];
+  const colors = ['#ff0a6c', '#3cc9d4', '#ffd24a', '#ffffff', '#1f8f99'];
   const confetti = Array.from({ length: 70 }, (_, i) => `<i style="left:${Math.random() * 100}%;background:${colors[i % 5]};animation-duration:${3 + Math.random() * 4}s;animation-delay:${2.6 + Math.random() * 4}s"></i>`).join('');
-  return `<img class="logo" src="logo.png" alt=""><h1>${esc(s.game.toUpperCase())} · FINAL RESULTS</h1>
+  return `<img class="logo" src="hud/cof-logo.png" alt=""><h1>${esc(s.game.toUpperCase())} · FINAL RESULTS</h1>
     <div class="stands">${stand(2, at(2))}${stand(1, at(1))}${stand(3, at(3))}</div><div class="confetti">${confetti}</div>`;
 }
 
@@ -228,12 +248,49 @@ document.querySelector('#sponsors .track').innerHTML = `<div class="set">${set}<
 
 // --- Scoreboard: live match, then winner for 6 s, then "waiting" until a new match goes on stream ---
 const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
-let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {};
+let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {}, sbPhase = 'none';
+
+// --- Coming Up screen (between matches) ---
+// holes = true in OBS's "CoF Coming Up" scene: the windows stay see-through for the live screen and cameras that OBS
+// places there (listed in ?has=), and only windows without a source get a filler.
+const has = new Set((params.get('has') || '').split(',').filter(Boolean));
+function nextMatch(s) {
+  const cur = s.matches.find(x => x.id === s.streamMatch);
+  if (cur && !cur.winner) return cur;
+  return s.matches.find(x => x.ready && x.id !== s.streamMatch) ?? null;
+}
+let cuKey = '';
+function comingUp(el, s, holes) {
+  const m = nextMatch(s), P = [m?.aPlayer, m?.bPlayer];
+  const key = JSON.stringify([holes, m?.id, P.map(p => [p?.name, p?.team, p && photoOf(p)?.length]), s.finished]);
+  if (el.dataset.key === key) return;
+  el.dataset.key = key;
+  const name = p => esc((p?.name ?? 'TBD').toUpperCase());
+  const team = p => p?.team ? `<span class="tm">${esc(p.team)}</span>` : '';
+  const camFill = (p, slot) => holes && has.has(slot) ? '' : `<div class="win cam" style="${rect(slot)}">${photoOf(p) ? `<img class="pic" src="${photoOf(p)}" alt="">` : `${team(p)}<div class="nm">${name(p)}</div>`}</div>`;
+  const tag = (p, cls) => p ? `<div class="tag ${cls}">${photoImg(p, '')}${team(p)}<span>${name(p)}</span></div>` : '';
+  el.innerHTML = `<img class="bg" src="hud/${holes ? 'coming-up-frame' : 'coming-up'}.png" alt="">`
+    + (m ? `<div class="title">${name(P[0])} <i>VS</i> ${name(P[1])} <small>· ${esc(m.label.toUpperCase())}</small></div>` : `<div class="title">${s.finished ? 'THANKS FOR WATCHING' : 'NEXT MATCH SOON'}</div>`)
+    + (holes && has.has('screen') ? '' : `<div class="win big" style="${rect('screen')}"><img class="logo" src="hud/cof-logo.png" alt="">
+        ${m ? `<div class="vs">${name(P[0])}<i>VS</i>${name(P[1])}</div><div class="note">${esc(m.label)}</div>` : `<div class="note">${s.finished ? 'The tournament is over' : 'Next match coming up soon'}</div>`}</div>`)
+    + (m ? camFill(P[0], 'cam1') + camFill(P[1], 'cam2') + tag(P[0], 't1') + tag(P[1], 't2') : '');
+}
+const CU = { screen: [64, 206, 1192, 668], cam1: [1324, 207, 532, 294], cam2: [1324, 579, 532, 294] }; // windows of the artwork
+const rect = k => { const [x, y, w, h] = CU[k]; return `left:${x}px;top:${y}px;width:${w}px;height:${h}px`; };
+
+// Between matches OBS shows the "CoF Coming Up" scene and switches back when a match starts. This only works when the
+// Stream tab has set the scene up (which gives this page OBS's "Advanced" access); otherwise nothing happens here.
+let obsTarget = null;
+function obsSwitch(target) {
+  if (!target || target === obsTarget) return;
+  obsTarget = target;
+  window.obsstudio?.getControlLevel?.(level => { if (level >= 4) window.obsstudio.setCurrentScene(target); });
+}
 function scoreboard(s, m) {
   const live = !!m && !m.winner;
   if (m?.winner && sbMatch === m.id && sbLive) { // the viewers just watched it end
     const w = m.winner === m.a ? 'a' : 'b';
-    $('winCard').innerHTML = `<div class="rays"></div><img src="logo-clear.png" alt=""><div class="wl">${esc(m.label.toUpperCase())} · WINNER</div>
+    $('winCard').innerHTML = `<div class="rays"></div><img src="logo-clear.png" alt="">${photoImg(w === 'a' ? m.aPlayer : m.bPlayer, 'wph')}<div class="wl">${esc(m.label.toUpperCase())} · WINNER</div>
       <div class="wn">${esc(w === 'a' ? m.aName : m.bName)}</div>
       <div class="ws">wins <b>${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)}</b> against ${esc(w === 'a' ? m.bName : m.aName)}</div>`;
     winUntil = Date.now() + 6000; // the next draw after this switches to "waiting"
@@ -246,6 +303,8 @@ function scoreboard(s, m) {
       const info = $(k + 'i');
       info.querySelector('.pn').textContent = m[k + 'Name'] ?? 'TBD';
       info.querySelector('.team').textContent = m[k + 'Team'] ?? ''; // players without a team show just their name
+      const ph = info.querySelector('.ph'), src = photoOf(m[k + 'Player']);
+      ph.hidden = !src; if (src && ph.src !== src) ph.src = src; // no photo: no image and no empty space
       if (m['g' + k] > (prevGames[k] ?? 0)) restart($(k + 'g'), 'bump');
       $(k + 'g').firstChild.textContent = m['g' + k];
     }
@@ -253,8 +312,9 @@ function scoreboard(s, m) {
   }
   $('hud').style.opacity = live ? 1 : 0;
   $('winCard').classList.toggle('on', phase === 'winner');
-  $('waitCard').classList.toggle('on', phase === 'waiting');
-  $('waitSub').textContent = s.finished ? 'The tournament is over' : 'Next match coming up soon';
+  $('cuCard').classList.toggle('on', phase === 'waiting');
+  if (phase === 'waiting') comingUp($('cuWait'), s, false);
+  sbPhase = phase;
   sbMatch = m?.id ?? null; sbLive = live;
 }
 
@@ -281,12 +341,21 @@ async function draw() {
   }
 
   scoreboard(s, s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch))); // ?match= previews another match
+  if (screen === 'comingup') {
+    comingUp($('cuLive'), s, true);
+    const cur = s.matches.find(x => x.id === s.streamMatch);
+    if (params.get('main') && !(s.screen === 'scoreboard' && cur?.winner && !s.finished)) obsSwitch(params.get('main'));
+    else if (s.screen === 'scoreboard' && cur?.winner && !s.finished) obsTarget = null; // ready to switch back next time
+  } else if (!params.get('screen')) {
+    if (screen === 'scoreboard' && sbPhase === 'waiting' && !s.finished) obsSwitch('CoF Coming Up');
+    else obsTarget = null;
+  }
 
   // bracket: redraw only on changes, so each animation plays once
   const key = JSON.stringify([s.matches, s.streamMatch, s.game]);
   if (key !== bracketKey) {
     $('bsub').textContent = `${s.game.toUpperCase()} · ${s.format === 'robin' || s.format === 'swiss' ? 'MATCHES' : 'BRACKET'}`;
-    $('b').innerHTML = s.matches.length ? bracketHTML(s, bracketKey ? lastBracket : null) : '<span style="color:#a99bbd;font-family:system-ui">Not started yet.</span>';
+    $('b').innerHTML = s.matches.length ? bracketHTML(s, bracketKey ? lastBracket : null) : '<span style="color:#9d9daa;font-family:system-ui">Not started yet.</span>';
     lastBracket = s.matches; bracketKey = key;
   }
   if (screen === 'bracket') fit($('bracketBox'), 2);
@@ -299,7 +368,7 @@ async function draw() {
 
   // podium
   const pkey = JSON.stringify(s.standings.slice(0, 4));
-  if (screen === 'podium' && pkey !== podiumKey) { $('podium').innerHTML = s.finished ? podiumHTML(s) : params.get('preview') ? '<h1 style="margin-top:400px;color:#c77dff">The podium appears when the tournament ends</h1>' : ''; podiumKey = pkey; }
+  if (screen === 'podium' && pkey !== podiumKey) { $('podium').innerHTML = s.finished ? podiumHTML(s) : params.get('preview') ? '<h1 style="margin-top:400px;color:#3cc9d4">The podium appears when the tournament ends</h1>' : ''; podiumKey = pkey; }
 }
 // Designed at 1920×1080; any other Browser Source size scales the whole page to fit.
 const fitPage = () => { document.body.style.zoom = Math.min(innerWidth / 1920, innerHeight / 1080); };
