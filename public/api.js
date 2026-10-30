@@ -35,7 +35,8 @@ function view({ data, players, now }) {
   const name = id => byId.get(id)?.name ?? id;
   return {
     ...data, raw: data, ftRounds: B.FT_ROUNDS, ftGames: B.FT_GAMES, players: ordered,
-    matches: data.matches.map(m => ({ ...m, label: B.label(data.matches, m), ready: B.isReady(m), aName: m.a && name(m.a), bName: m.b && name(m.b) })),
+    matches: data.matches.map(m => ({ ...m, label: B.label(data.matches, m), ready: B.isReady(m), aName: m.a && name(m.a), bName: m.b && name(m.b),
+      aTeam: byId.get(m.a)?.team ?? null, bTeam: byId.get(m.b)?.team ?? null })),
     standings: B.standings(ordered, data.matches), finished: B.finished(data.matches),
     format: data.format ?? 'double', screen: data.screen ?? 'scoreboard', // older saves have neither
     status: data.status ?? (data.matches.length ? 'running' : 'setup'), regState: regState(data, now),

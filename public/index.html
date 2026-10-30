@@ -27,6 +27,8 @@
       <input type="text" id="name" maxlength="24" required autocomplete="nickname">
       <label for="email">Email</label>
       <input type="email" id="email" maxlength="120" required autocomplete="email">
+      <label for="team">Team <span class="dim">(optional, shown on stream next to your name)</span></label>
+      <input type="text" id="team" maxlength="24" autocomplete="organization">
       <div class="card" style="margin:14px 0"><h2>Rules</h2><pre class="rules" id="rules"></pre></div>
       <label class="row" style="color:var(--text);align-items:flex-start"><input type="checkbox" id="agree" required style="margin-top:4px"> <span>I accept the rules, the <a href="terms.html">terms</a> and the <a href="privacy.html">privacy policy</a>. My gamer tag is shown publicly; my email is only for the organizers and the winner banner.</span></label>
       <p class="err" id="err" role="alert"></p>
@@ -82,7 +84,8 @@ $('f').onsubmit = async e => {
   $('err').textContent = '';
   const name = $('name').value.trim(), email = $('email').value.trim().toLowerCase();
   let count;
-  try { count = await rpc('cof_register', { p_name: name, p_email: email, p_agree: $('agree').checked }); }
+  const team = $('team').value.trim();
+  try { count = await rpc('cof_register', { p_name: name, p_email: email, p_agree: $('agree').checked, ...(team ? { p_team: team } : {}) }); }
   catch (err) { return ($('err').textContent = err.message); }
   registered = true;
   $('formCard').hidden = true; $('done').hidden = false;

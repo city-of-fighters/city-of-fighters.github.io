@@ -141,6 +141,13 @@ $('createBtn').onclick = () => {
   $('newTour').open = false;
 };
 $('logoutBtn').onclick = logout;
+// Team names (shown on the stream HUD): saved when the field loses focus or Enter is pressed
+$('players').addEventListener('change', async e => {
+  const f = e.target.closest('input.team');
+  if (!f) return;
+  try { await rpc('cof_admin_team', { p_token: token, p_id: f.dataset.id, p_team: f.value }); f.blur(); toast('Team saved'); }
+  catch (err) { toast(/not set up/.test(err.message) ? 'Run the updated database file in Supabase first' : err.message); }
+});
 $('mailBtn').onclick = () => confirm('Email the winner banner to the champion now?') && sendWinnerMail(true);
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 function tourStatus() {
@@ -176,7 +183,10 @@ async function draw() {
   $('playersCard').querySelectorAll('[data-act=shuffle],#startBtn,#format').forEach(b => (b.disabled = started));
   if (started) $('format').value = S.format;
 
-  $('players').innerHTML = S.players.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.name)}</b></td><td class="dim">${esc(p.email)}</td>
+  if (!$('players').contains(document.activeElement)) // don't redraw while a team name is being typed
+  $('players').innerHTML = S.players.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.name)}</b></td>
+    <td><input type="text" class="team" data-id="${esc(p.id)}" value="${esc(p.team ?? '')}" maxlength="24" placeholder="Team (optional)" aria-label="Team of ${esc(p.name)}" style="max-width:170px;padding:5px 8px"></td>
+    <td class="dim">${esc(p.email)}</td>
     <td>${started ? '' : btn('▲', 'move', { id: p.id, dir: -1 }) + ' ' + btn('▼', 'move', { id: p.id, dir: 1 }) + ' ' + btn('Remove', 'removePlayer', { id: p.id })}</td></tr>`).join('')
     || '<tr><td class="dim">No sign-ups yet.</td></tr>';
 
