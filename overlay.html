@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>City of Fighters Stream</title>
 <link rel="stylesheet" href="bracket.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap">
 <style>
   /* The one OBS Browser Source (1920x1080, transparent). The Stream tab of the website picks what it shows:
      scoreboard, bracket, standings or podium. ?screen=… forces one screen, ?preview=1 adds a stand-in game background. */
@@ -13,27 +14,51 @@
   .screen { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; pointer-events: none; }
   .screen.on { opacity: 1; }
 
-  /* Scoreboard at the bottom, so Tekken's health bars stay clear */
-  #bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; filter: drop-shadow(0 4px 10px #000a); transition: opacity .4s; }
-  .side { width: 480px; display: flex; align-items: center; background: linear-gradient(#22143a, #0c0714); border-top: 4px solid #ff2d78; height: 64px; padding: 0 20px; }
-  .side.b { border-top-color: #9b4dff; }
-  .name { flex: 1; font-size: 32px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .b .name { text-align: right; }
-  .games { width: 84px; display: grid; place-items: center; font-size: 46px; background: #ff2d78; text-shadow: 0 0 12px #fff8; box-shadow: inset 0 0 18px #0006; }
-  .games.b { background: #9b4dff; }
-  #mid { position: relative; width: 230px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; } /* no background: the game shows through */
-  #mid img { position: absolute; bottom: 22px; width: 210px; filter: drop-shadow(0 0 10px #ff2d7899); }
-  #label { font-size: 15px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; text-shadow: 0 0 6px #000, 0 0 12px #000; white-space: nowrap; }
-  /* a match comes on stream: sides slide in, logo drops in, scores pop */
-  #bar.enter .side.a { animation: fromL .7s cubic-bezier(.2, 1.1, .3, 1) both; }
-  #bar.enter .side.b { animation: fromR .7s cubic-bezier(.2, 1.1, .3, 1) both; }
-  #bar.enter .games { animation: pop .5s .45s both cubic-bezier(.2, 1.6, .4, 1); }
-  #bar.enter #mid img { animation: logoIn .8s .2s both cubic-bezier(.2, 1.4, .4, 1); }
-  #bar.enter #label { animation: fadeUp .5s .7s both; }
+  /* HUD across the top (hud/hud-bar.webm, made from the CoF HuD animation in the asets pack).
+     Scores sit in the blue boxes, player and team in the black panels, the round name in the pink strip. */
+  #hud { position: absolute; top: 0; left: 0; width: 1920px; height: 48px; transition: opacity .4s; filter: drop-shadow(0 3px 8px #000c); }
+  #hud video, #hud .poster { position: absolute; inset: 0; width: 1920px; height: 48px; }
+  .hscore { position: absolute; top: 0; width: 94px; height: 42px; display: grid; place-items: center; transform: skewX(-12deg);
+            font: 800 34px 'Rajdhani', 'Arial Black', sans-serif; color: #fff; text-shadow: 0 0 10px #0ff8, 0 2px 4px #000; font-variant-numeric: tabular-nums; }
+  .hscore span { transform: skewX(12deg); }
+  #ag { left: 207px; } #bg { left: 1620px; }
+  .hinfo { position: absolute; top: 0; height: 42px; width: 395px; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden;
+           font: 700 25px 'Rajdhani', 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 1px; color: #fff; }
+  .hinfo .team { font-size: 17px; letter-spacing: 2px; color: #3cc9d4; flex: none; }
+  .hinfo .pn { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  #ai { left: 312px; } #bi { left: 1215px; justify-content: flex-end; }
+  #hlabel { position: absolute; top: 0; left: 738px; width: 442px; height: 21px; display: grid; place-items: center;
+            font: 700 13px 'Rajdhani', sans-serif; letter-spacing: 4px; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px #6a0030; }
+  /* a match comes on stream: the HUD drops in, names slide in, scores pop */
+  #hud.enter { animation: hudIn .6s cubic-bezier(.2, 1.1, .3, 1) both; }
+  #hud.enter #ai { animation: fromL .6s .25s both cubic-bezier(.2, 1.1, .3, 1); }
+  #hud.enter #bi { animation: fromR .6s .25s both cubic-bezier(.2, 1.1, .3, 1); }
+  #hud.enter .hscore span { animation: pop .45s .5s both cubic-bezier(.2, 1.6, .4, 1); }
+  #hud.enter #hlabel { animation: fadeUp .4s .6s both; }
   /* a game is won: the number bursts */
-  .games { position: relative; }
-  .games.bump { animation: bump .7s cubic-bezier(.2, 1.6, .4, 1); }
-  .games.bump::after { content: ''; position: absolute; inset: 0; border: 3px solid #fff; animation: ring .7s ease-out forwards; }
+  .hscore.bump span { animation: bump .7s cubic-bezier(.2, 1.6, .4, 1); }
+  .hscore.bump::after { content: ''; position: absolute; inset: 0; border: 3px solid #fff; animation: ring .7s ease-out forwards; }
+  @keyframes hudIn { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* Bottom corners: Gaming Malta + City of Fighters (left), rolling sponsors (right), on plates styled like the HUD panels */
+  .plate { position: absolute; bottom: 22px; height: 92px; display: flex; align-items: center;
+           background: linear-gradient(#26262a, #0e0e10); border-top: 3px solid #ff0a6c; box-shadow: 0 6px 18px #000b; }
+  .plate::before { content: ''; position: absolute; top: 0; width: 46px; height: 100%; background: linear-gradient(#3cc9d4, #1f8f99); opacity: .9; }
+  #brand { left: 24px; padding: 0 44px 0 70px; gap: 22px; clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 0 100%); }
+  #brand::before { left: 16px; clip-path: polygon(30% 0, 100% 0, 70% 100%, 0 100%); }
+  #brand .gm { height: 58px; } #brand .cof { height: 84px; margin-top: -6px; filter: drop-shadow(0 0 8px #ff2d7866); }
+  #brand .sep { width: 2px; height: 56px; background: linear-gradient(#ff0a6c00, #ff0a6c, #ff0a6c00); }
+  #sponsors { right: 24px; width: 440px; padding: 0 60px 0 34px; clip-path: polygon(26px 0, 100% 0, 100% 100%, 0 100%); }
+  #sponsors::before { right: 12px; clip-path: polygon(30% 0, 100% 0, 70% 100%, 0 100%); }
+  #sponsors .tag { position: absolute; top: -3px; left: 40px; padding: 1px 10px; background: #ff0a6c; font: 700 11px 'Rajdhani', sans-serif; letter-spacing: 3px; color: #fff; }
+  #sponsors .view { overflow: hidden; width: 100%; height: 100%; display: flex; align-items: center;
+                    -webkit-mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  #sponsors .track { display: flex; width: max-content; animation: roll 28s linear infinite; }
+  #sponsors .set { display: flex; align-items: center; gap: 48px; padding-right: 48px; }
+  #sponsors img { height: 38px; width: auto; }
+  #sponsors img.tall { height: 62px; }
+  @keyframes roll { to { transform: translateX(-50%); } } /* two identical sets: moving one set's width loops without a jump */
+
   @keyframes fromL { from { transform: translateX(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes fromR { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes pop { from { transform: scale(0); } to { transform: none; } }
@@ -125,17 +150,21 @@
 </head>
 <body>
 <div class="screen" id="s-scoreboard">
-  <div id="bar">
-    <div class="side a"><div class="name" id="an"></div></div>
-    <div class="games" id="ag">0</div>
-    <div id="mid"><img src="logo-clear.png" alt="City of Fighters"><div id="label"></div></div>
-    <div class="games b" id="bg">0</div>
-    <div class="side b"><div class="name" id="bn"></div></div>
+  <div id="hud" style="opacity:0">
+    <img class="poster" src="hud/hud-bar.png" alt="">
+    <video src="hud/hud-bar.webm" autoplay loop muted playsinline></video>
+    <div class="hscore" id="ag"><span>0</span></div>
+    <div class="hinfo" id="ai"><span class="team"></span><span class="pn"></span></div>
+    <div id="hlabel"></div>
+    <div class="hinfo" id="bi"><span class="pn"></span><span class="team"></span></div>
+    <div class="hscore" id="bg"><span>0</span></div>
   </div>
   <div class="full" id="winCard"></div>
   <div class="full" id="waitCard"><img src="logo-clear.png" alt="City of Fighters">
     <div class="led"><div class="in"><div class="wt">WAITING FOR THE NEXT MATCH</div>
       <div class="ws"><span class="dots"><i></i><i></i><i></i></span> <span id="waitSub"></span></div></div></div></div>
+  <div class="plate" id="brand"><img class="gm" src="hud/gaming-malta-logo.png" alt="Gaming Malta"><span class="sep"></span><img class="cof" src="hud/cof-logo.png" alt="City of Fighters"></div>
+  <div class="plate" id="sponsors"><span class="tag">SPONSORS</span><div class="view"><div class="track"></div></div></div>
 </div>
 <div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
 <div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
@@ -194,6 +223,12 @@ function podiumHTML(s) {
     <div class="stands">${stand(2, at(2))}${stand(1, at(1))}${stand(3, at(3))}</div><div class="confetti">${confetti}</div>`;
 }
 
+// --- Sponsors: two identical sets in a row, so the roll loops without a gap ---
+const SPONSORS = [['rupture', 'Rupture'], ['gamebreaker', 'Gamebreaker'], ['immerse', 'Immerse VR Gaming Arena'],
+  ['level-academy', 'Level Academy', 'tall'], ['malta-esports-association', 'Malta Esports Association', 'tall'], ['new-madras', 'New Madras', 'tall']];
+const set = SPONSORS.map(([f, n, c]) => `<img src="hud/sponsors/${f}.png" alt="${n}"${c ? ` class="${c}"` : ''}>`).join('');
+document.querySelector('#sponsors .track').innerHTML = `<div class="set">${set}</div><div class="set" aria-hidden="true">${set}</div>`;
+
 // --- Scoreboard: live match, then winner for 6 s, then "waiting" until a new match goes on stream ---
 const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
 let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {};
@@ -207,18 +242,19 @@ function scoreboard(s, m) {
     winUntil = Date.now() + 6000; // the next draw after this switches to "waiting"
   }
   const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
-  if (live && (sbMatch !== m.id || !sbLive)) { restart($('bar'), 'enter'); prevGames = { a: m.ga, b: m.gb }; }
+  if (live && (sbMatch !== m.id || !sbLive)) { restart($('hud'), 'enter'); prevGames = { a: m.ga, b: m.gb }; }
   if (live) {
-    $('label').textContent = m.label;
-    $('an').textContent = m.aName ?? 'TBD';
-    $('bn').textContent = m.bName ?? 'TBD';
+    $('hlabel').textContent = m.label;
     for (const k of ['a', 'b']) {
+      const info = $(k + 'i');
+      info.querySelector('.pn').textContent = m[k + 'Name'] ?? 'TBD';
+      info.querySelector('.team').textContent = m[k + 'Team'] ?? ''; // players without a team show just their name
       if (m['g' + k] > (prevGames[k] ?? 0)) restart($(k + 'g'), 'bump');
-      $(k + 'g').textContent = m['g' + k];
+      $(k + 'g').firstChild.textContent = m['g' + k];
     }
     prevGames = { a: m.ga, b: m.gb };
   }
-  $('bar').style.opacity = live ? 1 : 0;
+  $('hud').style.opacity = live ? 1 : 0;
   $('winCard').classList.toggle('on', phase === 'winner');
   $('waitCard').classList.toggle('on', phase === 'waiting');
   $('waitSub').textContent = s.finished ? 'The tournament is over' : 'Next match coming up soon';
@@ -268,6 +304,9 @@ async function draw() {
   const pkey = JSON.stringify(s.standings.slice(0, 4));
   if (screen === 'podium' && pkey !== podiumKey) { $('podium').innerHTML = s.finished ? podiumHTML(s) : params.get('preview') ? '<h1 style="margin-top:400px;color:#c77dff">The podium appears when the tournament ends</h1>' : ''; podiumKey = pkey; }
 }
+// Designed at 1920×1080; any other Browser Source size scales the whole page to fit.
+const fitPage = () => { document.body.style.zoom = Math.min(innerWidth / 1920, innerHeight / 1080); };
+addEventListener('resize', fitPage); fitPage();
 live(draw);
 </script>
 </body>
