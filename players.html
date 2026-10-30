@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Players</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  .plist { display: grid; gap: 10px; }
+  .prow { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--teal); flex-wrap: wrap; }
+  .prow .ph { width: 64px; height: 64px; object-fit: cover; clip-path: var(--slant-sm); }
+  .prow .who { flex: 1 1 200px; min-width: 0; }
+  .prow .who b { font: 700 22px var(--display); text-transform: uppercase; letter-spacing: 1px; }
+  .prow .who .team { color: var(--teal); font: 700 14px var(--display); letter-spacing: 2px; text-transform: uppercase; margin-right: 8px; }
+  .prow .who .mail { color: var(--dim); font-size: 13px; overflow-wrap: anywhere; }
+  .prow .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  #editor { max-width: 640px; }
+  #editor .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 0 14px; }
+  .photoBox { display: flex; gap: 14px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .photoBox img { width: 120px; height: 120px; object-fit: cover; clip-path: var(--slant-sm); }
+  body.locked main > .card:not(#login), body.locked main > section, body:not(.locked) #login { display: none; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--pink); color: #fff; padding: 8px 16px; display: none; z-index: 50; }
+</style>
+</head>
+<body class="locked">
+<main>
+  <h1 class="brand"><img src="hud/cof-logo.png" alt="">City of <span>Fighters</span> · Players</h1>
+  <nav class="tabs"><a href="admin.html">Control panel</a><a class="on" href="players.html">Players</a><a href="studio.html">Stream</a></nav>
+
+  <form class="card" id="login" style="max-width:420px">
+    <h2>Admin login</h2>
+    <p class="dim" style="margin-top:0">3 wrong passwords lock the login for 15 minutes.</p>
+    <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
+    <p class="err" id="loginErr"></p>
+    <button class="primary" type="submit">Unlock</button>
+  </form>
+
+  <section class="card" id="editor">
+    <h2 id="edTitle">Add a player</h2>
+    <form id="edForm">
+      <div class="grid2">
+        <div><label for="edName">Gamer tag</label><input type="text" id="edName" maxlength="24" required></div>
+        <div><label for="edTeam">Team <span class="dim">(optional)</span></label><input type="text" id="edTeam" maxlength="24"></div>
+      </div>
+      <label for="edEmail">Email <span class="dim">(optional; used for the winner banner)</span></label><input type="email" id="edEmail" maxlength="120">
+      <div class="photoBox">
+        <img id="edPhoto" alt="" hidden>
+        <div>
+          <label for="edFile" style="margin-top:0">Photo <span class="dim">(optional; shown on stream and in the app)</span></label>
+          <input type="file" id="edFile" accept="image/*">
+          <div class="row" style="margin-top:8px"><button type="button" id="edRemovePhoto" hidden>Remove photo</button></div>
+        </div>
+      </div>
+      <p class="err" id="edErr"></p>
+      <div class="row"><button class="primary" type="submit" id="edSave">Add player</button><button type="button" id="edCancel" hidden>Cancel</button></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>All players (<span id="count">0</span>)</h2>
+    <div class="plist" id="plist"></div>
+  </section>
+</main>
+<div id="toast" role="alert"></div>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="banner.js"></script><script src="control.js"></script>
+<script>
+// Editing state: null = adding a new player. photo: undefined = unchanged, null = remove, data URL = new photo.
+let editing = null, newPhoto;
+
+// Photos are cropped to a square and shrunk to 400×400 JPEG in the browser, so they stay small (about 40 KB).
+async function shrink(file) {
+  const img = await createImageBitmap(file);
+  const side = Math.min(img.width, img.height), c = document.createElement('canvas');
+  c.width = c.height = 400;
+  c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 400, 400);
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+function startEdit(p) {
+  editing = p; newPhoto = undefined;
+  $('edTitle').textContent = p ? `Edit ${p.name}` : 'Add a player';
+  $('edSave').textContent = p ? 'Save changes' : 'Add player';
+  $('edCancel').hidden = !p;
+  $('edName').value = p?.name ?? ''; $('edTeam').value = p?.team ?? ''; $('edEmail').value = p?.email ?? '';
+  $('edFile').value = ''; $('edErr').textContent = '';
+  showPhoto(p ? photoOf(p) : null);
+  if (p) $('editor').scrollIntoView({ behavior: 'smooth' });
+}
+function showPhoto(src) { $('edPhoto').hidden = !src; if (src) $('edPhoto').src = src; $('edRemovePhoto').hidden = !src; }
+
+$('edFile').onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try { newPhoto = await shrink(f); showPhoto(newPhoto); } catch { $('edErr').textContent = 'That file is not a picture this browser can read.'; }
+};
+$('edRemovePhoto').onclick = () => { newPhoto = null; $('edFile').value = ''; showPhoto(null); };
+$('edCancel').onclick = () => startEdit(null);
+
+$('edForm').onsubmit = async e => {
+  e.preventDefault();
+  $('edErr').textContent = '';
+  try {
+    const id = await rpc('cof_admin_player_save', { p_token: token, p_id: editing?.id ?? null, p_name: $('edName').value, p_team: $('edTeam').value, p_email: $('edEmail').value });
+    if (newPhoto !== undefined) await rpc('cof_admin_photo', { p_token: token, p_id: id, p_data: newPhoto });
+    toast(editing ? 'Player saved' : 'Player added');
+    startEdit(null);
+    await draw();
+  } catch (err) { $('edErr').textContent = /not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message; }
+};
+
+$('plist').addEventListener('click', e => {
+  const id = e.target.closest('[data-edit]')?.dataset.edit;
+  if (id) startEdit(S.players.find(p => p.id === id));
+});
+
+async function draw() {
+  S = view(await adminGet());
+  document.body.classList.remove('locked');
+  $('count').textContent = S.players.length;
+  const started = S.matches.length > 0;
+  $('plist').innerHTML = S.players.map(p => `<div class="prow">${photoImg(p, 'ph')}
+      <div class="who">${p.team ? `<span class="team">${esc(p.team)}</span>` : ''}<b>${esc(p.name)}</b><div class="mail">${esc(p.email ?? 'no email')}</div></div>
+      <div class="acts"><button type="button" data-edit="${esc(p.id)}">Edit</button>${started ? '' : btn('Remove', 'removePlayer', { id: p.id }, '')}</div></div>`).join('')
+    || '<p class="dim">No players yet. Add one above, or share the registration link.</p>';
+  $('edSave').disabled = !editing && started;
+  if (!editing && started) $('edErr').textContent = 'The bracket has started: you can edit players but not add new ones.';
+}
+addEventListener('cof-photo', () => S && draw().catch(() => {}));
+boot();
+</script>
+</body>
+</html>
