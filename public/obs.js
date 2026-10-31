@@ -5,6 +5,8 @@ const OBS_SPLIT_CAM = 'CoF Players camera'; // helper scene: one camera filming 
 const OBS_CAMERA_KINDS = ['v4l2_input', 'dshow_input', 'av_capture_input_v2', 'av_capture_input', 'macos-avcapture'];
 const OBS_CAMERA_DEVICE_PROP = { v4l2_input: 'device_id', dshow_input: 'video_device_id', av_capture_input_v2: 'device', av_capture_input: 'device', 'macos-avcapture': 'device' };
 // The Coming Up asset's windows, in 1920×1080 pixels (measured from Cof_Coming_Up_Screen_P1.png)
+const HUD_CAMS = 'CoF HUD cameras'; // scene inside the main scene: player cameras under their names during a match
+const HUD_CAM_WINDOWS = { cam1: { x: 312, y: 50, w: 240, h: 135 }, cam2: { x: 1370, y: 50, w: 240, h: 135 } }; // same boxes as in overlay.html
 const COMING_UP_WINDOWS = { screen: { x: 64, y: 206, w: 1192, h: 668 }, cam1: { x: 1324, y: 207, w: 532, h: 294 }, cam2: { x: 1324, y: 579, w: 532, h: 294 } };
 
 class OBSRemote {
@@ -121,9 +123,10 @@ class OBSRemote {
   // Builds (or rebuilds) the "CoF Coming Up" scene: the shared screen in the big window, player cameras in the small ones,
   // and the City of Fighters frame on top (its windows are see-through). Also lets the stream page switch scenes by itself.
   // split = cam1 films both players side by side: its left half goes in Player 1's window, its right half in Player 2's.
-  async buildComingUp({ screen, cam1, cam2, split, overlayUrl, mainScene }) {
+  // hudCams = the same cameras also go under the player names in the match HUD.
+  async buildComingUp({ screen, cam1, cam2, split, hudCams, overlayUrl, mainScene }) {
     const { scenes } = await this.call('GetSceneList');
-    if (!scenes.some(s => s.sceneName === OBS_COMING_UP)) await this.call('CreateScene', { sceneName: OBS_COMING_UP });
+    for (const sc of [OBS_COMING_UP, HUD_CAMS]) if (!scenes.some(s => s.sceneName === sc)) await this.call('CreateScene', { sceneName: sc });
     if (split && cam1) {
       if (!scenes.some(s => s.sceneName === OBS_SPLIT_CAM)) await this.call('CreateScene', { sceneName: OBS_SPLIT_CAM });
       const { sceneItems: old } = await this.call('GetSceneItemList', { sceneName: OBS_SPLIT_CAM });
@@ -137,15 +140,27 @@ class OBSRemote {
     const { sceneItems } = await this.call('GetSceneItemList', { sceneName: OBS_COMING_UP });
     // the frame stays: OBS deletes a source that is in no scene any more
     for (const it of sceneItems) if (it.sourceName !== frameName) await this.call('RemoveSceneItem', { sceneName: OBS_COMING_UP, sceneItemId: it.sceneItemId });
-    const place = async (source, r, half) => {
-      const { sceneItemId } = await this.call('CreateSceneItem', { sceneName: OBS_COMING_UP, sourceName: source });
-      await this.call('SetSceneItemTransform', { sceneName: OBS_COMING_UP, sceneItemId, sceneItemTransform:
+    const place = async (source, r, half, sceneName = OBS_COMING_UP) => {
+      const { sceneItemId } = await this.call('CreateSceneItem', { sceneName, sourceName: source });
+      await this.call('SetSceneItemTransform', { sceneName, sceneItemId, sceneItemTransform:
         { boundsType: half ? 'OBS_BOUNDS_SCALE_OUTER' : 'OBS_BOUNDS_SCALE_INNER', cropToBounds: !!half, cropLeft: half === 'right' ? 960 : 0, cropRight: half === 'left' ? 960 : 0,
           boundsWidth: r.w, boundsHeight: r.h, boundsAlignment: 0, positionX: r.x + r.w / 2, positionY: r.y + r.h / 2, alignment: 0 } });
     };
     if (screen) await place(screen, COMING_UP_WINDOWS.screen);
     if (cam1) await place(cam1, COMING_UP_WINDOWS.cam1, split && 'left');
     if (cam2) await place(cam2, COMING_UP_WINDOWS.cam2, split && 'right');
+    // HUD cameras (after Coming Up has the cameras, so clearing this scene never leaves a camera in no scene)
+    const { sceneItems: hudOld } = await this.call('GetSceneItemList', { sceneName: HUD_CAMS });
+    for (const it of hudOld) await this.call('RemoveSceneItem', { sceneName: HUD_CAMS, sceneItemId: it.sceneItemId });
+    const showHud = !!(hudCams && (cam1 || cam2));
+    if (showHud && cam1) await place(cam1, HUD_CAM_WINDOWS.cam1, split && 'left', HUD_CAMS);
+    if (showHud && cam2) await place(cam2, HUD_CAM_WINDOWS.cam2, split && 'right', HUD_CAMS);
+    const { sceneItems: mainItems } = await this.call('GetSceneItemList', { sceneName: mainScene });
+    const overlayItem = mainItems.find(it => it.inputKind === 'browser_source');
+    if (!mainItems.some(it => it.sourceName === HUD_CAMS)) { // just under the stream page, so its outlines sit on top of the cameras
+      const { sceneItemId } = await this.call('CreateSceneItem', { sceneName: mainScene, sourceName: HUD_CAMS });
+      if (overlayItem) await this.call('SetSceneItemIndex', { sceneName: mainScene, sceneItemId, sceneItemIndex: overlayItem.sceneItemIndex });
+    }
     const url = `${overlayUrl}?screen=comingup&main=${encodeURIComponent(mainScene)}&has=${[screen && 'screen', cam1 && 'cam1', cam2 && 'cam2'].filter(Boolean).join(',')}`;
     const { inputs } = await this.call('GetInputList');
     const frameSettings = { url, width: 1920, height: 1080, reroute_audio: false, shutdown: false, restart_when_active: false, webpage_control_level: 4 };
@@ -159,7 +174,10 @@ class OBSRemote {
     // the stream page in the main scene switches to Coming Up between matches and back when a match starts
     for (const i of inputs.filter(i => i.inputKind === 'browser_source' && i.inputName !== frameName)) {
       const { inputSettings } = await this.call('GetInputSettings', { inputName: i.inputName });
-      if (/overlay\.html/.test(inputSettings.url ?? '')) await this.call('SetInputSettings', { inputName: i.inputName, inputSettings: { webpage_control_level: 4 } });
+      if (!/overlay\.html/.test(inputSettings.url ?? '')) continue;
+      const u = new URL(inputSettings.url);
+      if (showHud) u.searchParams.set('cams', 1); else u.searchParams.delete('cams'); // the page draws the camera outlines
+      await this.call('SetInputSettings', { inputName: i.inputName, inputSettings: { url: u.href, webpage_control_level: 4 } });
     }
   }
 }
@@ -170,4 +188,4 @@ async function sha256b64(text) {
   return btoa(s);
 }
 
-if (typeof module === 'object') module.exports = { OBSRemote, COMING_UP_WINDOWS, OBS_COMING_UP, OBS_SPLIT_CAM };
+if (typeof module === 'object') module.exports = { OBSRemote, COMING_UP_WINDOWS, OBS_COMING_UP, OBS_SPLIT_CAM, HUD_CAMS };

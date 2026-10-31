@@ -105,6 +105,7 @@
         <label>Player 1 camera<select id="cuCam1"></select></label>
         <label>Player 2 camera<select id="cuCam2"></select></label>
       </div>
+      <label class="row" style="color:var(--text)"><input type="checkbox" id="cuHud" checked> Also show the player cameras under their names during a match</label>
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSplit"> One camera films both players: its left half goes in Player 1's window, its right half in Player 2's</label>
       <div class="row" style="margin-top:10px"><button class="primary" type="button" id="cuBuild">Set up Coming Up scene in OBS</button><button type="button" id="cuPreview">Preview Coming Up</button></div>
     </div>
@@ -211,7 +212,7 @@ $('cuSplit').onchange = () => { $('cuCam2').disabled = $('cuSplit').checked; };
 $('cuBuild').onclick = () => obsDo(async () => {
   let main = await obs.mainScene();
   if (main === OBS_COMING_UP) throw new Error('Switch OBS to your normal stream scene first, then press this again.');
-  await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, split: $('cuSplit').checked, overlayUrl: base + 'overlay.html', mainScene: main });
+  await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, split: $('cuSplit').checked, hudCams: $('cuHud').checked, overlayUrl: base + 'overlay.html', mainScene: main });
 }, 'Coming Up scene is ready in OBS');
 $('cuPreview').onclick = () => {
   const split = $('cuSplit').checked && $('cuCam1').value;
