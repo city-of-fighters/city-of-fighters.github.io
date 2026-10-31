@@ -122,9 +122,9 @@ class OBSRemote {
 
   // Builds (or rebuilds) the "CoF Coming Up" scene: the shared screen in the big window, player cameras in the small ones,
   // and the City of Fighters frame on top (its windows are see-through). Also lets the stream page switch scenes by itself.
-  // split = cam1 films both players side by side: its left half goes in Player 1's window, its right half in Player 2's.
+  // split = cam1 films both players side by side: its left half goes in Player 1's window, its right half in Player 2's (swap = the other way round).
   // hudCams = the same cameras also go under the player names in the match HUD.
-  async buildComingUp({ screen, cam1, cam2, split, hudCams, overlayUrl, mainScene }) {
+  async buildComingUp({ screen, cam1, cam2, split, swap, hudCams, overlayUrl, mainScene }) {
     const { scenes } = await this.call('GetSceneList');
     for (const sc of [OBS_COMING_UP, HUD_CAMS]) if (!scenes.some(s => s.sceneName === sc)) await this.call('CreateScene', { sceneName: sc });
     if (split && cam1) {
@@ -147,14 +147,15 @@ class OBSRemote {
           boundsWidth: r.w, boundsHeight: r.h, boundsAlignment: 0, positionX: r.x + r.w / 2, positionY: r.y + r.h / 2, alignment: 0 } });
     };
     if (screen) await place(screen, COMING_UP_WINDOWS.screen);
-    if (cam1) await place(cam1, COMING_UP_WINDOWS.cam1, split && 'left');
-    if (cam2) await place(cam2, COMING_UP_WINDOWS.cam2, split && 'right');
+    const h1 = split && (swap ? 'right' : 'left'), h2 = split && (swap ? 'left' : 'right');
+    if (cam1) await place(cam1, COMING_UP_WINDOWS.cam1, h1);
+    if (cam2) await place(cam2, COMING_UP_WINDOWS.cam2, h2);
     // HUD cameras (after Coming Up has the cameras, so clearing this scene never leaves a camera in no scene)
     const { sceneItems: hudOld } = await this.call('GetSceneItemList', { sceneName: HUD_CAMS });
     for (const it of hudOld) await this.call('RemoveSceneItem', { sceneName: HUD_CAMS, sceneItemId: it.sceneItemId });
     const showHud = !!(hudCams && (cam1 || cam2));
-    if (showHud && cam1) await place(cam1, HUD_CAM_WINDOWS.cam1, split && 'left', HUD_CAMS);
-    if (showHud && cam2) await place(cam2, HUD_CAM_WINDOWS.cam2, split && 'right', HUD_CAMS);
+    if (showHud && cam1) await place(cam1, HUD_CAM_WINDOWS.cam1, h1, HUD_CAMS);
+    if (showHud && cam2) await place(cam2, HUD_CAM_WINDOWS.cam2, h2, HUD_CAMS);
     const { sceneItems: mainItems } = await this.call('GetSceneItemList', { sceneName: mainScene });
     const overlayItem = mainItems.find(it => it.inputKind === 'browser_source');
     if (!mainItems.some(it => it.sourceName === HUD_CAMS)) { // just under the stream page, so its outlines sit on top of the cameras

@@ -107,6 +107,7 @@
       </div>
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuHud" checked> Also show the player cameras under their names during a match</label>
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSplit"> One camera films both players: its left half goes in Player 1's window, its right half in Player 2's</label>
+      <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSwap"> Swap the halves (left half → Player 2)</label>
       <div class="row" style="margin-top:10px"><button class="primary" type="button" id="cuBuild">Set up Coming Up scene in OBS</button><button type="button" id="cuPreview">Preview Coming Up</button></div>
     </div>
   </section>
@@ -172,8 +173,24 @@ $('obsForm').onsubmit = async e => {
     try { if (canSave()) localStorage.setItem('cofObs', JSON.stringify({ url: $('obsUrl').value.trim(), pw: $('obsPw').value })); } catch {}
     $('obsBody').hidden = false;
     await obsRefresh();
+    sendPreview();
   } catch (err) { $('obsBody').hidden = true; obsStatus(err.message); }
 };
+// Live picture for the phone remote: a small JPEG of what OBS is showing, once a second while a phone is watching.
+let previewRunning = false;
+async function sendPreview() {
+  if (previewRunning) return;
+  previewRunning = true;
+  let wanted = false;
+  while (obs.ws) {
+    try {
+      const img = wanted ? (await obs.call('GetSourceScreenshot', { sourceName: await obs.mainScene(), imageFormat: 'jpeg', imageWidth: 640, imageCompressionQuality: 60 })).imageData : null;
+      wanted = !!await rpc('cof_admin_preview_put', { p_token: token, p_img: img });
+    } catch { wanted = false; } // no login yet, or the database file not updated: try again later
+    await new Promise(r => setTimeout(r, wanted ? 1000 : 3000));
+  }
+  previewRunning = false;
+}
 let camState = null;
 async function obsRefresh() {
   camState = await obs.cameras();
@@ -208,11 +225,20 @@ $('camAdd').onclick = () => obsDo(async () => {
   const { devices } = await obs.addCamera();
   if (!devices.length) toast('Camera added, but no camera is connected to this computer. Plug one in and pick it from the list.');
 }, 'Camera added to the stream');
-$('cuSplit').onchange = () => { $('cuCam2').disabled = $('cuSplit').checked; };
+// the camera choices are remembered on this computer
+const CU_BOXES = ['cuHud', 'cuSplit', 'cuSwap'];
+try { const c = JSON.parse(localStorage.getItem('cofCu') || '{}'); CU_BOXES.forEach(id => { if (id in c) $(id).checked = c[id]; }); } catch {}
+const cuSync = () => {
+  $('cuCam2').disabled = $('cuSplit').checked;
+  $('cuSwap').disabled = !$('cuSplit').checked;
+  try { if (canSave()) localStorage.setItem('cofCu', JSON.stringify(Object.fromEntries(CU_BOXES.map(id => [id, $(id).checked])))); } catch {}
+};
+CU_BOXES.forEach(id => $(id).addEventListener('change', cuSync));
+cuSync();
 $('cuBuild').onclick = () => obsDo(async () => {
   let main = await obs.mainScene();
   if (main === OBS_COMING_UP) throw new Error('Switch OBS to your normal stream scene first, then press this again.');
-  await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, split: $('cuSplit').checked, hudCams: $('cuHud').checked, overlayUrl: base + 'overlay.html', mainScene: main });
+  await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, split: $('cuSplit').checked, swap: $('cuSwap').checked, hudCams: $('cuHud').checked, overlayUrl: base + 'overlay.html', mainScene: main });
 }, 'Coming Up scene is ready in OBS');
 $('cuPreview').onclick = () => {
   const split = $('cuSplit').checked && $('cuCam1').value;
