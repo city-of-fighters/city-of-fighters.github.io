@@ -79,6 +79,38 @@
     </details>
   </div>
 
+  <div class="card" id="sggCard" hidden>
+    <h2>start.gg</h2>
+    <p id="sggStatus" style="margin-top:0">Not connected. Results stay on this site only.</p>
+    <details id="sggHelp">
+      <summary>How to connect (do this once per tournament)</summary>
+      <ol>
+        <li>Log in on <a href="https://www.start.gg" target="_blank" rel="noopener">start.gg</a> (a normal free account is fine) and create your tournament with one event, for example “Tekken 8”.</li>
+        <li>In that event, add a bracket of the same type as here (Double elimination, Single elimination, Round robin or Swiss).</li>
+        <li>Get an API key: start.gg → your profile picture → <b>Developer Settings</b> → <b>Personal Access Tokens</b> → <b>Create new token</b>. Copy it. It is like a password: never post it anywhere else.</li>
+        <li>Open your event on start.gg and copy the link from the address bar (it looks like <code>start.gg/tournament/…/event/…</code>).</li>
+        <li>Paste the link and the key below and press <b>Connect</b>. Players here with the same gamer tag are linked automatically.</li>
+        <li>When registration closes on start.gg, press <b>Get players from start.gg</b>. It adds the players who signed up there and copies start.gg's seeding, so both brackets match.</li>
+        <li>Start the bracket here, and press <b>Start</b> on the bracket in start.gg too.</li>
+        <li>That's it: every result you enter here (control panel, phone or Stream tab) goes to start.gg within a few seconds while this control panel or the Stream tab is open on a computer. Undo here resets it on start.gg.</li>
+      </ol>
+    </details>
+    <form id="sggForm">
+      <label for="sggLink">start.gg event link</label><input type="text" id="sggLink" placeholder="https://www.start.gg/tournament/…/event/…" autocomplete="off">
+      <label for="sggKeyIn">start.gg API key</label><input type="password" id="sggKeyIn" autocomplete="off" placeholder="Paste the token from Developer Settings">
+      <div class="row" style="margin-top:10px"><button class="primary" type="submit">Connect</button></div>
+    </form>
+    <div id="sggOn" hidden>
+      <div class="row">
+        <button type="button" id="sggImport">Get players from start.gg</button>
+        <button type="button" id="sggNow">Send results now</button>
+        <label class="row" style="margin:0;color:var(--text)"><input type="checkbox" id="sggAuto"> Send results automatically</label>
+        <button type="button" id="sggOff" data-act="startgg" data-body='{"off":true}' data-confirm="Disconnect from start.gg? Results already sent stay on start.gg.">Disconnect</button>
+      </div>
+      <ul id="sggProblems" class="err" style="margin:10px 0 0"></ul>
+    </div>
+  </div>
+
   <div class="card" id="resultsCard" hidden>
     <h2>Tournament finished · results image</h2>
     <canvas id="png" width="1920" height="1080" style="width:100%;border-radius:6px"></canvas>
@@ -117,7 +149,7 @@
 
 </main>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="bracketview.js"></script><script src="banner.js"></script><script src="control.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="bracketview.js"></script><script src="banner.js"></script><script src="control.js"></script><script src="startgg.js"></script>
 <script>
 const base = location.href.replace(/admin\.html.*$/, '');
 $('signup').href = $('signup').textContent = base;
@@ -171,6 +203,7 @@ async function draw() {
   document.body.classList.remove('locked');
   const started = S.matches.length > 0;
   $('tourStatus').innerHTML = tourStatus();
+  sggDraw();
   $('tourEdit').hidden = S.status === 'none';
   if (!$('tourCard').contains(document.activeElement)) { // don't overwrite what is being typed
     $('ename').value = S.name; $('egame').value = S.game; $('rules').value = S.rules;

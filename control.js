@@ -54,6 +54,15 @@ const actions = {
     B.report(d.matches, m.id, ga > gb ? 'a' : 'b');
   }),
   screen: (d, b) => { if (SCREENS[b.screen]) d.screen = b.screen; }, // what the OBS page shows
+  startgg: (d, b) => { // start.gg link (startgg.js): settings, linked players, sets already reported
+    if (b.off) { delete d.startgg; return; }
+    const g = d.startgg ??= { entrants: {}, sent: {} };
+    for (const k of ['slug', 'eventId', 'title', 'auto']) if (b.set && k in b.set) g[k] = b.set[k];
+    Object.assign(g.entrants ??= {}, b.entrants);
+    Object.assign(g.sent ??= {}, b.sent);
+    for (const id of b.unsent ?? []) delete g.sent[id];
+    if (b.seed && !d.matches.length) d.order = [...b.seed, ...d.order.filter(id => !b.seed.includes(id))];
+  },
   deploy: (d, b) => { // Stream tab: put the previewed layout (and match) live on OBS
     if (SCREENS[b.screen]) d.screen = b.screen;
     if ('match' in b) d.streamMatch = b.match || null;
@@ -94,12 +103,13 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
       if (act === 'undo') {
         if (!undoStack.length) throw new Error('Nothing to undo');
         const prev = undoStack.pop();
+        if (d.startgg) prev.startgg = d.startgg; else delete prev.startgg; // the start.gg link isn't undone: it must see the undo to reset the set
         try { await rpc('cof_admin_save', { p_token: token, p_data: prev }); } catch (e) { undoStack.push(prev); throw e; }
       } else {
         const before = structuredClone(d);
         actions[act](d, body);
         await rpc('cof_admin_save', { p_token: token, p_data: d });
-        undoStack.push(before);
+        if (act !== 'startgg') undoStack.push(before); // undo is for results, not for start.gg bookkeeping
         if (undoStack.length > 20) undoStack.shift();
         decided = !B.finished(before.matches) && B.finished(d.matches);
       }
