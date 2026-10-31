@@ -13,6 +13,9 @@
   header img { width: 44px; border-radius: 6px; }
   header a { margin-left: auto; color: var(--dim); font-size: 14px; }
   .seg { position: sticky; top: 0; z-index: 5; }
+  #liveView { margin: 12px 0 4px; } #liveView img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #000; border: 2px solid var(--pink); box-shadow: 0 0 12px #ff0a6c55; }
+  #liveView p { margin: 6px 0 0; font-size: 13px; text-align: center; }
+  #liveView img[hidden] { display: none; }
   #label { text-align: center; color: var(--violet); text-transform: uppercase; letter-spacing: 1px; margin: 10px 0 6px; font-weight: 700; }
   .pad { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; padding: 18px; border-radius: 14px;
          border: 2px solid var(--pink); background: #ff0a6c18; text-align: left; margin-bottom: 8px; }
@@ -62,6 +65,7 @@
 
   <div id="remote">
     <div class="seg" role="tablist" id="tabs"></div>
+    <div id="liveView"><img id="liveImg" alt="What OBS is showing now"><p class="dim" id="liveNote">Connecting to OBS…</p></div>
     <section class="sec" id="t-score"><div id="score"></div><button id="undo" data-act="undo">↶ Undo</button></section>
     <section class="sec" id="t-matches"><div id="next" class="dim"></div></section>
     <section class="sec" id="t-bracket"><div class="card" id="bracketWrap"></div></section>
@@ -80,6 +84,24 @@ const pad = (m, s) => `<button class="pad ${s}" data-act="score" data-body='${es
   <span class="n">${esc(s === 'a' ? m.aName : m.bName)}</span><span class="g">${m['g' + s]}</span>
   <span>${pips(m['r' + s], S.ftRounds)} <span class="hint">tap = round won</span></span></button>`;
 const fix = (m, s) => `<div class="fix">${btn('− round', 'score', { id: m.id, side: s, kind: 'round', delta: -1 }, '')}${btn('+ game', 'score', { id: m.id, side: s, kind: 'game', delta: 1 }, '')}${btn('− game', 'score', { id: m.id, side: s, kind: 'game', delta: -1 }, '')}</div>`;
+
+// Live view of OBS (Score and OBS tabs): the PC's Stream tab sends a picture every second while this is open.
+let liveTimer = null;
+async function liveTick() {
+  const on = !document.hidden && (tab === 'score' || tab === 'obs') && !document.body.classList.contains('locked');
+  $('liveView').hidden = !on;
+  if (on) {
+    try {
+      const p = await rpc('cof_admin_preview_get', { p_token: token });
+      const age = p.at ? (Date.now() - new Date(p.at)) / 1000 : Infinity;
+      if (p.img && age < 15) { $('liveImg').src = p.img; $('liveImg').hidden = false; $('liveNote').hidden = true; }
+      else { $('liveImg').hidden = !p.img; $('liveNote').hidden = false;
+        $('liveNote').textContent = 'No live picture: open the Stream tab on the PC and connect OBS (Card 3).'; }
+    } catch (err) { $('liveImg').hidden = true; $('liveNote').hidden = false;
+      $('liveNote').textContent = /not set up|does not exist|Could not find/.test(err.message) ? 'Run the updated database file in Supabase to see OBS here.' : err.message; }
+  }
+  clearTimeout(liveTimer); liveTimer = setTimeout(liveTick, 1000);
+}
 
 // Remote sections: Score (any match, on stream or not), Matches, Bracket, OBS. Kept on this device while it is open.
 let tab = 'score', scoring = null, round = null;
@@ -128,6 +150,7 @@ $('remote').addEventListener('click', e => {
 });
 $('logoutLink').onclick = e => { e.preventDefault(); logout(); };
 boot();
+liveTick();
 </script>
 </body>
 </html>

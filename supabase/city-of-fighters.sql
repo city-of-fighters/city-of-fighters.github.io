@@ -27,6 +27,11 @@ create table if not exists public.cof_admin (id int primary key check (id = 1), 
 create table if not exists public.cof_attempts (ip text not null, at timestamptz not null default now()); -- wrong passwords
 create index if not exists cof_attempts_ip on public.cof_attempts (ip, at);
 create table if not exists public.cof_sessions (token_hash text primary key, expires timestamptz not null); -- logged-in devices
+-- Latest picture of the OBS output, sent by the PC's Stream tab so the phone remote can watch it. One row.
+create table if not exists public.cof_preview (id int primary key check (id = 1), img text check (char_length(img) <= 300000),
+  at timestamptz, wanted timestamptz);
+alter table public.cof_preview enable row level security;
+revoke all on public.cof_preview from anon, authenticated;
 
 alter table public.cof_players enable row level security; -- no policies: no direct access
 alter table public.cof_state enable row level security;
@@ -224,6 +229,30 @@ begin
   update cof_players set team = p_team where id = p_id;
 end $$;
 
+-- Stream tab: stores the latest OBS picture (null = only asking). Returns true while a phone watched in the last 30 s,
+-- so the PC only sends pictures when someone is looking.
+create or replace function public.cof_admin_preview_put(p_token text, p_img text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare w timestamptz;
+begin
+  perform cof_auth(p_token);
+  if p_img is not null and (p_img !~ '^data:image/jpeg;base64,[A-Za-z0-9+/=]+$' or char_length(p_img) > 300000) then raise exception 'Bad picture'; end if;
+  insert into cof_preview (id, img, at) values (1, p_img, case when p_img is null then null else now() end)
+  on conflict (id) do update set img = coalesce(excluded.img, cof_preview.img), at = coalesce(excluded.at, cof_preview.at)
+  returning wanted into w;
+  return w > now() - interval '30 seconds';
+end $$;
+
+-- Phone remote: the latest OBS picture and when it was taken.
+create or replace function public.cof_admin_preview_get(p_token text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare r cof_preview;
+begin
+  perform cof_auth(p_token);
+  insert into cof_preview (id, wanted) values (1, now()) on conflict (id) do update set wanted = now() returning * into r;
+  return jsonb_build_object('img', r.img, 'at', r.at);
+end $$;
+
 -- New tournament: removes all players and results, then applies the new settings (p_data may be null).
 create or replace function public.cof_admin_reset(p_token text, p_data jsonb default null) returns void
 language plpgsql security definer set search_path = public as $$
@@ -264,7 +293,7 @@ grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_register(text, text, boolean, text), public.cof_admin_team(text, uuid, text),
-  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_login(text), public.cof_logout(text),
+  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;
 
 -- Control panel password. A first install sets CHANGE-ME (the panel refuses to open until you change it);
