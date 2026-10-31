@@ -191,6 +191,13 @@ async function sendPreview() {
   }
   previewRunning = false;
 }
+// In the desktop app: take the address and password from this computer's OBS settings and connect by itself.
+window.cofDesktop?.obsLogin().then(o => {
+  if (!o) return obsStatus('OBS not found on this computer. Install OBS, open Tools → WebSocket Server Settings once, then come back.');
+  if (!o.enabled) return obsStatus('Turn on OBS → Tools → WebSocket Server Settings → Enable WebSocket server, then press Connect.');
+  $('obsUrl').value = o.url; $('obsPw').value = o.password;
+  $('obsForm').requestSubmit();
+}).catch(() => {});
 let camState = null;
 async function obsRefresh() {
   camState = await obs.cameras();
