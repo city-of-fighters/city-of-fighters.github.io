@@ -42,21 +42,17 @@
   .hscore.bump::after { content: ''; position: absolute; inset: 0; border: 3px solid #fff; animation: ring .7s ease-out forwards; }
   @keyframes hudIn { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
 
-  /* Bottom corners: Gaming Malta + City of Fighters (left), rolling sponsors (right). Logos only, no panel behind them;
+  /* Bottom corners: Gaming Malta + City of Fighters (left), sponsors fading one at a time (right). Logos only, no panel behind them;
      a soft shadow keeps them readable over bright game footage. */
   .plate { position: absolute; bottom: 22px; height: 92px; display: flex; align-items: center; }
   .plate img { filter: drop-shadow(0 2px 6px #000d) drop-shadow(0 0 2px #000a); }
   #brand { left: 28px; gap: 22px; }
   #brand .gm { height: 58px; } #brand .cof { height: 84px; margin-top: -6px; }
   #brand .sep { width: 2px; height: 56px; background: linear-gradient(#ff0a6c00, #ff0a6c, #ff0a6c00); }
-  #sponsors { right: 28px; width: 460px; }
-  #sponsors .view { overflow: hidden; width: 100%; height: 100%; display: flex; align-items: center;
-                    -webkit-mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent); }
-  #sponsors .track { display: flex; width: max-content; animation: roll 28s linear infinite; }
-  #sponsors .set { display: flex; align-items: center; gap: 48px; padding-right: 48px; }
-  #sponsors img { height: 38px; width: auto; }
-  #sponsors img.tall { height: 62px; }
-  @keyframes roll { to { transform: translateX(-50%); } } /* two identical sets: moving one set's width loops without a jump */
+  #sponsors { right: 28px; width: 300px; }
+  #sponsors img { position: absolute; right: 0; top: 50%; transform: translateY(-50%); max-width: 300px; height: 44px; width: auto; opacity: 0; transition: opacity .8s; }
+  #sponsors img.tall { height: 72px; }
+  #sponsors img.on { opacity: 1; }
 
   @keyframes fromL { from { transform: translateX(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes fromR { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -180,7 +176,7 @@
   <div class="full" id="winCard"></div>
   <div class="full" id="cuCard"><div class="cu" id="cuWait"></div></div>
   <div class="plate" id="brand"><img class="gm" src="hud/gaming-malta-logo.png" alt="Gaming Malta"><span class="sep"></span><img class="cof" src="hud/cof-logo.png" alt="City of Fighters"></div>
-  <div class="plate" id="sponsors"><div class="view"><div class="track"></div></div></div>
+  <div class="plate" id="sponsors"></div>
 </div>
 <div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
 <div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
@@ -240,11 +236,18 @@ function podiumHTML(s) {
     <div class="stands">${stand(2, at(2))}${stand(1, at(1))}${stand(3, at(3))}</div><div class="confetti">${confetti}</div>`;
 }
 
-// --- Sponsors: two identical sets in a row, so the roll loops without a gap ---
+// --- Sponsors: one at a time; each fades in, stays 4 s, fades out, then the next fades in ---
 const SPONSORS = [['rupture', 'Rupture'], ['gamebreaker', 'Gamebreaker'], ['immerse', 'Immerse VR Gaming Arena'],
   ['level-academy', 'Level Academy', 'tall'], ['malta-esports-association', 'Malta Esports Association', 'tall'], ['new-madras', 'New Madras', 'tall']];
-const set = SPONSORS.map(([f, n, c]) => `<img src="hud/sponsors/${f}.png" alt="${n}"${c ? ` class="${c}"` : ''}>`).join('');
-document.querySelector('#sponsors .track').innerHTML = `<div class="set">${set}</div><div class="set" aria-hidden="true">${set}</div>`;
+const sponsorBox = document.getElementById('sponsors');
+sponsorBox.innerHTML = SPONSORS.map(([f, n, c]) => `<img src="hud/sponsors/${f}.png" alt="${n}"${c ? ` class="${c}"` : ''}>`).join('');
+function nextSponsor(i) {
+  const img = sponsorBox.children[i % SPONSORS.length];
+  img.classList.add('on');
+  setTimeout(() => img.classList.remove('on'), 800 + 4000); // fade in, then 4 s fully visible
+  setTimeout(() => nextSponsor(i + 1), 800 + 4000 + 800); // next one starts once this one has faded out
+}
+setTimeout(() => nextSponsor(0), 100); // after the first paint, so the first logo fades in too
 
 // --- Scoreboard: live match, then winner for 6 s, then "waiting" until a new match goes on stream ---
 const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
