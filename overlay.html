@@ -90,9 +90,6 @@
   .cu .win { position: absolute; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
              background: radial-gradient(ellipse at 50% 40%, #2b1020, #08080a 70%); }
   .cu .win.big .logo { width: 360px; filter: drop-shadow(0 0 18px #ff0a6c77); }
-  .cu .win.big .vs { font: 700 64px var(--hud-font); text-transform: uppercase; letter-spacing: 3px; color: #fff; margin-top: 10px; }
-  .cu .win.big .vs i { font-style: normal; color: #ff0a6c; margin: 0 22px; }
-  .cu .win.big .note { font: 600 24px var(--hud-font); letter-spacing: 4px; color: #3cc9d4; text-transform: uppercase; margin-top: 6px; }
   .cu .win.cam .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .cu .win.cam .nm { position: relative; font: 700 46px var(--hud-font); text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 2px 8px #000; }
   .cu .win.cam .tm { position: relative; font: 700 22px var(--hud-font); letter-spacing: 4px; color: #3cc9d4; text-transform: uppercase; }
@@ -274,8 +271,7 @@ function comingUp(el, s, holes) {
   const tag = (p, cls) => p ? `<div class="tag ${cls}">${photoImg(p, '')}${team(p)}<span>${name(p)}</span></div>` : '';
   el.innerHTML = `<img class="bg" src="hud/${holes ? 'coming-up-frame' : 'coming-up'}.png" alt="">`
     + (m ? `<div class="title">${name(P[0])} <i>VS</i> ${name(P[1])} <small>· ${esc(m.label.toUpperCase())}</small></div>` : `<div class="title">${s.finished ? 'THANKS FOR WATCHING' : 'NEXT MATCH SOON'}</div>`)
-    + (holes && has.has('screen') ? '' : `<div class="win big" style="${rect('screen')}"><img class="logo" src="hud/cof-logo.png" alt="">
-        ${m ? `<div class="vs">${name(P[0])}<i>VS</i>${name(P[1])}</div><div class="note">${esc(m.label)}</div>` : `<div class="note">${s.finished ? 'The tournament is over' : 'Next match coming up soon'}</div>`}</div>`)
+    + (holes && has.has('screen') ? '' : `<div class="win big" style="${rect('screen')}"><img class="logo" src="hud/cof-logo.png" alt=""></div>`) // the game goes here; just the logo until there is one
     + (m ? camFill(P[0], 'cam1') + camFill(P[1], 'cam2') + tag(P[0], 't1') + tag(P[1], 't2') : '');
 }
 const CU = { screen: [64, 206, 1192, 668], cam1: [1324, 207, 532, 294], cam2: [1324, 579, 532, 294] }; // windows of the artwork
