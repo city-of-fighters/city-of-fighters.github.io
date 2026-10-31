@@ -31,11 +31,12 @@
   #ai { left: 312px; } #bi { left: 1215px; justify-content: flex-end; }
   #hlabel { position: absolute; top: 0; left: 738px; width: 442px; height: 21px; display: grid; place-items: center;
             font: 700 13px 'Rajdhani', sans-serif; letter-spacing: 4px; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px #6a0030; }
-  /* player cameras under the names (?cams=1): OBS puts the cameras behind these see-through outlined boxes */
-  .hcam { position: absolute; top: 50px; width: 240px; height: 135px; box-sizing: border-box; border: 3px solid #ff0a6c; box-shadow: 0 0 12px #ff0a6caa; }
+  /* player cameras (?cams=1) in the bottom corners, above the logos and clear of the game's health bars:
+     OBS puts the cameras behind these see-through outlined boxes */
+  .hcam { position: absolute; top: 816px; width: 240px; height: 135px; box-sizing: border-box; border: 3px solid #ff0a6c; box-shadow: 0 0 12px #ff0a6caa; }
   .hcam::before, .hcam::after { content: ''; position: absolute; width: 26px; height: 26px; border: 0 solid #3cc9d4; }
   .hcam::before { left: -3px; bottom: -3px; border-width: 0 0 4px 4px; } .hcam::after { right: -3px; top: -3px; border-width: 4px 4px 0 0; }
-  #ac { left: 312px; } #bc { left: 1370px; }
+  #ac { left: 28px; } #bc { left: 1652px; }
   #hud.enter .hcam { animation: fadeUp .4s .5s both; }
   /* a match comes on stream: the HUD drops in, names slide in, scores pop */
   #hud.enter { animation: hudIn .6s cubic-bezier(.2, 1.1, .3, 1) both; }

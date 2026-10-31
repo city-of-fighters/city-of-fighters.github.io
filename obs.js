@@ -5,8 +5,8 @@ const OBS_SPLIT_CAM = 'CoF Players camera'; // helper scene: one camera filming 
 const OBS_CAMERA_KINDS = ['v4l2_input', 'dshow_input', 'av_capture_input_v2', 'av_capture_input', 'macos-avcapture'];
 const OBS_CAMERA_DEVICE_PROP = { v4l2_input: 'device_id', dshow_input: 'video_device_id', av_capture_input_v2: 'device', av_capture_input: 'device', 'macos-avcapture': 'device' };
 // The Coming Up asset's windows, in 1920×1080 pixels (measured from Cof_Coming_Up_Screen_P1.png)
-const HUD_CAMS = 'CoF HUD cameras'; // scene inside the main scene: player cameras under their names during a match
-const HUD_CAM_WINDOWS = { cam1: { x: 312, y: 50, w: 240, h: 135 }, cam2: { x: 1370, y: 50, w: 240, h: 135 } }; // same boxes as in overlay.html
+const HUD_CAMS = 'CoF HUD cameras'; // scene inside the main scene: player cameras in the bottom corners during a match
+const HUD_CAM_WINDOWS = { cam1: { x: 28, y: 816, w: 240, h: 135 }, cam2: { x: 1652, y: 816, w: 240, h: 135 } }; // same boxes as in overlay.html
 const COMING_UP_WINDOWS = { screen: { x: 64, y: 206, w: 1192, h: 668 }, cam1: { x: 1324, y: 207, w: 532, h: 294 }, cam2: { x: 1324, y: 579, w: 532, h: 294 } };
 
 class OBSRemote {
