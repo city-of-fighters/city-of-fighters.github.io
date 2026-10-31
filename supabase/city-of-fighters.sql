@@ -27,6 +27,10 @@ create table if not exists public.cof_admin (id int primary key check (id = 1), 
 create table if not exists public.cof_attempts (ip text not null, at timestamptz not null default now()); -- wrong passwords
 create index if not exists cof_attempts_ip on public.cof_attempts (ip, at);
 create table if not exists public.cof_sessions (token_hash text primary key, expires timestamptz not null); -- logged-in devices
+-- start.gg API key (control panel → start.gg card). Only admin functions can read it.
+create table if not exists public.cof_startgg (id int primary key check (id = 1), api_key text check (char_length(api_key) <= 200));
+alter table public.cof_startgg enable row level security;
+revoke all on public.cof_startgg from anon, authenticated;
 -- Latest picture of the OBS output, sent by the PC's Stream tab so the phone remote can watch it. One row.
 create table if not exists public.cof_preview (id int primary key check (id = 1), img text check (char_length(img) <= 300000),
   at timestamptz, wanted timestamptz);
@@ -243,6 +247,19 @@ begin
   return w > now() - interval '30 seconds';
 end $$;
 
+-- start.gg API key: save (null removes it) and read, for logged-in organizers only.
+create or replace function public.cof_admin_startgg_set(p_token text, p_key text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  p_key := nullif(trim(coalesce(p_key, '')), '');
+  if char_length(p_key) > 200 then raise exception 'That does not look like a start.gg API key'; end if;
+  insert into cof_startgg (id, api_key) values (1, p_key) on conflict (id) do update set api_key = excluded.api_key;
+end $$;
+create or replace function public.cof_admin_startgg_get(p_token text) returns text
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); return (select api_key from cof_startgg where id = 1); end $$;
+
 -- Phone remote: the latest OBS picture and when it was taken.
 create or replace function public.cof_admin_preview_get(p_token text) returns jsonb
 language plpgsql security definer set search_path = public as $$
@@ -293,7 +310,7 @@ grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_register(text, text, boolean, text), public.cof_admin_team(text, uuid, text),
-  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_login(text), public.cof_logout(text),
+  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;
 
 -- Control panel password. A first install sets CHANGE-ME (the panel refuses to open until you change it);
