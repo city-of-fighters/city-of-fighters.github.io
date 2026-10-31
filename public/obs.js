@@ -122,8 +122,10 @@ class OBSRemote {
   async buildComingUp({ screen, cam1, cam2, overlayUrl, mainScene }) {
     const { scenes } = await this.call('GetSceneList');
     if (!scenes.some(s => s.sceneName === OBS_COMING_UP)) await this.call('CreateScene', { sceneName: OBS_COMING_UP });
+    const frameName = 'CoF Coming Up frame';
     const { sceneItems } = await this.call('GetSceneItemList', { sceneName: OBS_COMING_UP });
-    for (const it of sceneItems) await this.call('RemoveSceneItem', { sceneName: OBS_COMING_UP, sceneItemId: it.sceneItemId });
+    // the frame stays: OBS deletes a source that is in no scene any more
+    for (const it of sceneItems) if (it.sourceName !== frameName) await this.call('RemoveSceneItem', { sceneName: OBS_COMING_UP, sceneItemId: it.sceneItemId });
     const place = async (source, r) => {
       const { sceneItemId } = await this.call('CreateSceneItem', { sceneName: OBS_COMING_UP, sourceName: source });
       await this.call('SetSceneItemTransform', { sceneName: OBS_COMING_UP, sceneItemId, sceneItemTransform:
@@ -132,13 +134,15 @@ class OBSRemote {
     if (screen) await place(screen, COMING_UP_WINDOWS.screen);
     if (cam1) await place(cam1, COMING_UP_WINDOWS.cam1);
     if (cam2) await place(cam2, COMING_UP_WINDOWS.cam2);
-    const frameName = 'CoF Coming Up frame';
     const url = `${overlayUrl}?screen=comingup&main=${encodeURIComponent(mainScene)}&has=${[screen && 'screen', cam1 && 'cam1', cam2 && 'cam2'].filter(Boolean).join(',')}`;
     const { inputs } = await this.call('GetInputList');
     const frameSettings = { url, width: 1920, height: 1080, reroute_audio: false, shutdown: false, restart_when_active: false, webpage_control_level: 4 };
     if (inputs.some(i => i.inputName === frameName)) {
       await this.call('SetInputSettings', { inputName: frameName, inputSettings: frameSettings });
-      await this.call('CreateSceneItem', { sceneName: OBS_COMING_UP, sourceName: frameName });
+      const frame = sceneItems.find(it => it.sourceName === frameName);
+      const { sceneItemId } = frame ?? await this.call('CreateSceneItem', { sceneName: OBS_COMING_UP, sourceName: frameName });
+      const { sceneItems: now } = await this.call('GetSceneItemList', { sceneName: OBS_COMING_UP });
+      await this.call('SetSceneItemIndex', { sceneName: OBS_COMING_UP, sceneItemId, sceneItemIndex: now.length - 1 }); // on top
     } else await this.call('CreateInput', { sceneName: OBS_COMING_UP, inputName: frameName, inputKind: 'browser_source', inputSettings: frameSettings, sceneItemEnabled: true });
     // the stream page in the main scene switches to Coming Up between matches and back when a match starts
     for (const i of inputs.filter(i => i.inputKind === 'browser_source' && i.inputName !== frameName)) {

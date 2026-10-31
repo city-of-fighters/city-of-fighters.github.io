@@ -99,9 +99,9 @@
       <div id="camList"></div>
       <div class="row" style="margin-top:8px"><button type="button" id="camAdd">＋ Add camera</button></div>
       <h3>Coming Up screen (between matches)</h3>
-      <p class="dim" style="margin-top:0">Uses the Coming Up artwork: the big window shows the shared screen, the small windows show each player's camera. OBS switches to it when a match on stream ends and back when the next match goes on stream.</p>
+      <p class="dim" style="margin-top:0">Uses the Coming Up artwork: the big window shows the game, the small windows show each player's camera. OBS switches to it when a match on stream ends and back when the next match goes on stream.</p>
       <div class="cuPick">
-        <label>Shared screen (big window)<select id="cuScreen"></select></label>
+        <label>Game screen (big window)<select id="cuScreen"></select></label>
         <label>Player 1 camera<select id="cuCam1"></select></label>
         <label>Player 2 camera<select id="cuCam2"></select></label>
       </div>
@@ -185,10 +185,11 @@ async function obsRefresh() {
   const opts = (list, none) => `<option value="">${none}</option>` + list.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
   const keep = id => $(id).value;
   const prev = [keep('cuScreen'), keep('cuCam1'), keep('cuCam2')];
-  $('cuScreen').innerHTML = opts(await obs.videoSources(), '— none (show the next match instead) —');
+  $('cuScreen').innerHTML = opts(await obs.videoSources(), '— no game source in OBS yet —');
   $('cuCam1').innerHTML = opts(cameras.map(c => c.name), '— none (show the player instead) —');
   $('cuCam2').innerHTML = $('cuCam1').innerHTML;
   ['cuScreen', 'cuCam1', 'cuCam2'].forEach((id, i) => { if ([...$(id).options].some(o => o.value === prev[i])) $(id).value = prev[i]; });
+  if (!prev[0] && $('cuScreen').options.length > 1) $('cuScreen').selectedIndex = 1; // the game source by default
 }
 const obsDo = async (fn, done) => { try { await fn(); await obsRefresh(); if (done) toast(done); } catch (err) { toast(err.message); } };
 $('camList').addEventListener('change', e => {
