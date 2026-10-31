@@ -1,6 +1,6 @@
 // City of Fighters desktop app: the website's control panel and Stream tab in their own window.
 // It loads the live site, so the app is always as up to date as the website.
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -22,7 +22,7 @@ function createWindow() {
     backgroundColor: '#0c0714',
     icon: path.join(__dirname, 'build', 'icon.png'),
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, preload: path.join(__dirname, 'preload.cjs') },
   });
 
   // Pages of the site stay in the app (new windows open as app windows); anything else opens in the browser.
@@ -47,6 +47,21 @@ function createWindow() {
   win.loadURL(SITE + 'admin.html');
 }
 
+// OBS keeps its WebSocket settings in its config folder: %APPDATA%\obs-studio on Windows, ~/.config/obs-studio on Linux,
+// ~/Library/Application Support/obs-studio on Mac (Flatpak OBS on Linux keeps its own copy).
+function obsLogin() {
+  const dirs = [path.join(app.getPath('appData'), 'obs-studio'), path.join(app.getPath('home'), '.var/app/com.obsproject.Studio/config/obs-studio')];
+  for (const dir of dirs) {
+    try {
+      const c = JSON.parse(fs.readFileSync(path.join(dir, 'plugin_config', 'obs-websocket', 'config.json'), 'utf8'));
+      return { url: `ws://127.0.0.1:${c.server_port || 4455}`, password: c.auth_required === false ? '' : c.server_password || '', enabled: c.server_enabled !== false };
+    } catch {}
+  }
+  return null; // OBS not installed, or its WebSocket server was never opened
+}
+// only our own pages get it
+ipcMain.handle('obs-login', e => (e.senderFrame?.url ?? '').startsWith(SITE) ? obsLogin() : null);
+
 function runSmokeTest(win) {
   const done = (result, ok) => {
     console.log('SMOKE_RESULT ' + JSON.stringify(result));
@@ -58,7 +73,8 @@ function runSmokeTest(win) {
     try {
       const title = await win.webContents.executeJavaScript('document.title');
       const login = await win.webContents.executeJavaScript('!!document.getElementById("login")');
-      done({ url: win.webContents.getURL(), title, login }, title.includes('City of Fighters') && login);
+      const bridge = await win.webContents.executeJavaScript('typeof window.cofDesktop?.obsLogin');
+      done({ url: win.webContents.getURL(), title, login, bridge }, title.includes('City of Fighters') && login && bridge === 'function');
     } catch (e) { done({ error: String(e) }, false); }
   });
 }
