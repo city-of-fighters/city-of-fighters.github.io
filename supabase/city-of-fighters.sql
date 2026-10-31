@@ -26,6 +26,8 @@ create table if not exists public.cof_state (id int primary key check (id = 1), 
 create table if not exists public.cof_admin (id int primary key check (id = 1), pass_hash text not null);
 create table if not exists public.cof_attempts (ip text not null, at timestamptz not null default now()); -- wrong passwords
 create index if not exists cof_attempts_ip on public.cof_attempts (ip, at);
+create table if not exists public.cof_signups (ip text not null, at timestamptz not null default now()); -- sign-ups per address, against bots
+create index if not exists cof_signups_ip on public.cof_signups (ip, at);
 create table if not exists public.cof_sessions (token_hash text primary key, expires timestamptz not null); -- logged-in devices
 -- start.gg API key (control panel → start.gg card). Only admin functions can read it.
 create table if not exists public.cof_startgg (id int primary key check (id = 1), api_key text check (char_length(api_key) <= 200));
@@ -42,7 +44,8 @@ alter table public.cof_state enable row level security;
 alter table public.cof_admin enable row level security;
 alter table public.cof_attempts enable row level security;
 alter table public.cof_sessions enable row level security;
-revoke all on public.cof_players, public.cof_state, public.cof_admin, public.cof_attempts, public.cof_sessions from anon, authenticated;
+alter table public.cof_signups enable row level security;
+revoke all on public.cof_players, public.cof_state, public.cof_admin, public.cof_attempts, public.cof_sessions, public.cof_signups from anon, authenticated;
 
 -- status: none (no tournament) → setup (players register) → running → finished.
 -- regMode: 'open' = registration opens when the tournament is created, 'at' = opens at regAt.
@@ -142,11 +145,15 @@ begin
   if p_email !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' or char_length(p_email) > 120 then raise exception 'Enter a valid email'; end if;
   if p_agree is not true then raise exception 'You must accept the rules'; end if;
   if char_length(p_team) > 24 then raise exception 'Team name must be at most 24 characters'; end if;
+  -- at most 10 sign-ups per internet address per hour (a venue's shared Wi-Fi fits; a bot filling the bracket doesn't)
+  delete from cof_signups where at < now() - interval '1 hour';
+  if (select count(*) from cof_signups where ip = cof_ip()) >= 10 then raise exception 'Too many sign-ups from this network. Try again in an hour.'; end if;
   if exists (select 1 from cof_players where lower(name) = lower(p_name)) then raise exception 'That gamer tag is taken'; end if;
   if exists (select 1 from cof_players where lower(email) = p_email) then raise exception 'That email is already registered'; end if;
   select count(*) into n from cof_players;
   if n >= 256 then raise exception 'The tournament is full'; end if;
   insert into cof_players (name, email, team) values (p_name, p_email, p_team) returning id into pid;
+  insert into cof_signups (ip) values (cof_ip());
   update cof_state set data = jsonb_set(data, '{order}', (data->'order') || to_jsonb(pid::text)) where id = 1;
   return n + 1;
 end $$;
@@ -316,5 +323,6 @@ grant execute on function public.cof_public(), public.cof_register(text, text, b
 -- Control panel password. A first install sets CHANGE-ME (the panel refuses to open until you change it);
 -- running this file again keeps your current password.
 -- To set or change it, run this line on its own in the SQL Editor with your password, and never save it in this file (it is public on GitHub):
---   update public.cof_admin set pass_hash = extensions.crypt('YOUR-PASSWORD', extensions.gen_salt('bf'));
+--   update public.cof_admin set pass_hash = extensions.crypt('YOUR-PASSWORD', extensions.gen_salt('bf')); delete from public.cof_sessions;
+-- (the delete logs out every device, so only the new password works)
 insert into public.cof_admin values (1, extensions.crypt('CHANGE-ME', extensions.gen_salt('bf'))) on conflict (id) do nothing;

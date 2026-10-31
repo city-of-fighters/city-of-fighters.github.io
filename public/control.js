@@ -1,6 +1,8 @@
 // Control logic shared by the control panel (admin.html) and the phone remote (phone.html).
 // Each page has #login, #pw, #loginErr and #toast, and defines draw() which sets S (using adminGet()).
 // Logging in swaps the password for a token (the database allows 3 wrong passwords per 15 minutes).
+// Admin pages never run inside another site's frame (a hidden frame could trick an organizer into clicking).
+if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { top.location = location.href; } catch {} }
 const $ = id => document.getElementById(id);
 const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
 let S, token = '';
