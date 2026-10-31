@@ -1,6 +1,7 @@
 // Talks to OBS on this computer through its built-in remote control (obs-websocket 5, OBS → Tools → WebSocket Server Settings).
 // Used by the Stream tab for cameras and the Coming Up scene. Works in the browser and in Node (for tests).
 const OBS_COMING_UP = 'CoF Coming Up';
+const OBS_SPLIT_CAM = 'CoF Players camera'; // helper scene: one camera filming both players, cut in halves
 const OBS_CAMERA_KINDS = ['v4l2_input', 'dshow_input', 'av_capture_input_v2', 'av_capture_input', 'macos-avcapture'];
 const OBS_CAMERA_DEVICE_PROP = { v4l2_input: 'device_id', dshow_input: 'video_device_id', av_capture_input_v2: 'device', av_capture_input: 'device', 'macos-avcapture': 'device' };
 // The Coming Up asset's windows, in 1920×1080 pixels (measured from Cof_Coming_Up_Screen_P1.png)
@@ -119,21 +120,32 @@ class OBSRemote {
 
   // Builds (or rebuilds) the "CoF Coming Up" scene: the shared screen in the big window, player cameras in the small ones,
   // and the City of Fighters frame on top (its windows are see-through). Also lets the stream page switch scenes by itself.
-  async buildComingUp({ screen, cam1, cam2, overlayUrl, mainScene }) {
+  // split = cam1 films both players side by side: its left half goes in Player 1's window, its right half in Player 2's.
+  async buildComingUp({ screen, cam1, cam2, split, overlayUrl, mainScene }) {
     const { scenes } = await this.call('GetSceneList');
     if (!scenes.some(s => s.sceneName === OBS_COMING_UP)) await this.call('CreateScene', { sceneName: OBS_COMING_UP });
+    if (split && cam1) {
+      if (!scenes.some(s => s.sceneName === OBS_SPLIT_CAM)) await this.call('CreateScene', { sceneName: OBS_SPLIT_CAM });
+      const { sceneItems: old } = await this.call('GetSceneItemList', { sceneName: OBS_SPLIT_CAM });
+      for (const it of old) if (it.sourceName !== cam1) await this.call('RemoveSceneItem', { sceneName: OBS_SPLIT_CAM, sceneItemId: it.sceneItemId });
+      const { sceneItemId } = old.find(it => it.sourceName === cam1) ?? await this.call('CreateSceneItem', { sceneName: OBS_SPLIT_CAM, sourceName: cam1 });
+      await this.call('SetSceneItemTransform', { sceneName: OBS_SPLIT_CAM, sceneItemId, sceneItemTransform: // fills the 1920×1080 canvas, so each half is 960 wide
+        { boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsWidth: 1920, boundsHeight: 1080, boundsAlignment: 0, positionX: 960, positionY: 540, alignment: 0 } });
+      cam2 = cam1 = OBS_SPLIT_CAM;
+    }
     const frameName = 'CoF Coming Up frame';
     const { sceneItems } = await this.call('GetSceneItemList', { sceneName: OBS_COMING_UP });
     // the frame stays: OBS deletes a source that is in no scene any more
     for (const it of sceneItems) if (it.sourceName !== frameName) await this.call('RemoveSceneItem', { sceneName: OBS_COMING_UP, sceneItemId: it.sceneItemId });
-    const place = async (source, r) => {
+    const place = async (source, r, half) => {
       const { sceneItemId } = await this.call('CreateSceneItem', { sceneName: OBS_COMING_UP, sourceName: source });
       await this.call('SetSceneItemTransform', { sceneName: OBS_COMING_UP, sceneItemId, sceneItemTransform:
-        { boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsWidth: r.w, boundsHeight: r.h, boundsAlignment: 0, positionX: r.x + r.w / 2, positionY: r.y + r.h / 2, alignment: 0 } });
+        { boundsType: half ? 'OBS_BOUNDS_SCALE_OUTER' : 'OBS_BOUNDS_SCALE_INNER', cropToBounds: !!half, cropLeft: half === 'right' ? 960 : 0, cropRight: half === 'left' ? 960 : 0,
+          boundsWidth: r.w, boundsHeight: r.h, boundsAlignment: 0, positionX: r.x + r.w / 2, positionY: r.y + r.h / 2, alignment: 0 } });
     };
     if (screen) await place(screen, COMING_UP_WINDOWS.screen);
-    if (cam1) await place(cam1, COMING_UP_WINDOWS.cam1);
-    if (cam2) await place(cam2, COMING_UP_WINDOWS.cam2);
+    if (cam1) await place(cam1, COMING_UP_WINDOWS.cam1, split && 'left');
+    if (cam2) await place(cam2, COMING_UP_WINDOWS.cam2, split && 'right');
     const url = `${overlayUrl}?screen=comingup&main=${encodeURIComponent(mainScene)}&has=${[screen && 'screen', cam1 && 'cam1', cam2 && 'cam2'].filter(Boolean).join(',')}`;
     const { inputs } = await this.call('GetInputList');
     const frameSettings = { url, width: 1920, height: 1080, reroute_audio: false, shutdown: false, restart_when_active: false, webpage_control_level: 4 };
@@ -158,4 +170,4 @@ async function sha256b64(text) {
   return btoa(s);
 }
 
-if (typeof module === 'object') module.exports = { OBSRemote, COMING_UP_WINDOWS, OBS_COMING_UP };
+if (typeof module === 'object') module.exports = { OBSRemote, COMING_UP_WINDOWS, OBS_COMING_UP, OBS_SPLIT_CAM };
