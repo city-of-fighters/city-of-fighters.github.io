@@ -99,7 +99,10 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
   let decided = false;
   try {
     if (act === 'removePlayer') await rpc('cof_admin_remove', { p_token: token, p_id: body.id });
-    else if (act === 'create') await rpc('cof_admin_reset', { p_token: token, p_data: newTournament(body) });
+    else if (act === 'create') {
+      if (S?.finished) await saveArchive(S); // keep the finished one before it's cleared
+      await rpc('cof_admin_reset', { p_token: token, p_data: newTournament(body) });
+    }
     else {
       const d = (await adminGet()).data;
       if (act === 'undo') {
@@ -117,9 +120,21 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
       }
     }
     await draw();
-    if (decided) sendWinnerMail(); // the champion was just decided: email the winner banner (not awaited)
+    if (decided) { sendWinnerMail(); saveArchive(S).catch(e => toast('Past tournaments: ' + e.message)); } // champion decided: email the banner, keep the results
   } catch (e) { toast(e.message); }
 }));
+
+// Past tournaments: a finished tournament is saved with names only (no emails), keyed by when it was created,
+// so a reopen and re-finish updates the same entry.
+function archiveEntry(s) {
+  const team = new Map(s.players.map(p => [p.id, p.team ?? null]));
+  return { key: s.createdAt ?? `${s.name}-${s.matches[0]?.id ?? ''}`, data: { name: s.name, game: s.game, format: s.format, eventAt: s.eventAt ?? null,
+    players: s.players.length, champions: s.standings.filter(r => r.place === 1).map(r => r.name),
+    standings: s.standings.map(r => ({ place: r.place, name: r.name, team: team.get(r.id), w: r.w, l: r.l, gw: r.gw, gl: r.gl, pts: r.pts })),
+    matches: s.matches.filter(m => m.winner && m.a && m.b && m.a !== 'BYE' && m.b !== 'BYE')
+      .map(m => ({ label: m.label, a: m.aName, b: m.bName, ga: m.ga, gb: m.gb, w: m.winner === m.a ? 'a' : 'b' })) } };
+}
+const saveArchive = s => { const e = archiveEntry(s); return rpc('cof_admin_archive_save', { p_token: token, p_key: e.key, p_data: e.data }); };
 
 async function sendWinnerMail(force = false) {
   try { const sent = await mailWinner(force); toast(`🏆 Winner banner emailed to ${sent.join(' & ')}`); }

@@ -29,6 +29,11 @@ create index if not exists cof_attempts_ip on public.cof_attempts (ip, at);
 create table if not exists public.cof_signups (ip text not null, at timestamptz not null default now()); -- sign-ups per address, against bots
 create index if not exists cof_signups_ip on public.cof_signups (ip, at);
 create table if not exists public.cof_sessions (token_hash text primary key, expires timestamptz not null); -- logged-in devices
+-- Past tournaments: a snapshot of each finished one (names, standings, match results; never emails). Public to read.
+create table if not exists public.cof_archive (key text primary key check (char_length(key) <= 100), at timestamptz not null default now(),
+  data jsonb not null check (pg_column_size(data) < 600000));
+alter table public.cof_archive enable row level security;
+revoke all on public.cof_archive from anon, authenticated;
 -- start.gg API key (control panel → start.gg card). Only admin functions can read it.
 create table if not exists public.cof_startgg (id int primary key check (id = 1), api_key text check (char_length(api_key) <= 200));
 alter table public.cof_startgg enable row level security;
@@ -254,6 +259,26 @@ begin
   return w > now() - interval '30 seconds';
 end $$;
 
+-- Past tournaments: the control panel saves a finished tournament (again after a reopen), anyone can read them.
+create or replace function public.cof_admin_archive_save(p_token text, p_key text, p_data jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  if jsonb_typeof(p_data) <> 'object' or p_data ? 'email' then raise exception 'Bad archive entry'; end if;
+  insert into cof_archive (key, data) values (p_key, p_data) on conflict (key) do update set data = excluded.data;
+end $$;
+create or replace function public.cof_admin_archive_delete(p_token text, p_key text) returns void
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); delete from cof_archive where key = p_key; end $$;
+create or replace function public.cof_archive_list() returns jsonb
+language sql security definer set search_path = public stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('key', key, 'at', at, 'name', data->'name', 'game', data->'game', 'format', data->'format',
+    'eventAt', data->'eventAt', 'players', data->'players', 'champions', data->'champions') order by coalesce((data->>'eventAt')::timestamptz, at) desc), '[]'::jsonb)
+  from cof_archive
+$$;
+create or replace function public.cof_archive_get(p_key text) returns jsonb
+language sql security definer set search_path = public stable as $$ select data from cof_archive where key = p_key $$;
+
 -- start.gg API key: save (null removes it) and read, for logged-in organizers only.
 create or replace function public.cof_admin_startgg_set(p_token text, p_key text) returns void
 language plpgsql security definer set search_path = public as $$
@@ -317,7 +342,8 @@ grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_register(text, text, boolean, text), public.cof_admin_team(text, uuid, text),
-  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_login(text), public.cof_logout(text),
+  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text),
+  public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;
 
 -- Control panel password. A first install sets CHANGE-ME (the panel refuses to open until you change it);

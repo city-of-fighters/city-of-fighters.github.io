@@ -44,6 +44,12 @@ and admin functions need the login token. Player emails, the start.gg key and th
 - **Cameras in the HUD**: the same cameras in outlined boxes in the bottom corners during a match (`CoF HUD cameras` scene, overlay `?cams=1`).
 - **Phone live view**: while connected, the Stream tab sends a small picture of OBS once a second when a phone's Admin → Score or OBS tab is open.
 
+## Past tournaments
+
+When a champion is decided the control panel saves a snapshot (names, teams, standings, match results; no emails) to `cof_archive`,
+and again before "Create a new tournament" clears a finished one. The app's Leaderboard lists them for everyone; the control panel's
+**Past tournaments** card can delete one.
+
 ## start.gg
 
 Control panel → **start.gg** card (instructions inside). Paste the event link and a personal API token

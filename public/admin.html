@@ -74,7 +74,7 @@
         <label class="row"><input type="radio" name="nRegMode" value="open" checked> Right away</label>
         <label class="row"><input type="radio" name="nRegMode" value="at"> At a date and time: <input type="datetime-local" id="nRegAt"></label>
       </fieldset>
-      <p class="dim" style="font-size:13px">Creating a new tournament removes all players and results of the current one. Rules stay as they are.</p>
+      <p class="dim" style="font-size:13px">Creating a new tournament removes all players and results of the current one (a finished one is kept under Past tournaments). Rules stay as they are.</p>
       <button class="primary" id="createBtn" type="button">Create tournament</button>
     </details>
   </div>
@@ -110,6 +110,12 @@
       <ul id="sggProblems" class="err" style="margin:10px 0 0"></ul>
     </div>
   </div>
+
+  <details class="card" id="pastCard">
+    <summary style="cursor:pointer"><h2 style="display:inline">Past tournaments</h2></summary>
+    <p class="dim" style="margin-top:8px">Every finished tournament is kept here and in the app (names and results only, never emails).</p>
+    <table><tbody id="pastRows"></tbody></table>
+  </details>
 
   <div class="card" id="resultsCard" hidden>
     <h2>Tournament finished · results image</h2>
@@ -173,6 +179,19 @@ $('createBtn').onclick = () => {
   $('newTour').open = false;
 };
 $('logoutBtn').onclick = logout;
+// Past tournaments card: list, and delete one
+async function drawPast() {
+  const list = await rpc('cof_archive_list').catch(() => []);
+  $('pastRows').innerHTML = list.map(t => `<tr><td><b>${esc(t.name)}</b> <span class="dim">${esc(t.game)} · ${t.players} players · ${esc(new Date(t.eventAt || t.at).toLocaleDateString())}</span></td>
+    <td>🏆 ${esc((t.champions || []).join(' & '))}</td><td style="text-align:right"><button class="small" data-delpast="${esc(t.key)}" data-name="${esc(t.name)}">Delete</button></td></tr>`).join('')
+    || '<tr><td class="dim">None yet. A tournament is saved here when its champion is decided.</td></tr>';
+}
+$('pastCard').addEventListener('toggle', () => $('pastCard').open && drawPast());
+$('pastRows').addEventListener('click', async e => {
+  const b = e.target.closest('[data-delpast]');
+  if (!b || !confirm(`Delete “${b.dataset.name}” from past tournaments? This can't be undone.`)) return;
+  try { await rpc('cof_admin_archive_delete', { p_token: token, p_key: b.dataset.delpast }); toast('Deleted'); drawPast(); } catch (err) { toast(err.message); }
+});
 // Team names (shown on the stream HUD): saved when the field loses focus or Enter is pressed
 $('players').addEventListener('change', async e => {
   const f = e.target.closest('input.team');
