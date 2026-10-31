@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>City of Fighters Guide</title>
+<!-- Source of City-of-Fighters-Guide.pdf. Print: chrome --headless --print-to-pdf=City-of-Fighters-Guide.pdf docs/guide.html -->
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; } /* dark to the edge: the page padding repeats on every printed page */
+  :root { --pink: #ff0a6c; --teal: #3cc9d4; --ink: #f2f2f5; --dim: #a5a5b2; --card: #1b1b20; --line: #2e2e35; }
+  * { box-sizing: border-box; }
+  html { background: #0b0b0d; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; padding: 14mm; box-decoration-break: clone; -webkit-box-decoration-break: clone; color: var(--ink); font: 10.5pt/1.5 system-ui, 'Segoe UI', sans-serif; }
+  h1, h2, h3 { font-family: 'Rajdhani', 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.1; }
+  h1 { font-size: 34pt; margin: 4px 0 8px; } h1 span { color: var(--pink); }
+  .kicker { color: var(--pink); font: 700 10pt 'Rajdhani', sans-serif; letter-spacing: 3px; text-transform: uppercase; }
+  h2 { font-size: 18pt; color: var(--teal); margin: 22px 0 8px; break-after: avoid; }
+  h2::before { content: ''; display: inline-block; width: 10px; height: 15px; margin-right: 9px; background: var(--pink); clip-path: polygon(40% 0, 100% 0, 60% 100%, 0 100%); }
+  h3 { font-size: 12.5pt; margin: 14px 0 4px; break-after: avoid; }
+  p { margin: 6px 0; }
+  a { color: var(--teal); }
+  b { color: #fff; }
+  code, .url { font: 9pt ui-monospace, monospace; color: var(--teal); overflow-wrap: anywhere; }
+  ol, ul { margin: 6px 0; padding-left: 22px; } li { margin: 3px 0; }
+  ol li::marker { color: var(--pink); font-weight: 700; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .box, .note, .warn { background: var(--card); border: 1px solid var(--line); border-top: 3px solid var(--pink); padding: 8px 11px; break-inside: avoid; }
+  .box h3 { margin-top: 0; }
+  .note { border-top-color: var(--teal); } .warn { border-top-color: #ffb020; }
+  .note::before { content: 'Good to know: '; font-weight: 700; color: var(--teal); }
+  .warn::before { content: 'Careful: '; font-weight: 700; color: #ffb020; }
+  .links div { padding: 5px 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+  .links div span { display: block; color: var(--dim); font-size: 9pt; }
+  .key { display: inline-block; padding: 0 5px; border: 1px solid #555; border-bottom-width: 2px; border-radius: 3px; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; } td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { width: 38%; color: #fff; font-weight: 600; }
+  section { break-inside: auto; }
+  .flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font: 700 9.5pt 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+  .flow span { background: var(--pink); padding: 3px 8px; } .flow i { color: var(--teal); font-style: normal; }
+  footer { margin-top: 26px; color: var(--dim); font-size: 9pt; border-top: 1px solid var(--line); padding-top: 8px; }
+</style>
+</head>
+<body>
+<div class="kicker">Read this first · updated 31 October 2026</div>
+<h1>City of <span>Fighters</span> Guide</h1>
+<p>Everything, one small step at a time: install the apps, make a tournament, score matches, and put it all on stream with OBS. If a step says “tap”, you tap. If it says “type”, you type. That’s it.</p>
+
+<h2>The pieces</h2>
+<p>City of Fighters is one website. Everything below is a different door into it.</p>
+<div class="grid">
+  <div class="box"><h3>📱 Phone app</h3>For everyone. Players watch the leaderboard and sign up. You (the admin) score matches with big buttons and see what OBS shows.</div>
+  <div class="box"><h3>🖥️ PC app</h3>For you only. Control panel, Players and the Stream tab, where you also control OBS and its cameras.</div>
+  <div class="box"><h3>📺 OBS page</h3>What viewers see on Twitch: scores, names, photos, popups, bracket, winner, podium, the Coming Up screen.</div>
+</div>
+<div class="flow"><span>You tap on phone</span><i>→</i><span>Database saves it</span><i>→</i><span>OBS shows it</span><i>→</i><span>start.gg gets it</span></div>
+<p>It all updates by itself within about 2 seconds. You never press “save”.</p>
+
+<h2>All the links</h2>
+<div class="links">
+  <div><span>📱 The app (give this to players)</span><span class="url">https://city-of-fighters.github.io/app.html</span></div>
+  <div><span>✍️ Player registration only</span><span class="url">https://city-of-fighters.github.io/</span></div>
+  <div><span>🛠️ Control panel (admin, on a computer)</span><span class="url">https://city-of-fighters.github.io/admin.html</span></div>
+  <div><span>👤 Players tab (add, edit, photos)</span><span class="url">https://city-of-fighters.github.io/players.html</span></div>
+  <div><span>🎛️ Stream tab (what OBS shows, cameras)</span><span class="url">https://city-of-fighters.github.io/studio.html</span></div>
+  <div><span>📺 OBS Browser Source (paste into OBS)</span><span class="url">https://city-of-fighters.github.io/overlay.html</span></div>
+  <div><span>🪟 Windows app download</span><span class="url">https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest/download/City-of-Fighters-Setup.exe</span></div>
+  <div><span>🐧 Linux app download</span><span class="url">https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest/download/City-of-Fighters.AppImage</span></div>
+</div>
+
+<h2>Install the phone app</h2>
+<h3>Android</h3>
+<ol>
+  <li>Open Chrome on your phone and go to the app link above.</li>
+  <li>A screen asks about saving. Tap <b>Allow saving</b>. (It only remembers your login and small settings.)</li>
+  <li>Tap the three dots ⋮ in the top right, then <b>Install app</b>, then <b>Install</b> again.</li>
+  <li>A City of Fighters icon is now on your home screen. Tap it. Done!</li>
+</ol>
+<h3>iPhone</h3>
+<ol>
+  <li>Open Safari and go to the app link.</li>
+  <li>Tap the Share button (square with an arrow), then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+</ol>
+<p class="note">the app updates itself. Close it and open it again to get the newest version.</p>
+<p>At the bottom there are 3 buttons: <b>🏆 Leaderboard</b> (anyone can look), <b>✍️ Register</b> (only while registration is open) and <b>🔒 Admin</b> (only for you, needs the password: your remote control).</p>
+
+<h2>Install the PC app</h2>
+<h3>Windows</h3>
+<ol>
+  <li>Click the Windows download link. <code>City-of-Fighters-Setup.exe</code> downloads. Double-click it.</li>
+  <li>Windows might say “Windows protected your PC”. Click <b>More info</b>, then <b>Run anyway</b>. (It says that because the app isn’t paid-signed, not because it’s bad.)</li>
+  <li>Click <b>Next</b> until <b>Finish</b>. Open City of Fighters from the Start menu.</li>
+  <li>Getting a newer version later: download and install it again over the old one.</li>
+</ol>
+<h3>Linux (this CachyOS PC)</h3>
+<p>Already installed (version 1.3.2). Open your app menu and click City of Fighters.</p>
+<h3>Inside the PC app</h3>
+<ul>
+  <li><span class="key">Ctrl</span> + <span class="key">1</span> <b>Control panel</b>: make and run tournaments, start.gg.</li>
+  <li><span class="key">Ctrl</span> + <span class="key">2</span> <b>Players</b>: add and edit players, photos, teams.</li>
+  <li><span class="key">Ctrl</span> + <span class="key">3</span> <b>Stream</b>: what OBS shows, cameras, Coming Up. In the app it connects to OBS by itself, no password to type.</li>
+</ul>
+<p class="note">the pages inside the app update themselves. Press <span class="key">Ctrl</span> + <span class="key">R</span> to reload.</p>
+
+<h2>Log in as admin</h2>
+<ol>
+  <li>Open the PC app, or tap 🔒 Admin in the phone app.</li>
+  <li>Type the admin password. Tap <b>Unlock</b>. You stay logged in for 24 hours on that device.</li>
+</ol>
+<p class="warn">3 wrong passwords = locked for 15 minutes, even with the right one. Devices already logged in keep working, so log in before an event starts.</p>
+<p><b>Change or forget the password?</b> supabase.com → your project → SQL Editor. Paste this, put your new password where it says NEW-PASSWORD, press <b>Run</b>. It also logs out every device:</p>
+<p><code>update public.cof_admin set pass_hash = extensions.crypt('NEW-PASSWORD', extensions.gen_salt('bf')); delete from public.cof_sessions;</code></p>
+
+<h2>Make a tournament</h2>
+<p>On the PC (Control panel). The phone can’t make tournaments.</p>
+<ol>
+  <li>In the <b>Tournament</b> box, click <b>＋ Create a new tournament</b>.</li>
+  <li>Type a name (like “Friday Fights”) and the game (Tekken 8). Pick the 📅 date and time.</li>
+  <li>Pick the type. Not sure? <b>Double elimination</b> (out after losing twice).</li>
+  <li>Pick when registration opens: <b>Right away</b> or <b>At a date and time</b>. Click <b>Create tournament</b>.</li>
+</ol>
+<p class="warn">a new tournament deletes the old players and results. Download the results picture first if you want to keep it.</p>
+<h3>Tournament types, super simple</h3>
+<ul>
+  <li><b>Double elimination</b>: lose twice = out. Winners side and losers side.</li>
+  <li><b>Single elimination</b>: lose once = out. Fast.</li>
+  <li><b>Round robin</b>: everyone plays everyone. Win = 3 points.</li>
+  <li><b>Swiss</b>: a few rounds, players with the same points meet. Good for big groups.</li>
+</ul>
+
+<h2>Players</h2>
+<h3>Players sign up themselves</h3>
+<p>Send players the app link. They tap ✍️ Register, type a gamer tag, email and (optional) team, tick the box, tap Register. One internet connection can sign up 10 players per hour, plenty for a venue’s Wi-Fi.</p>
+<h3>Or you add them (Players tab, <span class="key">Ctrl</span> + <span class="key">2</span>)</h3>
+<ol>
+  <li>Type the gamer tag, team (optional) and email (optional). Click <b>Add player</b>.</li>
+  <li>Want a photo on stream? Click <b>Choose file</b> and pick one. It’s cropped to a square by itself.</li>
+  <li>To change someone: click <b>Edit</b> next to them. <b>Remove photo</b> takes the photo away. Players without a photo just show their name, no empty box.</li>
+</ol>
+<h3>Start it</h3>
+<ol>
+  <li>When everyone has signed up: Control panel → Players box. Change who plays who first with ▲ ▼ or <b>Shuffle seeds</b>.</li>
+  <li>Click <b>Start tournament</b>. Registration closes and the bracket is made automatically.</li>
+</ol>
+
+<h2>Run matches (phone remote)</h2>
+<p>One match = first to 2 games. One game = first to 3 rounds. The app counts it for you. Open the phone app → 🔒 Admin.</p>
+<p><b>Live view:</b> at the top of the 🎮 Score and 📺 OBS tabs you see what OBS is showing right now (a new picture every second), as long as the Stream tab is open and connected on the PC.</p>
+<ul>
+  <li><b>🎮 Score</b>: two big buttons, one per player. Tap the one who won the round. 3 rounds = a game, 2 games = the match, all automatic. Wrong tap? <b>↶ Undo</b> or <b>− round</b>.</li>
+  <li><b>📋 Matches</b>: <b>📺 On stream</b> puts a match on stream. <b>🎮 Score</b> scores one off stream. <b>2–0 / 2–1</b> buttons for a match finished somewhere else.</li>
+  <li><b>🏆 Bracket</b>: tap a round to see who won, who’s out (✕) and where everyone goes next.</li>
+  <li><b>📺 OBS</b>: what viewers see right now: Scoreboard, Bracket, Standings or Podium.</li>
+</ul>
+<p class="note">a finished match by mistake? Control panel → Finished matches → <b>Reopen</b>.</p>
+
+<h2>Connect OBS</h2>
+<h3>Once: add the stream page</h3>
+<p>On this PC it’s already done (scene <b>City of Fighters</b>). On another PC:</p>
+<ol>
+  <li>In OBS click your stream scene. Sources → <b>+</b> → <b>Browser</b>, name it City of Fighters.</li>
+  <li>URL: the OBS Browser Source link. Width <b>1920</b>, height <b>1080</b>. Click OK.</li>
+  <li>Drag it to the top of the Sources list (top = on top of the picture).</li>
+</ol>
+<h3>Every time: connect the Stream tab</h3>
+<ol>
+  <li>Open OBS, then the Stream tab (<span class="key">Ctrl</span> + <span class="key">3</span> in the PC app).</li>
+  <li>In the PC app it connects by itself. In a browser: OBS → Tools → <b>WebSocket Server Settings</b> → <b>Show Connect Info</b>, copy the password into the Stream tab and click <b>Connect</b> (it’s remembered after that).</li>
+</ol>
+<h3>Add the game</h3>
+<ol>
+  <li>Capture card: Sources → <b>+</b> → <b>Video Capture Device</b>, pick the card. Sound: <b>+</b> → <b>Audio Input Capture</b> → the card.</li>
+  <li>This PC’s screen: Sources → <b>+</b> → <b>Screen Capture (PipeWire)</b>, pick the screen in the popup and click <b>Share</b>.</li>
+  <li>Keep the game <b>below</b> City of Fighters in the Sources list.</li>
+</ol>
+
+<h2>Cameras and the Coming Up screen</h2>
+<p>All in the Stream tab, box <b>OBS on this computer</b>.</p>
+<ul>
+  <li><b>＋ Add camera</b> adds the camera plugged into this PC. Pick another camera in its list, <b>In the stream / Hidden</b> shows or hides it, <b>Remove</b> takes it away.</li>
+  <li><b>Coming Up screen</b>: between matches OBS shows the game in the big window and the player cameras in the two small ones, then switches back when the next match goes on stream. All by itself.</li>
+  <li>Choose the <b>Game screen</b>, <b>Player 1 camera</b> and <b>Player 2 camera</b>, then click <b>Set up Coming Up scene in OBS</b>. Do this again whenever you change cameras or the game source.</li>
+  <li><b>One camera films both players</b>: tick it and the picture is cut in half, left half → Player 1, right half → Player 2. <b>Swap the halves</b> turns it around. Sit the players side by side with their faces around the middle height.</li>
+  <li><b>Also show the player cameras in the bottom corners during a match</b>: small pink-outlined boxes above the logos, away from the health bars.</li>
+</ul>
+<p class="warn">don’t delete the scenes “CoF Coming Up”, “CoF Players camera” and “CoF HUD cameras” in OBS. They make all this work.</p>
+
+<h2>What viewers see on stream</h2>
+<ul>
+  <li><b>Scoreboard (top)</b>: names, teams, photos and games won. It slides in when a match goes on stream; the score pops when someone wins a game.</li>
+  <li><b>Popups</b>: when a match off stream ends, a card fades in, stays about 5 seconds and fades out.</li>
+  <li><b>Winner screen</b>: when the match on stream ends, the winner (with photo) for 6 seconds.</li>
+  <li><b>Coming Up</b>: between matches, the next match with the game and the player cameras.</li>
+  <li><b>Logos</b>: Gaming Malta and City of Fighters bottom left; sponsors bottom right, one at a time, each fading in for 4 seconds.</li>
+  <li><b>Bracket, Standings, Podium</b>: pick them in the Stream tab or the phone’s 📺 OBS tab. The podium appears by itself when the tournament is decided.</li>
+</ul>
+<h3>Using the Stream tab</h3>
+<ol>
+  <li>Click Scoreboard, Bracket, Standings or Podium, and pick the match for the scoreboard.</li>
+  <li>Check the <b>Preview</b> (viewers don’t see it yet). Happy? Click <b>Deploy to OBS</b>.</li>
+</ol>
+
+<h2>start.gg (official bracket)</h2>
+<p>Results entered here go to your start.gg bracket by themselves. Set it up once per tournament, in the Control panel → <b>start.gg</b> box (open “How to connect”):</p>
+<ol>
+  <li>Log in on start.gg (a normal free account) and create the tournament with one event and the same bracket type.</li>
+  <li>start.gg → profile picture → <b>Developer Settings</b> → <b>Personal Access Tokens</b> → <b>Create new token</b>. Copy it.</li>
+  <li>Copy the event’s link from start.gg. Paste link and token in the start.gg box and click <b>Connect</b>.</li>
+  <li>When registration on start.gg closes, click <b>Get players from start.gg</b> (adds them and copies start.gg’s seeding).</li>
+  <li>Start the bracket here <b>and</b> press <b>Start</b> on the bracket in start.gg.</li>
+</ol>
+<p class="note">results are sent while the Control panel or Stream tab is open on a computer. Undo here resets the match on start.gg too. If something can’t be sent, the start.gg box says why.</p>
+<p class="warn">the token is like a password. Paste it only into the start.gg box, never in a chat, email or on stream.</p>
+
+<h2>When the tournament ends</h2>
+<ol>
+  <li>The last result is entered: the podium appears on stream by itself.</li>
+  <li>Control panel: the results picture appears. Click <b>Download PNG</b> to save it.</li>
+  <li>Done? Click <b>End tournament</b>. The app says “No tournament in progress” until the next one.</li>
+</ol>
+<p class="note">the winner banner email needs a one-time setup (Gmail app password and the cof-winner-email function, see the README). Until then nothing is emailed.</p>
+
+<h2>Keep it safe</h2>
+<ul>
+  <li>Strangers can’t see emails, the admin panel, the start.gg token or the OBS picture: only someone logged in with the admin password can.</li>
+  <li>Never share the admin password, the start.gg token or the OBS WebSocket password, and never type them on stream.</li>
+  <li>Think the password got out? Change it with the line in “Log in as admin”. That logs out every device too.</li>
+  <li>On a shared computer, click <b>Log out</b> in the Control panel when you’re done.</li>
+</ul>
+
+<h2>Something’s wrong?</h2>
+<table>
+  <tr><td>“Too many wrong passwords”</td><td>Wait 15 minutes. Or Supabase SQL Editor: <code>delete from public.cof_attempts;</code></td></tr>
+  <tr><td>OBS shows old stuff or nothing</td><td>Right-click the City of Fighters source → <b>Refresh cache of current page</b>.</td></tr>
+  <tr><td>Stream tab: “Could not reach OBS”</td><td>Open OBS. Tools → WebSocket Server Settings → tick <b>Enable WebSocket server</b>.</td></tr>
+  <tr><td>A camera window is black</td><td>Stream tab → pick the other camera in its list. Still black? Close and reopen OBS.</td></tr>
+  <tr><td>Phone live view says “No live picture”</td><td>Open the Stream tab on the PC and connect OBS.</td></tr>
+  <tr><td>“Run the updated database file”</td><td>Supabase → SQL Editor → paste all of <code>supabase/city-of-fighters.sql</code> → Run. Safe to run again.</td></tr>
+  <tr><td>Phone app looks old</td><td>Close it completely (swipe it away) and open it again.</td></tr>
+  <tr><td>Register page says “closed”</td><td>The tournament started, or registration is off: Control panel → Tournament → tick Registration allowed → Save settings.</td></tr>
+  <tr><td>Scored the wrong player</td><td>↶ Undo. Finished match: Control panel → Finished matches → Reopen.</td></tr>
+  <tr><td>start.gg: “press Start on the bracket”</td><td>On start.gg open the bracket and press Start, then click <b>Send results now</b>.</td></tr>
+</table>
+
+<footer>City of Fighters · Tekken 8 tournaments on Twitch · Privacy: city-of-fighters.github.io/privacy.html</footer>
+</body>
+</html>

@@ -9,15 +9,16 @@ Website (GitHub Pages): https://city-of-fighters.github.io/
 | App (leaderboard, register, admin) | https://city-of-fighters.github.io/app.html |
 | Player registration | https://city-of-fighters.github.io/ |
 | Control panel (password) | https://city-of-fighters.github.io/admin.html |
-| Stream tab: preview and deploy what OBS shows | https://city-of-fighters.github.io/studio.html |
+| Players tab: add, edit, photos (password) | https://city-of-fighters.github.io/players.html |
+| Stream tab: preview and deploy what OBS shows, OBS cameras and Coming Up scene | https://city-of-fighters.github.io/studio.html |
 | Phone remote (password) | https://city-of-fighters.github.io/phone.html |
 | **OBS Browser Source** (1920×1080, the only one needed) | https://city-of-fighters.github.io/overlay.html |
 
-The OBS page shows the scoreboard, bracket, standings or podium: pick one in the Stream tab, check the preview, press **Deploy to OBS**. The podium goes live by itself when the tournament ends. The old `bracket.html` / `leaderboard.html` links still work.
+The OBS page shows the HUD (scores, names, teams, photos), result popups, bracket, standings, podium and the Coming Up screen between matches: pick one in the Stream tab, check the preview, press **Deploy to OBS**. The podium goes live by itself when the tournament ends. The old `bracket.html` / `leaderboard.html` links still work.
 
 ## Apps
 
-- **Computer** (Windows installer / portable .exe, Linux AppImage): download from the [latest release](https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest) or the "Get the apps" box in the control panel. The app opens the live website in its own window. To build a new release, push a tag like `v1.0.1`; GitHub builds, tests and publishes the files (`.github/workflows/release.yml`, code in `desktop/`).
+- **Computer** (Windows installer / portable .exe, Linux AppImage): download from the [latest release](https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest) or the "Get the apps" box in the control panel. The app opens the live website in its own window (Ctrl+1 control panel, Ctrl+2 players, Ctrl+3 Stream) and reads the OBS WebSocket password from this computer's OBS settings, so the Stream tab connects to OBS by itself. To build a new release, push a tag like `v1.0.1`; GitHub builds, tests and publishes the files (`.github/workflows/release.yml`, code in `desktop/`).
 - **Phone**: open the phone remote and tap **Install app** (or browser menu → Install / Add to Home screen).
 
 ## Setup and updates
@@ -26,9 +27,29 @@ Data lives in Supabase (same project as Iron Fist Academy, tables start with `co
 
 1. Paste the whole `supabase/city-of-fighters.sql` into Supabase → SQL Editor → Run. Run it again after updates: it keeps players, tournament and password.
 2. Set the admin password with this line on its own in the SQL Editor (never save it in the file, the repo is public):
-   `update public.cof_admin set pass_hash = extensions.crypt('YOUR-PASSWORD', extensions.gen_salt('bf'));`
+   `update public.cof_admin set pass_hash = extensions.crypt('YOUR-PASSWORD', extensions.gen_salt('bf')); delete from public.cof_sessions;`
+   (the delete logs every device out, so only the new password works)
 
-Logging in gives the device a token for 24 hours. 3 wrong passwords lock the login for 15 minutes.
+Logging in gives the device a token for 24 hours. 3 wrong passwords per address (or 20 in total) lock the login for 15 minutes.
+Sign-up allows 10 registrations per internet address per hour. Tables are locked; the site only calls the `cof_` functions,
+and admin functions need the login token. Player emails, the start.gg key and the OBS picture never leave admin functions.
+
+## OBS (Stream tab, card 3)
+
+- **Connect**: address and the WebSocket password from OBS → Tools → WebSocket Server Settings (the desktop app fills both in).
+- **Cameras**: add, pick the device, show or hide on stream, remove. Laptops' infrared sensors are skipped.
+- **Coming Up scene** (`CoF Coming Up`): the game in the big window, player cameras in the small ones. OBS switches to it
+  between matches and back when a match goes on stream (the overlay's browser source needs page permission "Advanced", set automatically).
+- **One camera for both players**: tick it to cut one camera in halves (left → Player 1, or swapped). Uses the helper scene `CoF Players camera`.
+- **Cameras in the HUD**: the same cameras in outlined boxes in the bottom corners during a match (`CoF HUD cameras` scene, overlay `?cams=1`).
+- **Phone live view**: while connected, the Stream tab sends a small picture of OBS once a second when a phone's Admin → Score or OBS tab is open.
+
+## start.gg
+
+Control panel → **start.gg** card (instructions inside). Paste the event link and a personal API token
+(start.gg → Developer Settings). **Get players from start.gg** imports entrants and start.gg's seeding; every result
+decided here is reported to the matching set on start.gg (undo resets it) while the control panel or Stream tab is open
+on a computer. Press Start on the start.gg bracket too. Code: `public/startgg.js`.
 
 ## Winner banner email
 
