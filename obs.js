@@ -81,7 +81,13 @@ class OBSRemote {
     const { sceneItemId } = await this.call('CreateInput', { sceneName: scene, inputName: name, inputKind: kind, inputSettings: {}, sceneItemEnabled: true });
     const prop = OBS_CAMERA_DEVICE_PROP[kind];
     const devices = await this.call('GetInputPropertiesListPropertyItems', { inputName: name, propertyName: prop }).then(r => r.propertyItems.filter(d => d.itemEnabled !== false), () => []);
-    if (devices[0]) await this.call('SetInputSettings', { inputName: name, inputSettings: { [prop]: devices[0].itemValue } });
+    // laptops often list an infrared sensor first, which gives no picture: keep the first device that does
+    for (const d of devices) {
+      await this.call('SetInputSettings', { inputName: name, inputSettings: { [prop]: d.itemValue } });
+      let w = 0;
+      for (let i = 0; i < 15 && !w; i++) { await new Promise(r => setTimeout(r, 200)); w = (await this.call('GetSceneItemTransform', { sceneName: scene, sceneItemId })).sceneItemTransform.sourceWidth; }
+      if (w) break;
+    }
     await this.call('SetSceneItemTransform', { sceneName: scene, sceneItemId, sceneItemTransform: { boundsType: 'OBS_BOUNDS_SCALE_INNER', boundsWidth: 480, boundsHeight: 270, positionX: 1416, positionY: 660, boundsAlignment: 0, alignment: 5 } });
     // keep the City of Fighters graphics on top of the camera
     const { sceneItems } = await this.call('GetSceneItemList', { sceneName: scene });
