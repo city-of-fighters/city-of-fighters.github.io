@@ -105,6 +105,7 @@
         <label>Player 1 camera<select id="cuCam1"></select></label>
         <label>Player 2 camera<select id="cuCam2"></select></label>
       </div>
+      <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSplit"> One camera films both players: its left half goes in Player 1's window, its right half in Player 2's</label>
       <div class="row" style="margin-top:10px"><button class="primary" type="button" id="cuBuild">Set up Coming Up scene in OBS</button><button type="button" id="cuPreview">Preview Coming Up</button></div>
     </div>
   </section>
@@ -206,13 +207,15 @@ $('camAdd').onclick = () => obsDo(async () => {
   const { devices } = await obs.addCamera();
   if (!devices.length) toast('Camera added, but no camera is connected to this computer. Plug one in and pick it from the list.');
 }, 'Camera added to the stream');
+$('cuSplit').onchange = () => { $('cuCam2').disabled = $('cuSplit').checked; };
 $('cuBuild').onclick = () => obsDo(async () => {
   let main = await obs.mainScene();
   if (main === OBS_COMING_UP) throw new Error('Switch OBS to your normal stream scene first, then press this again.');
-  await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, overlayUrl: base + 'overlay.html', mainScene: main });
+  await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, split: $('cuSplit').checked, overlayUrl: base + 'overlay.html', mainScene: main });
 }, 'Coming Up scene is ready in OBS');
 $('cuPreview').onclick = () => {
-  const has = [$('cuScreen').value && 'screen', $('cuCam1').value && 'cam1', $('cuCam2').value && 'cam2'].filter(Boolean).join(',');
+  const split = $('cuSplit').checked && $('cuCam1').value;
+  const has = [$('cuScreen').value && 'screen', $('cuCam1').value && 'cam1', (split || $('cuCam2').value) && 'cam2'].filter(Boolean).join(',');
   previewOverride = true;
   $('preview').src = `overlay.html?preview=1&screen=comingup&has=${has}`;
   $('previewName').textContent = 'Coming Up (live video goes in the empty windows)';
