@@ -20,6 +20,12 @@
   .vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; text-align: center; font-weight: 800; font-size: 18px; }
   .vs .sc { font-size: 30px; color: var(--pink); }
   .event { text-align: center; color: var(--violet); font-weight: 700; margin-top: 4px; }
+  .watch { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 0; padding: 13px 16px; font-size: 19px; letter-spacing: 2px;
+           background: linear-gradient(var(--pink), var(--pink2)); border: 0; color: #fff; box-shadow: 0 0 16px #ff0a6c55; }
+  .watch:hover { background: linear-gradient(#ff2a82, var(--pink)); }
+  .watch i { width: 11px; height: 11px; border-radius: 50%; background: #fff; animation: blink 1.4s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  @media (prefers-reduced-motion: reduce) { .watch i { animation: none; } }
   .past button.pt { display: flex; width: 100%; justify-content: space-between; gap: 10px; text-align: left; text-transform: none; letter-spacing: 0; font: inherit; padding: 10px 12px; margin: 6px 0 0; clip-path: none; }
   .past button.pt b { font: 700 17px var(--display); text-transform: uppercase; letter-spacing: 1px; }
   .past button.pt .w { color: #ffd24a; white-space: nowrap; }
@@ -29,7 +35,8 @@
 </head>
 <body class="app">
 <main>
-  <div class="hero"><img src="logo-clear.png" alt="City of Fighters"><div class="ev" id="ev"></div><div class="dim" id="sub"></div></div>
+  <div class="hero"><img src="logo-clear.png" alt="City of Fighters"><div class="ev" id="ev"></div><div class="dim" id="sub"></div>
+    <a class="btnlink watch" href="https://www.twitch.tv/city_of_fighters" target="_blank" rel="noopener"><i></i>Watch it live on Twitch</a></div>
 
   <div class="card" id="installCard" hidden>
     <h2>Install the app</h2>
