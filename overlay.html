@@ -144,7 +144,8 @@
   .stand.p2 .block { height: 270px; animation-delay: 1s; }   .stand.p2 .who { animation-delay: 1.8s; }
   .stand.p3 .block { height: 190px; animation-delay: .4s; }  .stand.p3 .who { animation-delay: 1.2s; }
   .stand.p1 .pname { color: #ffd24a; text-shadow: 0 0 24px #ffd24aaa; animation: glow 1.6s 3.2s infinite alternate; font-size: 58px; }
-  .stand .pph { display: block; width: 150px; height: 150px; object-fit: cover; margin: 0 auto 10px; border: 4px solid var(--c); box-shadow: 0 0 24px var(--c); }
+  .stand .pph { display: inline-block; width: 150px; height: 150px; object-fit: cover; margin: 0 6px 10px; border: 4px solid var(--c); box-shadow: 0 0 24px var(--c); }
+  .stand .pph[hidden] { display: none; }
   .crown { font-size: 54px; animation: drop .7s 2.8s both cubic-bezier(.2, 1.3, .4, 1); }
   .confetti i { position: absolute; top: -30px; width: 12px; height: 20px; animation: fall linear infinite; opacity: .9; }
   @keyframes rise { from { transform: scaleY(0); } to { transform: none; } }
@@ -231,10 +232,22 @@ async function showPopups() {
 }
 
 // --- Podium ---
+// A player's photo for screens drawn once (podium, winner): if it hasn't loaded yet, a hidden placeholder that the
+// 'cof-photo' event fills in when it arrives, so the animation isn't restarted. Nothing at all without a photo.
+function lazyPhoto(p, cls) {
+  if (!p?.photo) return '';
+  const src = photoOf(p);
+  return `<img class="${cls}" alt="" data-pid="${esc(p.id)}" data-pv="${esc(p.photo)}"${src ? ` src="${src}"` : ' hidden'}>`;
+}
+addEventListener('cof-photo', () => document.querySelectorAll('img[data-pid][hidden]').forEach(img => {
+  const src = photoOf({ id: img.dataset.pid, photo: img.dataset.pv });
+  if (src) { img.src = src; img.hidden = false; }
+}));
+
 function podiumHTML(s) {
   const at = p => s.standings.filter(r => r.place === p);
   const stand = (p, rows) => !rows.length ? '<div class="stand"></div>' : `<div class="stand p${p}"><div class="who">
-      ${p === 1 ? '<div class="crown">👑</div>' : ''}${rows.length === 1 ? photoImg(s.players.find(x => x.id === rows[0].id), 'pph') : ''}<div class="pname">${rows.map(r => esc(r.name)).join(' & ')}</div>
+      ${p === 1 ? '<div class="crown">👑</div>' : ''}${rows.map(r => lazyPhoto(s.players.find(x => x.id === r.id), 'pph')).join('') /* tied places: each photo side by side */}<div class="pname">${rows.map(r => esc(r.name)).join(' & ')}</div>
       <div class="rec">${esc(record(s, rows[0]))}</div></div><div class="block">${ord(p)}</div></div>`;
   const colors = ['#ff0a6c', '#3cc9d4', '#ffd24a', '#ffffff', '#1f8f99'];
   const confetti = Array.from({ length: 70 }, (_, i) => `<i style="left:${Math.random() * 100}%;background:${colors[i % 5]};animation-duration:${3 + Math.random() * 4}s;animation-delay:${2.6 + Math.random() * 4}s"></i>`).join('');
@@ -298,7 +311,7 @@ function scoreboard(s, m) {
   const live = !!m && !m.winner;
   if (m?.winner && sbMatch === m.id && sbLive) { // the viewers just watched it end
     const w = m.winner === m.a ? 'a' : 'b';
-    $('winCard').innerHTML = `<div class="rays"></div><img src="logo-clear.png" alt="">${photoImg(w === 'a' ? m.aPlayer : m.bPlayer, 'wph')}<div class="wl">${esc(m.label.toUpperCase())} · WINNER</div>
+    $('winCard').innerHTML = `<div class="rays"></div><img src="logo-clear.png" alt="">${lazyPhoto(w === 'a' ? m.aPlayer : m.bPlayer, 'wph')}<div class="wl">${esc(m.label.toUpperCase())} · WINNER</div>
       <div class="wn">${esc(w === 'a' ? m.aName : m.bName)}</div>
       <div class="ws">wins <b>${Math.max(m.ga, m.gb)}–${Math.min(m.ga, m.gb)}</b> against ${esc(w === 'a' ? m.bName : m.aName)}</div>`;
     winUntil = Date.now() + 6000; // the next draw after this switches to "waiting"
