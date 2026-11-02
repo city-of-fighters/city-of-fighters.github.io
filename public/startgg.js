@@ -126,15 +126,21 @@ function sggGames(m, ent) {
   return games.length ? games : null; // a result without a game score: just the winner
 }
 
-// Events calendar: the upcoming tournaments the key's owner runs on start.gg (their hub's events).
+// Events calendar: upcoming tournaments City of Fighters hosts on start.gg, never ones the account only plays in:
+// those the key's account created (start.gg's "tournaments by owner") plus those where it is an admin.
+const SGG_T = 'id name slug startAt city isOnline events { videogame { displayName } }';
 async function sggCalendar() {
   if (!await sggGetKey()) return null;
-  const q = view => `query { currentUser { tournaments(query: { perPage: 50, filter: { upcoming: true${view} } }) {
-    nodes { id name slug startAt city isOnline events { videogame { displayName } } } } } }`;
-  const data = await sgg(q(', tournamentView: "admin"')).catch(e => { if (/tournamentView/.test(e.message)) return sgg(q('')); throw e; });
-  const list = (data.currentUser?.tournaments?.nodes ?? []).filter(t => t.startAt && t.slug).map(t => ({
-    id: String(t.id), name: String(t.name).slice(0, 80), at: t.startAt, link: 'https://www.start.gg/' + t.slug,
-    game: t.events?.[0]?.videogame?.displayName ?? null, place: t.isOnline ? 'Online' : t.city ?? null }));
+  const me = (await sgg('query { currentUser { id } }')).currentUser;
+  if (!me) throw new Error('start.gg did not accept the API key');
+  const owned = (await sgg(`query($id: ID!) { tournaments(query: { perPage: 100, filter: { ownerId: $id } }) { nodes { ${SGG_T} } } }`, { id: me.id })).tournaments?.nodes ?? [];
+  const admin = await sgg(`query { currentUser { tournaments(query: { perPage: 50, filter: { upcoming: true, tournamentView: "admin" } }) { nodes { ${SGG_T} } } } }`)
+    .then(d => d.currentUser?.tournaments?.nodes ?? [], () => []); // if start.gg rejects this lookup, the created ones still show
+  const now = Date.now() / 1000, seen = new Set();
+  const list = [...owned, ...admin].filter(t => t.startAt > now - 86400 && t.slug && !seen.has(t.id) && seen.add(t.id))
+    .sort((x, y) => x.startAt - y.startAt).slice(0, 100).map(t => ({
+      id: String(t.id), name: String(t.name).slice(0, 80), at: t.startAt, link: 'https://www.start.gg/' + t.slug,
+      game: t.events?.[0]?.videogame?.displayName ?? null, place: t.isOnline ? 'Online' : t.city ?? null }));
   return rpc('cof_admin_events_sync', { p_token: token, p_events: list });
 }
 

@@ -65,7 +65,7 @@ a player, so sign-up itself happens on start.gg.
 ## Events calendar
 
 `events.html` (📅 Events tab) lists `cof_events`: events typed in on the control panel's **Events calendar** card, plus the upcoming
-tournaments of the start.gg account whose API key is saved (`currentUser.tournaments`, synced every 30 minutes and on demand).
+tournaments City of Fighters hosts on start.gg: the ones the API key's account created (`tournaments(filter: { ownerId })`) plus the ones it admins (`currentUser.tournaments`, `tournamentView: "admin"`), never ones it only plays in. Synced every 30 minutes and on demand.
 
 ## Winner banner email
 
