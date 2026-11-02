@@ -1,6 +1,6 @@
 # City of Fighters
 
-Tekken 8 tournament manager for Twitch streams: player sign-up, double-elimination bracket, live OBS overlays, and a results image at the end.
+Tekken 8 tournament manager for Twitch streams: sign-up through start.gg, brackets bracket, live OBS overlays, and a results image at the end.
 
 Website (GitHub Pages): https://city-of-fighters.github.io/
 
@@ -32,7 +32,7 @@ Data lives in Supabase (same project as Iron Fist Academy, tables start with `co
    (the delete logs every device out, so only the new password works)
 
 Logging in gives the device a token for 24 hours. 3 wrong passwords per address (or 20 in total) lock the login for 15 minutes.
-Sign-up allows 10 registrations per internet address per hour. Tables are locked; the site only calls the `cof_` functions,
+Players sign up on start.gg only (the old sign-up function is removed). Tables are locked; the site only calls the `cof_` functions,
 and admin functions need the login token. Player emails, the start.gg key and the OBS picture never leave admin functions.
 
 ## OBS (Stream tab, card 3)
@@ -85,13 +85,13 @@ Keep the privacy page in step with what the code collects.
 
 ## The app
 
-https://city-of-fighters.github.io/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (only while registration is open), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
+https://city-of-fighters.github.io/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (sends players to start.gg), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
 
 ## Rules built in
 
 - Pick the tournament type when you start: double elimination (grand final with bracket reset), single elimination, round robin or Swiss. Round robin and Swiss give 3 points per match won (a bye counts as a win), ties broken by games won.
 - Matches are first to 2 games; games are first to 3 rounds.
-- Sign-up needs a unique gamer tag and email, and accepting the rules.
+- Players sign up on start.gg; gamer tags must be unique here (start.gg's sponsor prefix becomes the team).
 
 ## How a match works
 

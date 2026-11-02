@@ -26,8 +26,6 @@ create table if not exists public.cof_state (id int primary key check (id = 1), 
 create table if not exists public.cof_admin (id int primary key check (id = 1), pass_hash text not null);
 create table if not exists public.cof_attempts (ip text not null, at timestamptz not null default now()); -- wrong passwords
 create index if not exists cof_attempts_ip on public.cof_attempts (ip, at);
-create table if not exists public.cof_signups (ip text not null, at timestamptz not null default now()); -- sign-ups per address, against bots
-create index if not exists cof_signups_ip on public.cof_signups (ip, at);
 create table if not exists public.cof_sessions (token_hash text primary key, expires timestamptz not null); -- logged-in devices
 -- Events calendar (app → Events tab): typed in by organizers, or copied from the organizers' start.gg tournaments (sgg_id set).
 create table if not exists public.cof_events (id uuid primary key default gen_random_uuid(),
@@ -56,8 +54,7 @@ alter table public.cof_state enable row level security;
 alter table public.cof_admin enable row level security;
 alter table public.cof_attempts enable row level security;
 alter table public.cof_sessions enable row level security;
-alter table public.cof_signups enable row level security;
-revoke all on public.cof_players, public.cof_state, public.cof_admin, public.cof_attempts, public.cof_sessions, public.cof_signups from anon, authenticated;
+revoke all on public.cof_players, public.cof_state, public.cof_admin, public.cof_attempts, public.cof_sessions from anon, authenticated;
 
 -- status: none (no tournament) → setup (players register) → running → finished.
 -- regMode: 'open' = registration opens when the tournament is created, 'at' = opens at regAt.
@@ -138,37 +135,10 @@ $$;
 create or replace function public.cof_public() returns jsonb
 language sql security definer set search_path = public stable as $$ select cof_view(false) $$;
 
-drop function if exists public.cof_register(text, text, boolean); -- replaced by the version with an optional team
-create or replace function public.cof_register(p_name text, p_email text, p_agree boolean, p_team text default null) returns int
-language plpgsql security definer set search_path = public as $$
-declare d jsonb; st text; pid uuid; n int;
-begin
-  p_name := trim(coalesce(p_name, '')); p_email := lower(trim(coalesce(p_email, ''))); p_team := nullif(trim(coalesce(p_team, '')), '');
-  select data into d from cof_state where id = 1 for update;
-  st := coalesce(d->>'status', case when jsonb_array_length(d->'matches') = 0 then 'setup' else 'running' end);
-  if st = 'none' then raise exception 'No tournament in progress'; end if;
-  if st <> 'setup' or jsonb_array_length(d->'matches') > 0 or not coalesce((d->>'regOpen')::boolean, false) then
-    raise exception 'Registration is closed';
-  end if;
-  if d->>'regMode' = 'at' and d->>'regAt' is not null and now() < (d->>'regAt')::timestamptz then
-    raise exception 'Registration is not open yet';
-  end if;
-  if char_length(p_name) not between 2 and 24 then raise exception 'Gamer tag must be 2–24 characters'; end if;
-  if p_email !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' or char_length(p_email) > 120 then raise exception 'Enter a valid email'; end if;
-  if p_agree is not true then raise exception 'You must accept the rules'; end if;
-  if char_length(p_team) > 24 then raise exception 'Team name must be at most 24 characters'; end if;
-  -- at most 10 sign-ups per internet address per hour (a venue's shared Wi-Fi fits; a bot filling the bracket doesn't)
-  delete from cof_signups where at < now() - interval '1 hour';
-  if (select count(*) from cof_signups where ip = cof_ip()) >= 10 then raise exception 'Too many sign-ups from this network. Try again in an hour.'; end if;
-  if exists (select 1 from cof_players where lower(name) = lower(p_name)) then raise exception 'That gamer tag is taken'; end if;
-  if exists (select 1 from cof_players where lower(email) = p_email) then raise exception 'That email is already registered'; end if;
-  select count(*) into n from cof_players;
-  if n >= 256 then raise exception 'The tournament is full'; end if;
-  insert into cof_players (name, email, team) values (p_name, p_email, p_team) returning id into pid;
-  insert into cof_signups (ip) values (cof_ip());
-  update cof_state set data = jsonb_set(data, '{order}', (data->'order') || to_jsonb(pid::text)) where id = 1;
-  return n + 1;
-end $$;
+-- Players sign up on start.gg (the app's Register tab sends them there); the old sign-up form is gone.
+drop function if exists public.cof_register(text, text, boolean);
+drop function if exists public.cof_register(text, text, boolean, text);
+drop table if exists public.cof_signups;
 
 create or replace function public.cof_admin_get(p_token text) returns jsonb
 language plpgsql security definer set search_path = public as $$
@@ -390,7 +360,7 @@ revoke all on function public.cof_winner_mail(text, uuid[], boolean), public.cof
 grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) to service_role;
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
-grant execute on function public.cof_public(), public.cof_register(text, text, boolean, text), public.cof_admin_team(text, uuid, text),
+grant execute on function public.cof_public(), public.cof_admin_team(text, uuid, text),
   public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text),
   public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),
   public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),
