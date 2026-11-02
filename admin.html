@@ -51,7 +51,7 @@
       </div>
       <label for="eventAt">📅 Tournament date and time (shown in the app)</label><input type="datetime-local" id="eventAt">
       <label for="rules">Rules (shown on the registration page)</label><textarea id="rules"></textarea>
-      <fieldset class="regbox"><legend>Registration opens</legend>
+      <fieldset class="regbox" hidden><legend>Registration opens</legend>
         <label class="row"><input type="radio" name="regMode" value="open"> Right away (when the tournament is created)</label>
         <label class="row"><input type="radio" name="regMode" value="at"> At a date and time: <input type="datetime-local" id="regAt"></label>
         <label class="row"><input type="checkbox" id="regOpen"> Registration allowed (untick to close it early)</label>
@@ -70,7 +70,7 @@
       </div>
       <label for="nEventAt">📅 Tournament date and time</label><input type="datetime-local" id="nEventAt">
       <label for="nFormat">Tournament type</label><select id="nFormat"></select>
-      <fieldset class="regbox"><legend>Registration opens</legend>
+      <fieldset class="regbox" hidden><legend>Registration opens</legend>
         <label class="row"><input type="radio" name="nRegMode" value="open" checked> Right away</label>
         <label class="row"><input type="radio" name="nRegMode" value="at"> At a date and time: <input type="datetime-local" id="nRegAt"></label>
       </fieldset>
@@ -257,7 +257,7 @@ function tourStatus() {
   const head = `<b>${esc(S.name)}</b> · ${esc(S.game)} · ${esc(B.FORMATS[S.format] ?? '')}${S.eventAt ? ` · 📅 ${esc(fmtDate(S.eventAt))}` : ''} · `;
   if (S.status === 'running') return head + '🟢 In progress';
   if (S.status === 'finished') return head + '🏆 Finished';
-  return head + { open: '🟢 Registration open', soon: `🕒 Registration opens ${esc(fmtDate(S.regAt))}`, closed: '🔴 Registration closed' }[S.regState];
+  return head + (S.startgg?.slug ? '🟢 Sign-up on start.gg (players come in by themselves)' : '🟠 Link the start.gg event below so players can sign up');
 }
 
 function side(m, s) {

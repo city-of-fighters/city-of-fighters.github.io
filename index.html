@@ -9,98 +9,47 @@
   .hero { text-align: center; }
   .hero img { width: 220px; max-width: 70%; filter: drop-shadow(0 0 16px #ff0a6c66); }
   .hero .ev { font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-  .msg { text-align: center; padding: 24px 16px; }
-  .msg .big { font-size: 22px; font-weight: 800; }
-  .count { font-size: 30px; font-weight: 800; color: var(--pink); letter-spacing: 2px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .reg { text-align: center; padding: 24px 16px; }
+  .reg .big { font: 700 24px var(--display); text-transform: uppercase; letter-spacing: 1px; }
+  .reg .go { display: block; margin: 14px auto 0; max-width: 340px; padding: 13px 16px; font-size: 18px; background: linear-gradient(var(--pink), var(--pink2)); border: 0; color: #fff; box-shadow: 0 0 16px #ff0a6c55; }
+  .next { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); text-align: left; flex-wrap: wrap; }
+  .next b { font: 700 18px var(--display); text-transform: uppercase; letter-spacing: 1px; }
 </style>
 </head>
 <body class="app">
 <main style="max-width:560px">
   <div class="hero"><img src="logo-clear.png" alt="City of Fighters"><div class="ev" id="ev"></div><div class="dim" id="game"></div></div>
-
-  <div class="card msg" id="msg" hidden></div>
-
-  <div class="card" id="sggReg" hidden>
-    <h2>Register on start.gg</h2>
-    <p>This tournament runs on start.gg: sign up there with your start.gg profile. You'll show up here within a few minutes.</p>
-    <a class="btnlink" id="sggRegLink" target="_blank" rel="noopener" style="background:linear-gradient(var(--pink),var(--pink2));color:#fff;border:0">Register on start.gg</a>
-  </div>
-
-  <div class="card" id="formCard" hidden>
-    <h2>Register for the tournament</h2>
-    <form id="f">
-      <label for="name">Gamer tag</label>
-      <input type="text" id="name" maxlength="24" required autocomplete="nickname">
-      <label for="email">Email</label>
-      <input type="email" id="email" maxlength="120" required autocomplete="email">
-      <label for="team">Team <span class="dim">(optional, shown on stream next to your name)</span></label>
-      <input type="text" id="team" maxlength="24" autocomplete="organization">
-      <div class="card" style="margin:14px 0"><h2>Rules</h2><pre class="rules" id="rules"></pre></div>
-      <label class="row" style="color:var(--text);align-items:flex-start"><input type="checkbox" id="agree" required style="margin-top:4px"> <span>I accept the rules, the <a href="terms.html">terms</a> and the <a href="privacy.html">privacy policy</a>. My gamer tag is shown publicly; my email is only for the organizers and the winner banner.</span></label>
-      <p class="err" id="err" role="alert"></p>
-      <button class="primary" type="submit">Register</button>
-    </form>
-  </div>
-
-  <div class="card" id="done" hidden>
-    <h2 class="ok">You're in! ✔</h2>
-    <p id="doneText"></p>
-    <p class="dim">Show this screen to the organizer if asked. Follow the tournament in the Leaderboard tab.</p>
-  </div>
+  <div class="card reg" id="reg"><p class="dim">Loading…</p></div>
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
 <script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script>
 <script>
+// Players register only on start.gg, with their start.gg profile; the control panel pulls them in from there.
 const $ = id => document.getElementById(id);
+const HUB = 'https://www.start.gg/hub/city-of-fighters/schedule';
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
-let s = null, clockSkew = 0, registered = false;
-
-// The form only shows while registration is open; the database checks again when you press Register.
-function render() {
-  if (!s || registered) return;
-  const state = s.regState === 'soon' && Date.now() + clockSkew >= new Date(s.regAt) ? 'open' : s.regState;
-  $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
-  $('game').textContent = s.status === 'none' ? '' : `${s.game} tournament${s.eventAt ? ' · 📅 ' + fmtDate(s.eventAt) : ''} · ${s.players.length} signed up`;
-  $('rules').textContent = s.rules;
-  // linked to a start.gg event: players sign up there (with their start.gg profile) until the bracket starts
-  const sgg = s.startgg?.slug && s.status === 'setup' && !s.matches.length ? s.startgg.slug.split('/event/')[0] : null;
-  $('sggReg').hidden = !sgg;
-  if (sgg) { $('sggRegLink').href = `https://www.start.gg/${sgg}/register`; $('formCard').hidden = $('msg').hidden = true; return; }
-  $('formCard').hidden = state !== 'open';
-  $('msg').hidden = state === 'open';
-  if (state === 'open') return;
-  if (state === 'soon') {
-    const left = Math.max(0, new Date(s.regAt) - (Date.now() + clockSkew)) / 1000;
-    const d = Math.floor(left / 86400), h = Math.floor(left / 3600) % 24, m = Math.floor(left / 60) % 60, sec = Math.floor(left % 60);
-    $('msg').innerHTML = `<div class="big">Registration opens soon</div><p>${esc(fmtDate(s.regAt))}</p>
-      <div class="count">${d ? d + 'd ' : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}</div>`;
-  } else $('msg').innerHTML = s.status === 'none' ? '<div class="big">No tournament in progress.</div><p class="dim">Registration opens when the next tournament is announced.</p>'
-    : '<div class="big">Registration is closed</div><p class="dim">See you on stream! Follow it in the Leaderboard tab.</p>';
-}
 async function load() {
-  try {
-    const raw = await rpc('cof_public');
-    if (raw.now) clockSkew = new Date(raw.now) - Date.now();
-    s = view(raw); render();
-  } catch (e) { $('msg').hidden = false; $('msg').textContent = e.message; }
+  let s, events;
+  try { [s, events] = await Promise.all([rpc('cof_public').then(view), rpc('cof_events_list').catch(() => [])]); }
+  catch (e) { return ($('reg').textContent = e.message); }
+  $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
+  $('game').textContent = s.status === 'none' ? '' : `${s.game}${s.eventAt ? ' · 📅 ' + fmtDate(s.eventAt) : ''} · ${s.players.length} signed up`;
+  // the current tournament, while it is linked to start.gg and hasn't started
+  const t = s.startgg?.slug && s.status === 'setup' && !s.matches.length ? s.startgg.slug.split('/event/')[0] : null;
+  if (t) return ($('reg').innerHTML = `<div class="big">Register on start.gg</div>
+    <p>Sign up with your start.gg profile. You'll show up here within a few minutes.</p>
+    <a class="btnlink go" href="https://www.start.gg/${esc(t)}/register" target="_blank" rel="noopener">Register for ${esc(s.name)}</a>`);
+  // otherwise: the next events on start.gg
+  const next = events.filter(e => /^https:\/\/(www\.)?start\.gg\//.test(e.link ?? '')).slice(0, 5);
+  $('reg').innerHTML = `<div class="big">Register on start.gg</div>
+    <p>${s.status === 'running' || s.status === 'finished' ? 'Registration for this tournament is closed. ' : ''}All City of Fighters tournaments take sign-ups on start.gg, with your start.gg profile.</p>
+    ${next.map(e => `<div class="next"><span><b>${esc(e.name)}</b><br><span class="dim">${esc(fmtDate(e.at))}</span></span>
+      <a class="btnlink" href="${esc(e.link)}" target="_blank" rel="noopener">Sign up</a></div>`).join('')}
+    <a class="btnlink go" href="${HUB}" target="_blank" rel="noopener">All events on start.gg</a>`;
 }
 load();
-setInterval(load, 15000);  // registration may open or close meanwhile
-setInterval(render, 1000); // countdown
-
-$('f').onsubmit = async e => {
-  e.preventDefault();
-  $('err').textContent = '';
-  const name = $('name').value.trim(), email = $('email').value.trim().toLowerCase();
-  let count;
-  const team = $('team').value.trim();
-  try { count = await rpc('cof_register', { p_name: name, p_email: email, p_agree: $('agree').checked, ...(team ? { p_team: team } : {}) }); }
-  catch (err) { return ($('err').textContent = err.message); }
-  registered = true;
-  $('formCard').hidden = true; $('done').hidden = false;
-  $('doneText').textContent = `${name} is registered for ${s?.name ?? 'City of Fighters'} with ${email}. You are player #${count}.`;
-};
+setInterval(load, 30000);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>

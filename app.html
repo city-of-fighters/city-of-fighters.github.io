@@ -65,10 +65,8 @@ async function draw() {
   $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
   $('sub').textContent = s.status === 'none' ? '' : `${s.game} · ${B.FORMATS[s.format] ?? ''}`;
   if (s.status === 'none' || s.status === 'setup') {
-    const reg = s.status === 'none' ? '' : {
-      open: `<p>Registration is open · ${s.players.length} signed up</p><a class="btnlink" href="index.html">Register now</a>`,
-      soon: `<p>Registration opens ${esc(fmtDate(s.regAt))}</p>`,
-      closed: `<p>${s.players.length} players signed up · registration closed</p>` }[s.regState];
+    // sign-up happens on start.gg (Register tab)
+    const reg = s.status === 'none' ? '' : `<p>${s.players.length} signed up</p><a class="btnlink" href="index.html">Register on start.gg</a>`;
     const when = s.status === 'setup' && s.eventAt ? `<p class="event">📅 ${esc(s.name)}: ${esc(fmtDate(s.eventAt))}</p>` : '';
     $('body').innerHTML = `<div class="card empty"><div class="big">No tournament in progress.</div>${when}${reg}</div>`;
     return;
