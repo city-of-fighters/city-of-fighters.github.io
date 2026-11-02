@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Events</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  main { max-width: 640px; }
+  .hero { text-align: center; padding-top: 6px; }
+  .hero img { width: 180px; max-width: 60%; filter: drop-shadow(0 0 16px #ff0a6c66); }
+  .month { margin: 20px 0 6px; font: 700 15px var(--display); letter-spacing: 3px; text-transform: uppercase; color: var(--dim); }
+  .ev { display: flex; gap: 14px; align-items: center; }
+  .ev .date { flex: none; width: 64px; text-align: center; background: linear-gradient(var(--pink), var(--pink2)); padding: 6px 0; clip-path: var(--slant-sm); }
+  .ev .date b { display: block; font: 700 30px/1 var(--display); color: #fff; }
+  .ev .date span { font: 700 13px var(--display); letter-spacing: 2px; text-transform: uppercase; color: #ffe0ec; }
+  .ev .info { flex: 1; min-width: 0; }
+  .ev .info b { font: 700 21px/1.15 var(--display); text-transform: uppercase; letter-spacing: 1px; overflow-wrap: anywhere; }
+  .ev .info .dim { font-size: 14px; }
+  .ev .btnlink { margin-top: 8px; font-size: 14px; padding: 7px 12px; }
+  .empty { text-align: center; padding: 28px 16px; }
+</style>
+</head>
+<body class="app">
+<main>
+  <div class="hero"><img src="logo-clear.png" alt="City of Fighters"></div>
+  <h1 style="text-align:center;font-size:26px">📅 Upcoming <span>events</span></h1>
+  <div id="list"><p class="dim" style="text-align:center">Loading…</p></div>
+  <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
+</main>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a class="on" href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script>
+<script>
+// Public calendar: events typed in by the organizers plus their upcoming start.gg tournaments (cof_events_list).
+const $ = id => document.getElementById(id);
+async function draw() {
+  let list;
+  try { list = await rpc('cof_events_list'); } catch (e) { return ($('list').innerHTML = `<div class="card empty">${esc(e.message)}</div>`); }
+  let month = '';
+  $('list').innerHTML = list.map(e => {
+    const d = new Date(e.at), m = d.toLocaleDateString([], { month: 'long', year: 'numeric' });
+    const head = m !== month ? `<div class="month">${esc((month = m))}</div>` : '';
+    const sgg = /^https:\/\/(www\.)?start\.gg\//.test(e.link ?? '');
+    return head + `<div class="card ev"><div class="date"><b>${d.getDate()}</b><span>${esc(d.toLocaleDateString([], { weekday: 'short' }))}</span></div>
+      <div class="info"><b>${esc(e.name)}</b><div class="dim">🕒 ${esc(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}${e.game ? ' · 🎮 ' + esc(e.game) : ''}${e.place ? ' · 📍 ' + esc(e.place) : ''}</div>
+        ${e.link ? `<a class="btnlink" href="${esc(e.link)}" target="_blank" rel="noopener">${sgg ? 'Sign up on start.gg' : 'More info'}</a>` : ''}</div></div>`;
+  }).join('') || '<div class="card empty"><b>No events planned yet.</b><p class="dim">Check back soon, or follow us on Twitch.</p><a class="btnlink" href="https://www.twitch.tv/city_of_fighters" target="_blank" rel="noopener">Twitch</a></div>';
+}
+draw(); setInterval(draw, 60000);
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

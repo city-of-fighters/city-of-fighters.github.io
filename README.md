@@ -6,7 +6,8 @@ Website (GitHub Pages): https://city-of-fighters.github.io/
 
 | Page | Link |
 |---|---|
-| App (leaderboard, register, admin) | https://city-of-fighters.github.io/app.html |
+| App (leaderboard, events, register, admin) | https://city-of-fighters.github.io/app.html |
+| Events calendar | https://city-of-fighters.github.io/events.html |
 | Player registration | https://city-of-fighters.github.io/ |
 | Control panel (password) | https://city-of-fighters.github.io/admin.html |
 | Players tab: add, edit, photos (password) | https://city-of-fighters.github.io/players.html |
@@ -56,6 +57,15 @@ Control panel → **start.gg** card (instructions inside). Paste the event link 
 (start.gg → Developer Settings). **Get players from start.gg** imports entrants and start.gg's seeding; every result
 decided here is reported to the matching set on start.gg (undo resets it) while the control panel or Stream tab is open
 on a computer. Press Start on the start.gg bracket too. Code: `public/startgg.js`.
+
+While a tournament is linked, the Register tab sends players to the start.gg registration page and the control panel pulls new
+sign-ups in every 3 minutes until the bracket starts. start.gg's API has no anonymous access and no way for another app to register
+a player, so sign-up itself happens on start.gg.
+
+## Events calendar
+
+`events.html` (📅 Events tab) lists `cof_events`: events typed in on the control panel's **Events calendar** card, plus the upcoming
+tournaments of the start.gg account whose API key is saved (`currentUser.tournaments`, synced every 30 minutes and on demand).
 
 ## Winner banner email
 

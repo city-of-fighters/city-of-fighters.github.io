@@ -29,6 +29,13 @@ create index if not exists cof_attempts_ip on public.cof_attempts (ip, at);
 create table if not exists public.cof_signups (ip text not null, at timestamptz not null default now()); -- sign-ups per address, against bots
 create index if not exists cof_signups_ip on public.cof_signups (ip, at);
 create table if not exists public.cof_sessions (token_hash text primary key, expires timestamptz not null); -- logged-in devices
+-- Events calendar (app → Events tab): typed in by organizers, or copied from the organizers' start.gg tournaments (sgg_id set).
+create table if not exists public.cof_events (id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 2 and 80), starts_at timestamptz not null,
+  link text check (link ~ '^https://[^\s"<>]+$' and char_length(link) <= 300), game text check (char_length(game) <= 40),
+  place text check (char_length(place) <= 80), sgg_id text unique);
+alter table public.cof_events enable row level security;
+revoke all on public.cof_events from anon, authenticated;
 -- Past tournaments: a snapshot of each finished one (names, standings, match results; never emails). Public to read.
 create table if not exists public.cof_archive (key text primary key check (char_length(key) <= 100), at timestamptz not null default now(),
   data jsonb not null check (pg_column_size(data) < 600000));
@@ -259,6 +266,48 @@ begin
   return w > now() - interval '30 seconds';
 end $$;
 
+-- Events calendar: anyone can read upcoming events (from yesterday on); organizers add, change, delete, and sync start.gg's.
+create or replace function public.cof_events_list() returns jsonb
+language sql security definer set search_path = public stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'name', name, 'at', starts_at, 'link', link, 'game', game, 'place', place, 'startgg', sgg_id is not null)
+    order by starts_at), '[]'::jsonb) from cof_events where starts_at > now() - interval '1 day'
+$$;
+create or replace function public.cof_admin_event_save(p_token text, p_id uuid, p_name text, p_at timestamptz, p_link text, p_game text, p_place text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare eid uuid := p_id;
+begin
+  perform cof_auth(p_token);
+  p_name := trim(coalesce(p_name, '')); p_link := nullif(trim(coalesce(p_link, '')), ''); p_game := nullif(trim(coalesce(p_game, '')), ''); p_place := nullif(trim(coalesce(p_place, '')), '');
+  if char_length(p_name) not between 2 and 80 then raise exception 'Event name must be 2–80 characters'; end if;
+  if p_at is null then raise exception 'Pick the date and time'; end if;
+  if p_link is not null and (p_link !~ '^https://[^\s"<>]+$' or char_length(p_link) > 300) then raise exception 'The link must start with https://'; end if;
+  if eid is null then insert into cof_events (name, starts_at, link, game, place) values (p_name, p_at, p_link, left(p_game, 40), left(p_place, 80)) returning id into eid;
+  else update cof_events set name = p_name, starts_at = p_at, link = p_link, game = left(p_game, 40), place = left(p_place, 80) where id = eid; end if;
+  return eid;
+end $$;
+create or replace function public.cof_admin_event_delete(p_token text, p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); delete from cof_events where id = p_id; end $$;
+-- start.gg's upcoming tournaments replace the earlier copies (typed-in events are never touched).
+create or replace function public.cof_admin_events_sync(p_token text, p_events jsonb) returns int
+language plpgsql security definer set search_path = public as $$
+declare e jsonb; n int := 0;
+begin
+  perform cof_auth(p_token);
+  if jsonb_typeof(p_events) <> 'array' or jsonb_array_length(p_events) > 100 then raise exception 'Bad event list'; end if;
+  delete from cof_events where sgg_id is not null and starts_at > now() - interval '1 day'
+    and sgg_id not in (select x->>'id' from jsonb_array_elements(p_events) x);
+  for e in select * from jsonb_array_elements(p_events) loop
+    if char_length(e->>'name') between 2 and 80 and (e->>'link') ~ '^https://www\.start\.gg/[^\s"<>]+$' then
+      insert into cof_events (name, starts_at, link, game, place, sgg_id)
+      values (e->>'name', to_timestamp((e->>'at')::bigint), e->>'link', left(e->>'game', 40), left(e->>'place', 80), e->>'id')
+      on conflict (sgg_id) do update set name = excluded.name, starts_at = excluded.starts_at, link = excluded.link, game = excluded.game, place = excluded.place;
+      n := n + 1;
+    end if;
+  end loop;
+  return n;
+end $$;
+
 -- Past tournaments: the control panel saves a finished tournament (again after a reopen), anyone can read them.
 create or replace function public.cof_admin_archive_save(p_token text, p_key text, p_data jsonb) returns void
 language plpgsql security definer set search_path = public as $$
@@ -343,6 +392,7 @@ grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_register(text, text, boolean, text), public.cof_admin_team(text, uuid, text),
   public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text),
+  public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),
   public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;
 
