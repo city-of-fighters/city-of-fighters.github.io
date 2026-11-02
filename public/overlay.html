@@ -288,13 +288,13 @@ function comingUp(el, s, holes) {
   if (el.dataset.key === key) return;
   el.dataset.key = key;
   const name = p => esc((p?.name ?? 'TBD').toUpperCase());
-  const team = p => p?.team ? `<span class="tm">${esc(p.team)}</span>` : '';
-  const camFill = (p, slot) => holes && has.has(slot) ? '' : `<div class="win cam" style="${rect(slot)}">${photoOf(p) ? `<img class="pic" src="${photoOf(p)}" alt="">` : `${team(p)}<div class="nm">${name(p)}</div>`}</div>`;
-  const tag = (p, cls) => p ? `<div class="tag ${cls}">${photoImg(p, '')}${team(p)}<span>${name(p)}</span></div>` : '';
+  // the camera windows are labelled by seat (PLAYER 1 / PLAYER 2), not by name
+  const camFill = (p, slot, n) => holes && has.has(slot) ? '' : `<div class="win cam" style="${rect(slot)}">${photoOf(p) ? `<img class="pic" src="${photoOf(p)}" alt="">` : `<div class="nm">PLAYER ${n}</div>`}</div>`;
+  const tag = (n, cls) => `<div class="tag ${cls}"><span>PLAYER ${n}</span></div>`;
   el.innerHTML = `<img class="bg" src="hud/${holes ? 'coming-up-frame' : 'coming-up'}.png" alt="">`
     + (m ? `<div class="title">${name(P[0])} <i>VS</i> ${name(P[1])} <small>· ${esc(m.label.toUpperCase())}</small></div>` : `<div class="title">${s.finished ? 'THANKS FOR WATCHING' : 'NEXT MATCH SOON'}</div>`)
     + (holes && has.has('screen') ? '' : `<div class="win big" style="${rect('screen')}"><img class="logo" src="hud/cof-logo.png" alt=""></div>`) // the game goes here; just the logo until there is one
-    + (m ? camFill(P[0], 'cam1') + camFill(P[1], 'cam2') + tag(P[0], 't1') + tag(P[1], 't2') : '');
+    + (m ? camFill(P[0], 'cam1', 1) + camFill(P[1], 'cam2', 2) + tag(1, 't1') + tag(2, 't2') : '');
 }
 const CU = { screen: [64, 206, 1192, 668], cam1: [1324, 207, 532, 294], cam2: [1324, 579, 532, 294] }; // windows of the artwork
 const rect = k => { const [x, y, w, h] = CU[k]; return `left:${x}px;top:${y}px;width:${w}px;height:${h}px`; };
