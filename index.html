@@ -20,6 +20,12 @@
 
   <div class="card msg" id="msg" hidden></div>
 
+  <div class="card" id="sggReg" hidden>
+    <h2>Register on start.gg</h2>
+    <p>This tournament runs on start.gg: sign up there with your start.gg profile. You'll show up here within a few minutes.</p>
+    <a class="btnlink" id="sggRegLink" target="_blank" rel="noopener" style="background:linear-gradient(var(--pink),var(--pink2));color:#fff;border:0">Register on start.gg</a>
+  </div>
+
   <div class="card" id="formCard" hidden>
     <h2>Register for the tournament</h2>
     <form id="f">
@@ -43,7 +49,7 @@
   </div>
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
-<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
 <script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script>
 <script>
 const $ = id => document.getElementById(id);
@@ -57,6 +63,10 @@ function render() {
   $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
   $('game').textContent = s.status === 'none' ? '' : `${s.game} tournament${s.eventAt ? ' · 📅 ' + fmtDate(s.eventAt) : ''} · ${s.players.length} signed up`;
   $('rules').textContent = s.rules;
+  // linked to a start.gg event: players sign up there (with their start.gg profile) until the bracket starts
+  const sgg = s.startgg?.slug && s.status === 'setup' && !s.matches.length ? s.startgg.slug.split('/event/')[0] : null;
+  $('sggReg').hidden = !sgg;
+  if (sgg) { $('sggRegLink').href = `https://www.start.gg/${sgg}/register`; $('formCard').hidden = $('msg').hidden = true; return; }
   $('formCard').hidden = state !== 'open';
   $('msg').hidden = state === 'open';
   if (state === 'open') return;
