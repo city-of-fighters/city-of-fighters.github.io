@@ -1,11 +1,11 @@
 // Supabase Edge Function "cof-startgg": "Log in with start.gg" and the app's Participate button.
 // Setup (once): start.gg → Developer Settings → OAuth apps: create one with the redirect URL
-// https://city-of-fighters.github.io/events.html. Supabase → Edge Functions → Secrets: SGG_CLIENT_ID and SGG_CLIENT_SECRET.
+// https://cityoffighters.com/events.html. Supabase → Edge Functions → Secrets: SGG_CLIENT_ID and SGG_CLIENT_SECRET.
 // Deploy with "Verify JWT" turned off: players have no Supabase login; this function checks their app session itself.
 // The player's start.gg token is used once to read who they are, and is never stored.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const SITE = 'https://city-of-fighters.github.io';
+const SITE = 'https://cityoffighters.com';
 const REDIRECT = `${SITE}/events.html`, SCOPE = 'user.identity';
 const cors = { 'Access-Control-Allow-Origin': SITE, 'Access-Control-Allow-Headers': 'authorization, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });

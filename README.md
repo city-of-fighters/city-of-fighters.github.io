@@ -2,18 +2,18 @@
 
 Tekken 8 tournament manager for Twitch streams: sign-up through start.gg, brackets bracket, live OBS overlays, and a results image at the end.
 
-Website (GitHub Pages): https://city-of-fighters.github.io/
+Website (GitHub Pages): https://cityoffighters.com/
 
 | Page | Link |
 |---|---|
-| App (leaderboard, events, register, admin) | https://city-of-fighters.github.io/app.html |
-| Events calendar | https://city-of-fighters.github.io/events.html |
-| Player registration | https://city-of-fighters.github.io/ |
-| Control panel (password) | https://city-of-fighters.github.io/admin.html |
-| Players tab: add, edit, photos (password) | https://city-of-fighters.github.io/players.html |
-| Stream tab: preview and deploy what OBS shows, OBS cameras and Coming Up scene | https://city-of-fighters.github.io/studio.html |
-| Phone remote (password) | https://city-of-fighters.github.io/phone.html |
-| **OBS Browser Source** (1920×1080, the only one needed) | https://city-of-fighters.github.io/overlay.html |
+| App (leaderboard, events, register, admin) | https://cityoffighters.com/app.html |
+| Events calendar | https://cityoffighters.com/events.html |
+| Player registration | https://cityoffighters.com/ |
+| Control panel (password) | https://cityoffighters.com/admin.html |
+| Players tab: add, edit, photos (password) | https://cityoffighters.com/players.html |
+| Stream tab: preview and deploy what OBS shows, OBS cameras and Coming Up scene | https://cityoffighters.com/studio.html |
+| Phone remote (password) | https://cityoffighters.com/phone.html |
+| **OBS Browser Source** (1920×1080, the only one needed) | https://cityoffighters.com/overlay.html |
 
 The OBS page shows the HUD (scores, names, teams, photos), result popups, bracket, standings, podium and the Coming Up screen between matches: pick one in the Stream tab, check the preview, press **Deploy to OBS**. The podium goes live by itself when the tournament ends. The old `bracket.html` / `leaderboard.html` links still work.
 
@@ -73,7 +73,7 @@ tournament is linked and the control panel or Stream tab is open). Not yet teste
 
 Setup, once, from the master start.gg account:
 
-1. start.gg → Developer Settings → OAuth apps: create one, redirect URL `https://city-of-fighters.github.io/events.html`.
+1. start.gg → Developer Settings → OAuth apps: create one, redirect URL `https://cityoffighters.com/events.html`.
 2. Supabase → Edge Functions → **Secrets**: add `SGG_CLIENT_ID` and `SGG_CLIENT_SECRET`.
 3. Supabase → Edge Functions → **Deploy a new function → Via editor**, name it `cof-startgg`, paste `supabase/functions/cof-startgg/index.ts`, deploy.
 4. In that function's settings turn **Verify JWT** off (the function checks the player's session itself).
@@ -101,7 +101,7 @@ Keep the privacy page in step with what the code collects.
 
 ## The app
 
-https://city-of-fighters.github.io/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (sends players to start.gg), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
+https://cityoffighters.com/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (sends players to start.gg), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
 
 ## Rules built in
 
