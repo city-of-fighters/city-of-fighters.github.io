@@ -1,0 +1,13 @@
+# Hostinger (Apache). GitHub Pages ignores this file. Turn on Force HTTPS in hPanel; it isn't done here to avoid redirect loops.
+AddType application/manifest+json .webmanifest
+AddType video/webm .webm
+Options -Indexes
+
+<IfModule mod_headers.c>
+  # Pages and scripts are checked for updates on every visit, so the app and OBS get new versions at once
+  <FilesMatch "\.(html|js|css|webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
