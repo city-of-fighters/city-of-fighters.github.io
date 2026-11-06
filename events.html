@@ -19,20 +19,39 @@
   .ev .info .dim { font-size: 14px; }
   .ev .btnlink { margin-top: 8px; font-size: 14px; padding: 7px 12px; }
   .empty { text-align: center; padding: 28px 16px; }
+  .acct { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .ev .btnlink.join, .acct .btnlink.join { background: linear-gradient(var(--pink), var(--pink2)); border: 0; color: #fff; cursor: pointer; }
+  .ev .in { display: inline-block; margin-top: 8px; color: var(--ok); font: 700 15px var(--display); text-transform: uppercase; letter-spacing: 1px; }
 </style>
 </head>
 <body class="app">
 <main>
   <div class="hero"><img src="logo-clear.png" alt="City of Fighters"></div>
   <h1 style="text-align:center;font-size:26px">📅 Upcoming <span>events</span></h1>
+  <div class="card acct" id="acct" hidden></div>
+  <p class="err" id="err" role="alert" style="text-align:center"></p>
   <div id="list"><p class="dim" style="text-align:center">Loading…</p></div>
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a class="on" href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="account.js"></script>
 <script>
 // Public calendar: events typed in by the organizers plus their upcoming start.gg tournaments (cof_events_list).
+// Logged-in players join a start.gg event with Participate; the control panel then pulls them into the bracket.
 const $ = id => document.getElementById(id);
+let cfg = null, me = null;
+function eventButton(e, sgg) {
+  if (cfg && e.startgg) {
+    if (me?.events.includes(e.id)) return `<span class="in">✓ You're in</span>`;
+    return `<button type="button" class="btnlink join" data-join="${esc(e.id)}">${me ? 'Participate' : 'Log in to participate'}</button>`;
+  }
+  return e.link ? `<a class="btnlink" href="${esc(e.link)}" target="_blank" rel="noopener">${sgg ? 'Sign up on start.gg' : 'More info'}</a>` : '';
+}
+function drawAccount() {
+  $('acct').hidden = !cfg;
+  if (cfg) $('acct').innerHTML = me ? `<span>Logged in as <b>${esc(me.name)}</b></span><button type="button" id="out">Log out</button>`
+    : `<span>Join events with your start.gg account.</span><button type="button" class="btnlink join" id="in">Log in with start.gg</button>`;
+}
 async function draw() {
   let list;
   try { list = await rpc('cof_events_list'); } catch (e) { return ($('list').innerHTML = `<div class="card empty">${esc(e.message)}</div>`); }
@@ -43,10 +62,32 @@ async function draw() {
     const sgg = /^https:\/\/(www\.)?start\.gg\//.test(e.link ?? '');
     return head + `<div class="card ev"><div class="date"><b>${d.getDate()}</b><span>${esc(d.toLocaleDateString([], { weekday: 'short' }))}</span></div>
       <div class="info"><b>${esc(e.name)}</b><div class="dim">🕒 ${esc(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}${e.game ? ' · 🎮 ' + esc(e.game) : ''}${e.place ? ' · 📍 ' + esc(e.place) : ''}</div>
-        ${e.link ? `<a class="btnlink" href="${esc(e.link)}" target="_blank" rel="noopener">${sgg ? 'Sign up on start.gg' : 'More info'}</a>` : ''}</div></div>`;
+        ${eventButton(e, sgg)}</div></div>`;
   }).join('') || '<div class="card empty"><b>No events planned yet.</b><p class="dim">Check back soon, or follow us on Twitch.</p><a class="btnlink" href="https://www.twitch.tv/city_of_fighters" target="_blank" rel="noopener">Twitch</a></div>';
 }
-draw(); setInterval(draw, 60000);
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  $('err').textContent = '';
+  try {
+    if (b.id === 'in' || (b.dataset.join && !me)) return await acctLogin(cfg);
+    if (b.id === 'out') { await acctLogout(); me = null; drawAccount(); return draw(); }
+    if (b.dataset.join) {
+      b.disabled = true; b.textContent = 'Joining…';
+      const r = await acctCall({ action: 'participate', session: acctSession(), event: b.dataset.join });
+      if (!r.joined) { location.href = r.url; return; } // start.gg's own page finishes the sign-up
+      me = await acctMe(); draw();
+    }
+  } catch (err) { $('err').textContent = err.message; draw(); }
+});
+(async () => {
+  await draw();
+  acctFinishLogin().catch(err => ($('err').textContent = err.message)).then(async () => {
+    cfg = await acctConfig(); me = cfg && await acctMe();
+    drawAccount(); draw();
+  });
+})();
+setInterval(draw, 60000);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
