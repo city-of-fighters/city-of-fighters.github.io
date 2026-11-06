@@ -3,45 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>City of Fighters Guide</title>
-<!-- Source of City-of-Fighters-Guide.pdf. Print: chrome --headless --print-to-pdf=City-of-Fighters-Guide.pdf docs/guide.html -->
+<!-- Source of City-of-Fighters-Guide.pdf. Print with headless Chrome: --print-to-pdf docs/guide.html -->
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<style>
-  @page { size: A4; margin: 0; } /* dark to the edge: the page padding repeats on every printed page */
-  :root { --pink: #ff0a6c; --teal: #3cc9d4; --ink: #f2f2f5; --dim: #a5a5b2; --card: #1b1b20; --line: #2e2e35; }
-  * { box-sizing: border-box; }
-  html { background: #0b0b0d; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { margin: 0; padding: 14mm; box-decoration-break: clone; -webkit-box-decoration-break: clone; color: var(--ink); font: 10.5pt/1.5 system-ui, 'Segoe UI', sans-serif; }
-  h1, h2, h3 { font-family: 'Rajdhani', 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; line-height: 1.1; }
-  h1 { font-size: 34pt; margin: 4px 0 8px; } h1 span { color: var(--pink); }
-  .kicker { color: var(--pink); font: 700 10pt 'Rajdhani', sans-serif; letter-spacing: 3px; text-transform: uppercase; }
-  h2 { font-size: 18pt; color: var(--teal); margin: 22px 0 8px; break-after: avoid; }
-  h2::before { content: ''; display: inline-block; width: 10px; height: 15px; margin-right: 9px; background: var(--pink); clip-path: polygon(40% 0, 100% 0, 60% 100%, 0 100%); }
-  h3 { font-size: 12.5pt; margin: 14px 0 4px; break-after: avoid; }
-  p { margin: 6px 0; }
-  a { color: var(--teal); }
-  b { color: #fff; }
-  code, .url { font: 9pt ui-monospace, monospace; color: var(--teal); overflow-wrap: anywhere; }
-  ol, ul { margin: 6px 0; padding-left: 22px; } li { margin: 3px 0; }
-  ol li::marker { color: var(--pink); font-weight: 700; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .box, .note, .warn { background: var(--card); border: 1px solid var(--line); border-top: 3px solid var(--pink); padding: 8px 11px; break-inside: avoid; }
-  .box h3 { margin-top: 0; }
-  .note { border-top-color: var(--teal); } .warn { border-top-color: #ffb020; }
-  .note::before { content: 'Good to know: '; font-weight: 700; color: var(--teal); }
-  .warn::before { content: 'Careful: '; font-weight: 700; color: #ffb020; }
-  .links div { padding: 5px 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
-  .links div span { display: block; color: var(--dim); font-size: 9pt; }
-  .key { display: inline-block; padding: 0 5px; border: 1px solid #555; border-bottom-width: 2px; border-radius: 3px; font-size: 9pt; }
-  table { width: 100%; border-collapse: collapse; } td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td:first-child { width: 38%; color: #fff; font-weight: 600; }
-  section { break-inside: auto; }
-  .flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0; font: 700 9.5pt 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px; }
-  .flow span { background: var(--pink); padding: 3px 8px; } .flow i { color: var(--teal); font-style: normal; }
-  footer { margin-top: 26px; color: var(--dim); font-size: 9pt; border-top: 1px solid var(--line); padding-top: 8px; }
-</style>
+<link rel="stylesheet" href="guide.css">
 </head>
 <body>
-<div class="kicker">Read this first · updated 31 October 2026</div>
+<div class="kicker">Read this first · updated 6 November 2026</div>
 <h1>City of <span>Fighters</span> Guide</h1>
 <p>Everything, one small step at a time: install the apps, make a tournament, score matches, and put it all on stream with OBS. If a step says “tap”, you tap. If it says “type”, you type. That’s it.</p>
 
@@ -55,6 +22,23 @@
 <div class="flow"><span>You tap on phone</span><i>→</i><span>Database saves it</span><i>→</i><span>OBS shows it</span><i>→</i><span>start.gg gets it</span></div>
 <p>It all updates by itself within about 2 seconds. You never press “save”.</p>
 
+<h2>Start here: you just installed the PC app</h2>
+<p>Do these once, in this order. Then you’re ready to stream.</p>
+<ol>
+  <li><b>Install OBS:</b> download it from <a href="https://obsproject.com/download">obsproject.com/download</a>, install it and open it. If it offers an auto-configuration wizard, choose optimising for streaming and follow it.</li>
+  <li><b>Turn on OBS’s remote control:</b> in OBS, Tools → <b>WebSocket Server Settings</b> → tick <b>Enable WebSocket server</b> → OK. Leave authentication on.</li>
+  <li><b>Add the stream page:</b> click the scene you stream with. Sources → <b>+</b> → <b>Browser</b>, name it City of Fighters. URL: <span class="url">https://city-of-fighters.github.io/overlay.html</span>, width 1920, height 1080. Click OK and drag it to the top of the Sources list.</li>
+  <li><b>Add the game:</b> capture card or screen capture (see “Connect OBS” below). Keep it below City of Fighters in the list.</li>
+  <li><b>Connect Twitch:</b> OBS → Settings → Stream → Service: Twitch → <b>Connect Account</b> and log in.</li>
+  <li><b>Open the PC app.</b> Tap <b>Allow saving</b>, type the admin password, press <b>Unlock</b>.</li>
+  <li><b>Press <span class="key">Ctrl</span> + <span class="key">3</span> (Stream).</b> With OBS open, the app connects by itself. You’ll see “Connected to OBS”.</li>
+  <li><b>Add your camera:</b> in the box <b>OBS on this computer</b>, press <b>＋ Add camera</b>.</li>
+  <li><b>Set up the Coming Up screen:</b> choose the Game screen and Player 1 camera. One camera for both players? Tick <b>One camera films both players</b>. Press <b>Set up Coming Up scene in OBS</b>.</li>
+  <li><b>Test it:</b> in the Stream tab pick <b>Bracket</b> and press <b>Deploy to OBS</b>. It should appear in OBS within 2 seconds. Then pick Scoreboard again.</li>
+  <li><b>Install the phone app</b> (it has its own page after the links) so you can score from your phone and see OBS live.</li>
+</ol>
+<p class="note">email and start.gg are set up separately: see the second PDF, “Connect email and start.gg”.</p>
+
 <h2>All the links</h2>
 <div class="links">
   <div><span>📱 The app (give this to players)</span><span class="url">https://city-of-fighters.github.io/app.html</span></div>
@@ -67,23 +51,23 @@
   <div><span>🐧 Linux app download</span><span class="url">https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest/download/City-of-Fighters.AppImage</span></div>
 </div>
 
-<h2>Install the phone app</h2>
+<h2 class="page">Install the phone app</h2>
 <h3>Android</h3>
 <ol>
-  <li>Open Chrome on your phone and go to the app link above.</li>
+  <li>Open Chrome on your phone and go to <span class="url">https://city-of-fighters.github.io/app.html</span></li>
   <li>A screen asks about saving. Tap <b>Allow saving</b>. (It only remembers your login and small settings.)</li>
   <li>Tap the three dots ⋮ in the top right, then <b>Install app</b>, then <b>Install</b> again.</li>
   <li>A City of Fighters icon is now on your home screen. Tap it. Done!</li>
 </ol>
 <h3>iPhone</h3>
 <ol>
-  <li>Open Safari and go to the app link.</li>
+  <li>Open Safari and go to <span class="url">https://city-of-fighters.github.io/app.html</span></li>
   <li>Tap the Share button (square with an arrow), then <b>Add to Home Screen</b>, then <b>Add</b>.</li>
 </ol>
 <p class="note">the app updates itself. Close it and open it again to get the newest version.</p>
-<p>At the bottom there are 4 buttons: <b>🏆 Leaderboard</b> (anyone can look, with a <b>Watch it live on Twitch</b> button), <b>📅 Events</b> (the calendar of upcoming events), <b>✍️ Register</b> (only while registration is open) and <b>🔒 Admin</b> (only for you, needs the password: your remote control).</p>
+<p>At the bottom there are 4 buttons: <b>🏆 Leaderboard</b> (anyone can look, with a <b>Watch it live on Twitch</b> button), <b>📅 Events</b> (the calendar of upcoming events), <b>✍️ Register</b> (log in with a start.gg account) and <b>🔒 Admin</b> (only for you, needs the password: your remote control).</p>
 
-<h2>Install the PC app</h2>
+<h2 class="page">Install the PC app</h2>
 <h3>Windows</h3>
 <ol>
   <li>Click the Windows download link. <code>City-of-Fighters-Setup.exe</code> downloads. Double-click it.</li>
