@@ -23,9 +23,22 @@
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="account.js"></script>
 <script>
-// Players register only on start.gg, with their start.gg profile; the control panel pulls them in from there.
+// Players register only with their start.gg account; the control panel pulls them in from start.gg. Once "Log in with
+// start.gg" is set up they log in here and join City of Fighters events from the calendar.
+let cfg = null;
+async function accountCard() {
+  cfg ??= await acctConfig();
+  if (!cfg) return false;
+  const me = await acctMe();
+  $('reg').innerHTML = me ? `<div class="big">You're logged in</div><p>as <b>${esc(me.name)}</b>. Pick an event and press Participate.</p>
+      <a class="btnlink go" href="events.html">Open the calendar</a>`
+    : `<div class="big">Register with start.gg</div><p>Log in once with your start.gg account and stay logged in. Then join any City of Fighters event from the calendar.</p>
+      <button type="button" class="btnlink go" id="in">Log in with start.gg</button>`;
+  return true;
+}
+document.addEventListener('click', e => { if (e.target.id === 'in') acctLogin(cfg); });
 const $ = id => document.getElementById(id);
 const HUB = 'https://www.start.gg/hub/city-of-fighters/schedule';
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
@@ -35,6 +48,8 @@ async function load() {
   catch (e) { return ($('reg').textContent = e.message); }
   $('ev').textContent = s.status === 'none' ? 'City of Fighters' : s.name;
   $('game').textContent = s.status === 'none' ? '' : `${s.game}${s.eventAt ? ' · 📅 ' + fmtDate(s.eventAt) : ''} · ${s.players.length} signed up`;
+  if (await accountCard()) return;
+  // no player login yet: plain links to start.gg
   // the current tournament, while it is linked to start.gg and hasn't started
   const t = s.startgg?.slug && s.status === 'setup' && !s.matches.length ? s.startgg.slug.split('/event/')[0] : null;
   if (t) return ($('reg').innerHTML = `<div class="big">Register on start.gg</div>

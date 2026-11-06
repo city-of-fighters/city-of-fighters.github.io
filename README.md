@@ -59,8 +59,24 @@ decided here is reported to the matching set on start.gg (undo resets it) while 
 on a computer. Press Start on the start.gg bracket too. Code: `public/startgg.js`.
 
 While a tournament is linked, the Register tab sends players to the start.gg registration page and the control panel pulls new
-sign-ups in every 3 minutes until the bracket starts. start.gg's API has no anonymous access and no way for another app to register
-a player, so sign-up itself happens on start.gg.
+sign-ups in every 3 minutes until the bracket starts. start.gg's API has no anonymous access and no documented way to register
+a player without their approval: see the next section for what the app tries.
+
+## Log in with start.gg (players)
+
+Players log in once with their start.gg account (sessions last 90 days from the last visit) and press **Participate** on a City of
+Fighters event in the calendar. `public/account.js` and the `cof-startgg` Edge Function handle it. Until the function is deployed the
+app shows plain start.gg links instead. Participate works only on upcoming events synced from start.gg; the database checks this.
+The function tries start.gg's `generateRegistrationToken` + `registerForTournament` with the master key, and if start.gg refuses, it
+opens the event's start.gg sign-up page. Either way the control panel then pulls the player into the bracket (every 3 minutes, while a
+tournament is linked and the control panel or Stream tab is open). Not yet tested against the real start.gg.
+
+Setup, once, from the master start.gg account:
+
+1. start.gg → Developer Settings → OAuth apps: create one, redirect URL `https://city-of-fighters.github.io/events.html`.
+2. Supabase → Edge Functions → **Secrets**: add `SGG_CLIENT_ID` and `SGG_CLIENT_SECRET`.
+3. Supabase → Edge Functions → **Deploy a new function → Via editor**, name it `cof-startgg`, paste `supabase/functions/cof-startgg/index.ts`, deploy.
+4. In that function's settings turn **Verify JWT** off (the function checks the player's session itself).
 
 ## Events calendar
 

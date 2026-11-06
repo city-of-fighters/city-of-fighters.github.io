@@ -34,6 +34,18 @@ create table if not exists public.cof_events (id uuid primary key default gen_ra
   place text check (char_length(place) <= 80), sgg_id text unique);
 alter table public.cof_events enable row level security;
 revoke all on public.cof_events from anon, authenticated;
+-- Player logins ("Log in with start.gg"): who logged in, their sessions, and which calendar events they joined.
+-- Only the player's own session (cof_me) and the cof-startgg Edge Function reach these. No start.gg passwords or tokens are kept.
+create table if not exists public.cof_accounts (sgg_user text primary key, gamer_tag text not null check (char_length(gamer_tag) <= 60),
+  prefix text check (char_length(prefix) <= 60), created_at timestamptz not null default now());
+create table if not exists public.cof_account_sessions (token_hash text primary key,
+  account text not null references public.cof_accounts(sgg_user) on delete cascade, expires timestamptz not null);
+create table if not exists public.cof_participants (event uuid not null references public.cof_events(id) on delete cascade,
+  account text not null references public.cof_accounts(sgg_user) on delete cascade, at timestamptz not null default now(), primary key (event, account));
+alter table public.cof_accounts enable row level security;
+alter table public.cof_account_sessions enable row level security;
+alter table public.cof_participants enable row level security;
+revoke all on public.cof_accounts, public.cof_account_sessions, public.cof_participants from anon, authenticated;
 -- Past tournaments: a snapshot of each finished one (names, standings, match results; never emails). Public to read.
 create table if not exists public.cof_archive (key text primary key check (char_length(key) <= 100), at timestamptz not null default now(),
   data jsonb not null check (pg_column_size(data) < 600000));
@@ -278,6 +290,52 @@ begin
   return n;
 end $$;
 
+-- Player sessions: 90 days, renewed on every visit, so a player stays logged in.
+create or replace function public.cof_account_login(p_user text, p_tag text, p_prefix text) returns text
+language plpgsql security definer set search_path = public, extensions as $$
+declare tok text := encode(gen_random_bytes(32), 'hex');
+begin
+  insert into cof_accounts (sgg_user, gamer_tag, prefix) values (p_user, left(p_tag, 60), left(p_prefix, 60))
+  on conflict (sgg_user) do update set gamer_tag = excluded.gamer_tag, prefix = excluded.prefix;
+  delete from cof_account_sessions where expires < now();
+  insert into cof_account_sessions values (encode(digest(tok, 'sha256'), 'hex'), p_user, now() + interval '90 days');
+  return tok;
+end $$;
+create or replace function public.cof_account_of(p_session text) returns text
+language plpgsql security definer set search_path = public, extensions as $$
+declare a text;
+begin
+  update cof_account_sessions set expires = now() + interval '90 days'
+  where token_hash = encode(digest(coalesce(p_session, ''), 'sha256'), 'hex') and expires > now() returning account into a;
+  if a is null then raise exception 'Please log in again'; end if;
+  return a;
+end $$;
+-- The app: who am I, and which calendar events have I joined?
+create or replace function public.cof_me(p_session text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare a text := cof_account_of(p_session);
+begin
+  return (select jsonb_build_object('name', gamer_tag, 'events', coalesce((select jsonb_agg(event) from cof_participants where account = a), '[]'::jsonb))
+    from cof_accounts where sgg_user = a);
+end $$;
+create or replace function public.cof_account_logout(p_session text) returns void
+language sql security definer set search_path = public, extensions as $$
+  delete from cof_account_sessions where token_hash = encode(digest(coalesce(p_session, ''), 'sha256'), 'hex')
+$$;
+-- Participate (cof-startgg function only): only upcoming City of Fighters events that came from start.gg, nothing else.
+create or replace function public.cof_participate_check(p_session text, p_event uuid) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare a text := cof_account_of(p_session); e cof_events;
+begin
+  select * into e from cof_events where id = p_event and sgg_id is not null and starts_at > now();
+  if not found then raise exception 'This is not an upcoming City of Fighters event'; end if;
+  return jsonb_build_object('account', a, 'tournament', e.sgg_id, 'link', e.link, 'key', (select api_key from cof_startgg where id = 1));
+end $$;
+create or replace function public.cof_participate_mark(p_account text, p_event uuid) returns void
+language sql security definer set search_path = public as $$
+  insert into cof_participants (event, account) values (p_event, p_account) on conflict do nothing
+$$;
+
 -- Past tournaments: the control panel saves a finished tournament (again after a reopen), anyone can read them.
 create or replace function public.cof_admin_archive_save(p_token text, p_key text, p_data jsonb) returns void
 language plpgsql security definer set search_path = public as $$
@@ -357,11 +415,14 @@ language sql security definer set search_path = public as $$
 $$;
 
 revoke all on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) from public, anon, authenticated;
+revoke all on function public.cof_account_login(text, text, text), public.cof_account_of(text), public.cof_participate_check(text, uuid), public.cof_participate_mark(text, uuid) from public, anon, authenticated;
+grant execute on function public.cof_account_login(text, text, text), public.cof_participate_check(text, uuid), public.cof_participate_mark(text, uuid) to service_role;
 grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) to service_role;
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_admin_team(text, uuid, text),
   public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text),
+  public.cof_me(text), public.cof_account_logout(text),
   public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),
   public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;
