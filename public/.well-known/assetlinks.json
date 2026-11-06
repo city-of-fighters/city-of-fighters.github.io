@@ -1,0 +1,4 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": { "namespace": "android_app", "package_name": "com.cityoffighters.app", "sha256_cert_fingerprints": ["1C:A9:28:49:C5:8E:21:33:B2:1A:C6:D3:2E:BE:A0:C1:D4:28:76:DE:0E:08:6E:98:F2:02:FB:85:62:8E:0E:B0"] }
+}]

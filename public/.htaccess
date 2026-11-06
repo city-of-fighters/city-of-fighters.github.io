@@ -1,6 +1,7 @@
 # Hostinger (Apache). GitHub Pages ignores this file. Turn on Force HTTPS in hPanel; it isn't done here to avoid redirect loops.
 AddType application/manifest+json .webmanifest
 AddType video/webm .webm
+AddType application/vnd.android.package-archive .apk
 Options -Indexes
 
 <IfModule mod_headers.c>

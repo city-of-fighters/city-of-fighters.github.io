@@ -4,3 +4,10 @@ data.json.tmp
 node_modules/
 release/
 preview/
+
+# Android signing key: never in Git
+*.keystore
+*.jks
+android/.gradle/
+android/app/build/
+android/build/
