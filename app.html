@@ -23,6 +23,9 @@
   .watch { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 12px 0 0; padding: 13px 16px; font-size: 19px; letter-spacing: 2px;
            background: linear-gradient(var(--pink), var(--pink2)); border: 0; color: #fff; box-shadow: 0 0 16px #ff0a6c55; }
   .watch:hover { background: linear-gradient(#ff2a82, var(--pink)); }
+  .choices { display: grid; gap: 8px; margin-top: 10px; }
+  .choices button { width: 100%; padding: 13px 12px; font-size: 17px; clip-path: none; }
+  #getApp ol { margin: 8px 0; padding-left: 24px; } #getApp li { margin: 8px 0; }
   .watch i { width: 11px; height: 11px; border-radius: 50%; background: #fff; animation: blink 1.4s infinite; }
   @keyframes blink { 50% { opacity: .25; } }
   @media (prefers-reduced-motion: reduce) { .watch i { animation: none; } }
@@ -39,14 +42,13 @@
     <a class="btnlink watch" href="https://www.twitch.tv/city_of_fighters" target="_blank" rel="noopener"><i></i>Watch it live on Twitch</a></div>
 
   <div class="card" id="installCard" hidden>
-    <h2>Install the app</h2>
-    <p id="installText" style="margin:0 0 10px"></p>
-    <div class="row"><button class="primary" id="installBtn" hidden>Install app</button><button id="installClose">Not now</button></div>
+    <h2>Get the app</h2>
+    <div id="getApp"></div>
   </div>
 
   <div id="body"></div>
   <div class="card past" id="past" hidden><h2>🏛️ Past tournaments</h2><div id="pastList"></div></div>
-  <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
+  <p class="legal"><span id="getAppLink"><a href="#">📲 Get the app</a> · </span><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a class="on" href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
 <script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="bracketview.js"></script>
@@ -120,22 +122,51 @@ $('pastList').addEventListener('click', async e => {
 });
 drawPast(); setInterval(drawPast, 60000);
 
-// Offer to install as an app (Chrome shows a real button; Firefox and iPhone get directions).
-let installEvent = null;
+// Get the app: pick your phone, then your browser, and see the steps for exactly that.
+const LINK = location.origin + location.pathname;
+const ADD = (menu, item) => [menu, `Tap <b>${item}</b>.`, 'Tap <b>Add</b> or <b>Install</b> to confirm.', 'Open <b>City of Fighters</b> from your home screen.'];
+const SAFARI = ['Tap <b>Copy link</b> below.', 'Open <b>Safari</b> and paste the link in the address bar.', 'Tap <b>Get the app</b> there and choose <b>Safari</b>.'];
+const APP_HELP = {
+  android: { name: '🤖 Android', browsers: {
+    chrome: { name: 'Chrome', steps: ADD('Tap the three dots <b>⋮</b> at the top right.', 'Add to Home screen</b> or <b>Install app') },
+    samsung: { name: 'Samsung Internet', steps: ADD('Tap the menu <b>☰</b> at the bottom right.', 'Add page to</b>, then <b>Home screen') },
+    firefox: { name: 'Firefox', steps: ADD('Tap the three dots <b>⋮</b>.', 'Add to Home screen') },
+    other: { name: 'Something else', steps: ['Tap <b>Copy link</b> below.', 'Open <b>Chrome</b> and paste the link in the address bar.', 'Tap <b>Get the app</b> there and choose <b>Chrome</b>.'] } } },
+  ios: { name: '🍎 iPhone or iPad', browsers: {
+    safari: { name: 'Safari', steps: ['Tap the <b>Share</b> button (the square with an arrow pointing up). Can’t see it? Tap <b>•••</b> first.', 'Scroll down and tap <b>Add to Home Screen</b>.', 'Tap <b>Add</b>.', 'Open <b>City of Fighters</b> from your home screen.'] },
+    chrome: { name: 'Chrome', steps: ['Tap the <b>Share</b> button in the address bar.', 'Tap <b>Add to Home Screen</b>. Can’t see it? Use Safari instead.', 'Tap <b>Add</b>.', 'Open <b>City of Fighters</b> from your home screen.'] },
+    other: { name: 'Something else', steps: SAFARI } } },
+};
+let installEvent = null, appOs = null, appBrowser = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const dismissed = () => { try { return localStorage.getItem('cofInstallNo') === '1'; } catch { return false; } };
-if (!standalone && !dismissed()) {
-  $('installCard').hidden = false;
-  $('installText').textContent = /iPhone|iPad/.test(navigator.userAgent)
-    ? 'Get City of Fighters as an app: tap the Share button, then “Add to Home Screen”.'
-    : 'Get City of Fighters as an app: open the browser menu (⋮) and tap “Install” or “Add to Home screen”.';
+const choice = (k, label) => `<button type="button" data-app="${k}">${label}</button>`;
+function drawGetApp() {
+  const os = APP_HELP[appOs], b = os?.browsers[appBrowser];
+  $('getApp').innerHTML = b ? `<p style="margin:0"><b>${os.name} · ${b.name}</b></p><ol>${b.steps.map(x => `<li>${x}</li>`).join('')}</ol>
+      <div class="row">${appOs === 'android' && appBrowser === 'chrome' && installEvent ? '<button type="button" class="primary" data-app="prompt">Install now</button>' : ''}
+      ${b.steps.join().includes('Copy link') ? '<button type="button" class="primary" data-app="copy">Copy link</button>' : ''}${choice('back', 'Back')}${choice('close', 'Done')}</div>`
+    : os ? `<p style="margin:0">Which browser are you using right now?</p><div class="choices">${Object.entries(os.browsers).map(([k, v]) => choice('b:' + k, v.name)).join('')}</div>
+      <div class="row" style="margin-top:10px">${choice('back', 'Back')}</div>`
+    : `<p style="margin:0">Which phone do you have?</p><div class="choices">${Object.entries(APP_HELP).map(([k, v]) => choice('os:' + k, v.name)).join('')}</div>
+      <div class="row" style="margin-top:10px">${choice('close', 'Not now')}</div>`;
 }
-addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); installEvent = e;
-  if (!dismissed()) { $('installCard').hidden = false; $('installBtn').hidden = false; $('installText').textContent = 'Get City of Fighters as an app on your home screen.'; }
+function openGetApp() { appOs = appBrowser = null; drawGetApp(); $('installCard').hidden = false; $('installCard').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+$('getApp').addEventListener('click', async e => {
+  const k = e.target.closest('[data-app]')?.dataset.app;
+  if (!k) return;
+  if (k.startsWith('os:')) appOs = k.slice(3);
+  else if (k.startsWith('b:')) appBrowser = k.slice(2);
+  else if (k === 'back') { if (appBrowser) appBrowser = null; else appOs = null; }
+  else if (k === 'copy') { await navigator.clipboard?.writeText(LINK).catch(() => {}); e.target.textContent = '✓ Copied'; return; }
+  else if (k === 'prompt') { installEvent?.prompt(); await installEvent?.userChoice; $('installCard').hidden = true; return; }
+  else if (k === 'close') { $('installCard').hidden = true; try { if (canSave()) localStorage.setItem('cofInstallNo', '1'); } catch {} return; }
+  drawGetApp();
 });
-$('installBtn').onclick = async () => { installEvent?.prompt(); await installEvent?.userChoice; $('installCard').hidden = true; };
-$('installClose').onclick = () => { $('installCard').hidden = true; try { if (canSave()) localStorage.setItem('cofInstallNo', '1'); } catch {} };
+$('getAppLink').onclick = e => { e.preventDefault(); openGetApp(); };
+if (standalone) $('getAppLink').hidden = true;
+else if (!dismissed()) { drawGetApp(); $('installCard').hidden = false; }
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvent = e; drawGetApp(); });
 addEventListener('appinstalled', () => ($('installCard').hidden = true));
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
