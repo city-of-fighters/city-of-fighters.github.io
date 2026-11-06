@@ -128,6 +128,7 @@ const ADD = (menu, item) => [menu, `Tap <b>${item}</b>.`, 'Tap <b>Add</b> or <b>
 const SAFARI = ['Tap <b>Copy link</b> below.', 'Open <b>Safari</b> and paste the link in the address bar.', 'Tap <b>Get the app</b> there and choose <b>Safari</b>.'];
 const APP_HELP = {
   android: { name: '🤖 Android', browsers: {
+    apk: { name: '⬇ Download the app (easiest)', steps: ['Tap <b>Download the app</b> below. If your phone warns about the file, tap <b>Download anyway</b>.', 'Open the file from your notifications or your <b>Downloads</b>.', 'If your phone asks, tap <b>Settings</b>, turn on <b>Allow from this source</b>, and go back.', 'Tap <b>Install</b>. If Play Protect warns about an unknown app, tap <b>More details</b>, then <b>Install anyway</b>.', 'Open <b>City of Fighters</b> from your home screen.'] },
     chrome: { name: 'Chrome', steps: ADD('Tap the three dots <b>⋮</b> at the top right.', 'Add to Home screen</b> or <b>Install app') },
     samsung: { name: 'Samsung Internet', steps: ADD('Tap the menu <b>☰</b> at the bottom right.', 'Add page to</b>, then <b>Home screen') },
     firefox: { name: 'Firefox', steps: ADD('Tap the three dots <b>⋮</b>.', 'Add to Home screen') },
@@ -145,8 +146,9 @@ function drawGetApp() {
   const os = APP_HELP[appOs], b = os?.browsers[appBrowser];
   $('getApp').innerHTML = b ? `<p style="margin:0"><b>${os.name} · ${b.name}</b></p><ol>${b.steps.map(x => `<li>${x}</li>`).join('')}</ol>
       <div class="row">${appOs === 'android' && appBrowser === 'chrome' && installEvent ? '<button type="button" class="primary" data-app="prompt">Install now</button>' : ''}
+      ${appBrowser === 'apk' ? '<a class="btnlink" href="downloads/City-of-Fighters.apk" download style="background:linear-gradient(var(--pink),var(--pink2));border:0;color:#fff">Download the app</a>' : ''}
       ${b.steps.join().includes('Copy link') ? '<button type="button" class="primary" data-app="copy">Copy link</button>' : ''}${choice('back', 'Back')}${choice('close', 'Done')}</div>`
-    : os ? `<p style="margin:0">Which browser are you using right now?</p><div class="choices">${Object.entries(os.browsers).map(([k, v]) => choice('b:' + k, v.name)).join('')}</div>
+    : os ? `<p style="margin:0">${appOs === 'android' ? 'Download the app, or tell us which browser you’re using to install it from there.' : 'Which browser are you using right now?'}</p><div class="choices">${Object.entries(os.browsers).map(([k, v]) => choice('b:' + k, v.name)).join('')}</div>
       <div class="row" style="margin-top:10px">${choice('back', 'Back')}</div>`
     : `<p style="margin:0">Which phone do you have?</p><div class="choices">${Object.entries(APP_HELP).map(([k, v]) => choice('os:' + k, v.name)).join('')}</div>
       <div class="row" style="margin-top:10px">${choice('close', 'Not now')}</div>`;
