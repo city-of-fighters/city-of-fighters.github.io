@@ -54,7 +54,7 @@ and again before "Create a new tournament" clears a finished one. The app's Lead
 
 ## start.gg
 
-Control panel → **start.gg** card (instructions inside). Paste the event link and a personal API token
+Settings tab → **start.gg** card (instructions inside). **Test mode** is on by default: the app reads from start.gg but writes nothing until it's unticked. Paste the event link and a personal API token
 (start.gg → Developer Settings). **Get players from start.gg** imports entrants and start.gg's seeding; every result
 decided here is reported to the matching set on start.gg (undo resets it) while the control panel or Stream tab is open
 on a computer. Press Start on the start.gg bracket too. Code: `public/startgg.js`.
@@ -90,7 +90,7 @@ Setup, once, from the master start.gg account:
 
 ## Events calendar
 
-`events.html` (📅 Events tab) lists `cof_events`: events typed in on the control panel's **Events calendar** card, plus the upcoming
+`events.html` (📅 Events tab) lists `cof_events`: events typed in on the Settings tab's **Events calendar** card, plus the upcoming
 tournaments City of Fighters hosts on start.gg: the ones the API key's account created (`tournaments(filter: { ownerId })`) plus the ones it admins (`currentUser.tournaments`, `tournamentView: "admin"`), never ones it only plays in. Synced every 30 minutes and on demand.
 
 ## Winner banner email

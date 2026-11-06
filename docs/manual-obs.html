@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>City of Fighters OBS manual</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<div class="kicker">City of Fighters · November 2026</div>
+<h1>OBS Manual</h1>
+<p>This manual explains how to connect City of Fighters to OBS, use it on stream, and update the PC app.</p>
+
+<h2>1. Install OBS</h2>
+<ol>
+  <li>Download OBS from <a href="https://obsproject.com/download">obsproject.com/download</a> and install it.</li>
+  <li>Open it. If it offers an auto-configuration wizard, choose optimizing for streaming.</li>
+</ol>
+
+<h2>2. Turn on OBS remote control</h2>
+<ol>
+  <li>In OBS, open <b>Tools → WebSocket Server Settings</b>.</li>
+  <li>Tick <b>Enable WebSocket server</b>. Leave authentication on. Click <b>OK</b>.</li>
+</ol>
+<p>This lets the Stream tab control cameras and scenes.</p>
+
+<h2>3. Add the stream page</h2>
+<p>Do this once. It’s the only source you need for the scoreboard, popups, bracket, standings, winner screen and podium.</p>
+<ol>
+  <li>Click the scene you stream with. Under <b>Sources</b>, click <b>+</b> and choose <b>Browser</b>.</li>
+  <li>Name it <b>City of Fighters</b> and click <b>OK</b>.</li>
+  <li>In <b>URL</b>, paste <span class="url">https://cityoffighters.com/overlay.html</span></li>
+  <li>Set <b>Width</b> to <code>1920</code> and <b>Height</b> to <code>1080</code>. Click <b>OK</b>.</li>
+  <li>In the Sources list, drag it to the <b>top</b>. Top of the list means on top of the picture.</li>
+  <li>If it doesn’t fill the screen: right-click it → <b>Transform</b> → <b>Fit to screen</b>.</li>
+</ol>
+<p class="note">already have it with the old <code>github.io</code> link? Double-click the source and change the URL to the one above.</p>
+
+<h2>4. Add the game</h2>
+<h3>With a capture card</h3>
+<ol>
+  <li>Plug in the capture card and turn on the console.</li>
+  <li>Under Sources, click <b>+</b> → <b>Video Capture Device</b>, and pick the card.</li>
+  <li>For sound: <b>+</b> → <b>Audio Input Capture</b>, and pick the card.</li>
+</ol>
+<h3>From this PC’s screen</h3>
+<p>Under Sources, click <b>+</b> → <b>Screen Capture (PipeWire)</b> on Linux, or <b>Display Capture</b> on Windows. Pick the screen.</p>
+<p>Keep the game <b>below</b> City of Fighters in the Sources list.</p>
+
+<h2>5. Connect Twitch</h2>
+<ol>
+  <li>In OBS, open <b>Settings → Stream</b>.</li>
+  <li>Choose <b>Twitch</b>, click <b>Connect Account</b> and log in. Click <b>OK</b>.</li>
+</ol>
+
+<h2>6. Connect the Stream tab</h2>
+<ol>
+  <li>Open OBS first, then the Stream tab (<span class="key">Ctrl</span> + <span class="key">3</span>).</li>
+  <li>In the PC app, it connects by itself and shows “Connected to OBS”.</li>
+  <li>In a browser: in OBS open <b>Tools → WebSocket Server Settings → Show Connect Info</b>. Copy the password into the Stream tab and press <b>Connect</b>.</li>
+</ol>
+
+<h2>7. Cameras and the Coming Up screen</h2>
+<h3>Cameras</h3>
+<ul>
+  <li><b>Add camera</b> adds the camera on this PC. It picks one that gives a picture.</li>
+  <li>The list next to each camera changes the device.</li>
+  <li><b>In the stream / Hidden</b> shows or hides it.</li>
+  <li><b>Remove</b> takes it out of OBS. The game keeps running.</li>
+</ul>
+<h3>Coming Up screen</h3>
+<p>Between matches, OBS switches to a screen with the game in the big window and the player cameras in the two small ones. It switches back when the next match goes on stream.</p>
+<ol>
+  <li>Choose the <b>Game screen</b>, <b>Player 1 camera</b> and <b>Player 2 camera</b>.</li>
+  <li>One camera filming both players? Tick <b>One camera films both players</b>. Its left half goes to Player 1 and its right half to Player 2. Tick <b>Swap the halves</b> to turn that around.</li>
+  <li>Keep <b>Also show the player cameras in the bottom corners during a match</b> ticked if you want those.</li>
+  <li>Press <b>Set up Coming Up scene in OBS</b>. Do this again after changing cameras or the game source.</li>
+</ol>
+<p class="warn">don’t delete the OBS scenes “CoF Coming Up”, “CoF Players camera” and “CoF HUD cameras”.</p>
+
+<h2>8. Use it on stream</h2>
+<ol>
+  <li>In the Stream tab, click <b>Scoreboard</b>, <b>Bracket</b>, <b>Standings</b> or <b>Podium</b>.</li>
+  <li>Pick the match for the scoreboard.</li>
+  <li>Look at the <b>Preview</b>. Viewers can’t see it yet.</li>
+  <li>Press <b>Deploy to OBS</b>. It’s live within 2 seconds. <b>Now on OBS</b> shows what’s live.</li>
+</ol>
+<table>
+  <tr><td>Scoreboard</td><td>Top of the screen: names, teams, photos, games won and the round.</td></tr>
+  <tr><td>Result popups</td><td>Off-stream results fade in for about 5 seconds.</td></tr>
+  <tr><td>Winner screen</td><td>Shows for 6 seconds after a match on stream.</td></tr>
+  <tr><td>Coming Up</td><td>Between matches, with cameras labelled PLAYER 1 and PLAYER 2.</td></tr>
+  <tr><td>Podium</td><td>Top three with photos. Appears by itself at the end.</td></tr>
+  <tr><td>Logos</td><td>Gaming Malta and City of Fighters bottom left; sponsors bottom right.</td></tr>
+</table>
+<p>To test: pick <b>Bracket</b> and press <b>Deploy to OBS</b>. It should appear in OBS within 2 seconds. Then pick Scoreboard again.</p>
+<p>The overlay is see-through, so with nothing to show you see only the game.</p>
+
+<h2>9. Update the PC app</h2>
+<p>Pages inside the app update by themselves; press <span class="key">Ctrl</span> + <span class="key">R</span> to reload. You only need a new install for app changes, such as new menu items or shortcuts.</p>
+<h3>Windows</h3>
+<ol>
+  <li>Close the app.</li>
+  <li>Open Settings → <b>Get the apps</b> and download the <b>Windows installer</b>.</li>
+  <li>Open the file. If Windows warns you, click <b>More info</b>, then <b>Run anyway</b>.</li>
+  <li>Install it over the old one. You don’t need to uninstall first. Your login and settings stay.</li>
+</ol>
+<h3>Linux</h3>
+<ol>
+  <li>Close the app.</li>
+  <li>Download the <b>Linux (AppImage)</b> file from Settings → Get the apps.</li>
+  <li>Replace your old copy. If you’re unsure how it was installed, ask whoever set up the PC.</li>
+</ol>
+
+<h2>10. If something goes wrong</h2>
+<table>
+  <tr><td>“Could not reach OBS”</td><td>Open OBS, and check section 2.</td></tr>
+  <tr><td>OBS shows old things or nothing</td><td>Right-click the City of Fighters source → <b>Refresh cache of current page</b>.</td></tr>
+  <tr><td>Overlay doesn’t fill the screen</td><td>Right-click it → Transform → Fit to screen.</td></tr>
+  <tr><td>The game covers the overlay</td><td>Drag City of Fighters above the game in Sources.</td></tr>
+  <tr><td>A camera window is black</td><td>Pick the other device in the camera list. Still black? Close and reopen OBS.</td></tr>
+  <tr><td>Coming Up shows the wrong things</td><td>Press Set up Coming Up scene in OBS again.</td></tr>
+  <tr><td>Phone shows no live picture</td><td>Open the Stream tab on the PC and connect.</td></tr>
+</table>
+<footer>City of Fighters · https://cityoffighters.com</footer>
+</body>
+</html>

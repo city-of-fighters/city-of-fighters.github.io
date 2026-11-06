@@ -35,7 +35,7 @@ Checked against the live system:
 - [ ] Gmail secrets: not confirmed
 - [ ] Latest `supabase/city-of-fighters.sql` run: **not yet** (`cof_sponsors_version` is missing). The Sponsors tab needs it.
 - [ ] `cof-startgg` function: **not deployed**; its code already uses the final address
-- [x] start.gg token: saved in the Control panel
+- [x] start.gg token: saved (Settings tab). Test mode is on, so nothing is sent to start.gg
 - [x] Domain: `cityoffighters.com` registered at Porkbun, pointing at GitHub Pages with HTTPS on
 - [ ] Nothing has been tested against the real start.gg
 
@@ -89,7 +89,7 @@ Steps with direct links are in `docs/setup.html`.
 2. Edge Function Secrets: `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `SGG_CLIENT_ID`, `SGG_CLIENT_SECRET`.
 3. Deploy `cof-startgg`, then turn **Verify JWT with legacy secret** off for it.
 4. Create the start.gg OAuth app with the redirect URL `<final address>/events.html` (exact match).
-5. Paste the start.gg token in the Control panel's start.gg box.
+5. Settings tab → start.gg: test mode stays on unless the owner says otherwise.
 
 ## Step 6: Check everything
 
