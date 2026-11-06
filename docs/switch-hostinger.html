@@ -11,7 +11,7 @@
 <div class="kicker">What you do when moving · 6 November 2026</div>
 <h1>Switch to <span>Hostinger</span></h1>
 <p>What the owner of <b>cityoffighters.com</b> needs to do when the site moves from GitHub to Hostinger. Your partner’s Claude does the technical side from <code>DEPLOY-HOSTINGER.md</code> in the GitHub repo.</p>
-<p class="note">the address stays <b>cityoffighters.com</b>, so OBS, the PC app, the phone app and player logins don’t change. Your players, results and photos stay in Supabase and aren’t moved.</p>
+<p class="note">the address stays <b>cityoffighters.com</b>, so the OBS link and the installed apps keep working. Everyone has to log in again, because the database is new. Iron Fist Academy stays in the old Supabase project.</p>
 
 <h2>Before you start</h2>
 <table class="check">
@@ -21,6 +21,17 @@
   <tr><td>☐</td><td>No tournament or stream is running or coming up that day</td></tr>
 </table>
 <p class="warn">don’t buy the domain again on Hostinger, and don’t change the Porkbun nameservers. You only change the records in Step 2.</p>
+
+<h2>First: the new database</h2>
+<ol>
+  <li>Create the new <a href="https://supabase.com">Supabase</a> account and a new project. Use an email someone reads.</li>
+  <li>Decide what to do with your data. The new database starts empty, with the 6 original sponsors. Test players, photos and past tournaments don’t come across. The calendar refills from start.gg.</li>
+  <li>In the new project, open the SQL Editor, paste all of <code>supabase/city-of-fighters.sql</code> and press <b>Run</b>. Then set the admin password with the line in <code>DEPLOY-HOSTINGER.md</code>.</li>
+  <li>In its <b>Edge Functions → Secrets</b>, add <code>GMAIL_USER</code>, <code>GMAIL_APP_PASSWORD</code>, <code>SGG_CLIENT_ID</code> and <code>SGG_CLIENT_SECRET</code>.</li>
+  <li>Deploy <code>cof-winner-email</code> and <code>cof-startgg</code>, each with <b>Verify JWT with legacy secret</b> off.</li>
+  <li>Give your partner the new project’s URL and <b>publishable</b> key. Never share the service or secret key.</li>
+</ol>
+<p>After the switch, paste the start.gg token in Settings again. Test mode starts on.</p>
 
 <h2>Step 1: your partner prepares Hostinger</h2>
 <p>He tells his Claude:</p>
@@ -61,6 +72,7 @@
 <ol>
   <li>Your partner’s Claude removes the domain from GitHub Pages and turns Pages off (it asks first).</li>
   <li><b>Keep the GitHub repo.</b> It holds the code, and the job that stops Supabase from pausing. If you delete it, the database can pause and take the whole app down.</li>
+  <li>Your partner’s Claude lists what to remove from the old project: player emails, photos and the start.gg key. Approve it first. <b>Never delete the old project</b>, because Iron Fist Academy is in it.</li>
   <li>Keep it public until the PC app downloads have been moved, or the download links stop working.</li>
 </ol>
 
@@ -69,8 +81,8 @@
   <tr><td>Domain</td><td>Porkbun. Keep auto-renew on. It renews on 6 November each year.</td></tr>
   <tr><td>Website files</td><td>Hostinger, updated automatically from GitHub.</td></tr>
   <tr><td>Code and backups of it</td><td>GitHub, and the CityOF APP files folder.</td></tr>
-  <tr><td>Database and server functions</td><td>Supabase. Nothing changes.</td></tr>
-  <tr><td>Email</td><td>Your Gmail. Nothing changes.</td></tr>
+  <tr><td>Database and server functions</td><td>The new Supabase account.</td></tr>
+  <tr><td>Email</td><td>The same Gmail, with its secrets in the new Supabase project.</td></tr>
   <tr><td>Calendar and results</td><td>start.gg. Nothing changes.</td></tr>
 </table>
 <footer>City of Fighters · Never send passwords, tokens or app passwords in a chat. Paste them only where a step says.</footer>

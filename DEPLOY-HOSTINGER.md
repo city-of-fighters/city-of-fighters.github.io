@@ -3,12 +3,14 @@
 Instructions for the Claude (and the person) doing this move. Follow them in order.
 Written 6 November 2026. The site runs on GitHub Pages at https://cityoffighters.com and must keep working until Hostinger is proven.
 
-**The address doesn't change in this move.** The code, PC app, OBS link and start.gg redirect URL already use `cityoffighters.com`. Only the Hostinger files and the domain's DNS records change.
+**Plan:** the website moves to Hostinger, and the City of Fighters database moves to a **new Supabase project in a new account**. Iron Fist Academy shares the old project and stays there.
+
+**The address doesn't change.** The code, PC app, OBS link and start.gg redirect URL already use `cityoffighters.com`.
 
 ## Rules
 
 1. **Never ask for, print, store or commit a secret.** That covers the admin password, start.gg token, client secret, Gmail app password, Hostinger login and Supabase keys other than the public `sb_publishable_` one. If one is needed, tell the person where to paste it.
-2. **Keep the same Supabase project** (`glqxyghdcindimggnwml`). It holds the players, results and photos. Don't create a new one unless the owner asks. Hosting moves; the database doesn't.
+2. **Don't touch Iron Fist Academy.** The old Supabase project (`glqxyghdcindimggnwml`) also holds its tables. Never delete that project, and only remove `cof_` data from it after the owner agrees (step 9). The database must stay on Supabase: Hostinger's MySQL can't run this app.
 3. **Don't run SQL that deletes data.** `supabase/city-of-fighters.sql` is safe to run again; a person runs it in the Supabase SQL Editor.
 4. **Ask the owner before** changing DNS, disabling GitHub Pages, making the repo private, or anything that costs money.
 5. **Don't do the switch during a tournament or stream.**
@@ -31,9 +33,8 @@ Hostinger's Git deploy has no build step and replaces the deploy folder each tim
 
 Checked against the live system:
 
-- [x] Winner email function deployed and reachable
-- [ ] Gmail secrets: not confirmed
-- [ ] Latest `supabase/city-of-fighters.sql` run: **not yet** (`cof_sponsors_version` is missing). The Sponsors tab needs it.
+- [x] Winner email deployed on the old project, Gmail secrets set and tested there
+- [x] Latest `supabase/city-of-fighters.sql` run on the old project; the new project still needs it
 - [ ] `cof-startgg` function: **not deployed**; its code already uses the final address
 - [x] start.gg token: saved (Settings tab). Test mode is on, so nothing is sent to start.gg
 - [x] Domain: `cityoffighters.com` registered at Porkbun, pointing at GitHub Pages with HTTPS on
@@ -46,11 +47,27 @@ Re-check these rather than trusting this list.
 Only a person can do these. Ask for them when you reach that step:
 
 - Give the Hostinger account access to the GitHub repo (the GitHub popup in step 2).
+- Create the new Supabase account and project, and run its SQL.
 - Change the DNS records at Porkbun.
 - Run SQL in Supabase and paste secrets into Supabase.
 - Create the start.gg token and OAuth app.
 
-## Step 1: Hostinger plan and domain
+## Step 0: New Supabase project (do this first)
+
+Hostinger gets its files from `main`, so point the code at the new database before the switch. **The live site uses the same code**, so don't push step 0.3 until the new database is ready, and do it close to the switch.
+
+1. A person creates a new Supabase account and project, using an email someone reads. Warnings about pausing and billing go there.
+2. A person runs `supabase/city-of-fighters.sql` in the new SQL Editor, then sets the admin password:
+   `update public.cof_admin set pass_hash = extensions.crypt('NEW-PASSWORD', extensions.gen_salt('bf')); delete from public.cof_sessions;`
+3. Replace the old project address and publishable key with the new project's:
+   - `public/api.js` lines 3 and 4
+   - `public/banner.js` line 3
+   - `public/account.js` line 3
+   - `.github/workflows/keep-awake.yml`: **add** a ping for the new project. Keep the old ping unless the owner confirms Iron Fist Academy pings it elsewhere, or that project can pause.
+4. A person adds the Edge Function secrets to the new project and deploys `cof-winner-email` and `cof-startgg` with **Verify JWT with legacy secret** off.
+5. A person pastes the start.gg token in Settings on the new setup. Test mode starts on.
+6. Data: the SQL file builds an empty database with the 6 original sponsors. The calendar refills from start.gg. Players, photos, added sponsors and past tournaments don't come across. Ask the owner whether to start clean. If not, a person exports the `cof_` tables from the old project first.
+
 
 1. Confirm the plan supports Git deployment: web or cloud hosting with a custom PHP/HTML website. It isn't available on agency hosting.
 2. Add the website in hPanel as `cityoffighters.com`, as an existing domain. **Don't buy the domain again.** It stays registered at Porkbun, and DNS stays pointing at GitHub until step 7.
@@ -106,6 +123,8 @@ Steps with direct links are in `docs/setup.html`.
 
 ## Step 7: Switch off GitHub Pages (ask the owner first)
 
+Leave the old database untouched until this step is done.
+
 Only when step 6 passes:
 
 1. Remove the custom domain from the repo's Pages settings. Do this after DNS has moved, otherwise the live site breaks.
@@ -119,6 +138,10 @@ Website files are always readable by visitors; this only hides the repo. Before 
 1. **Move the PC installers.** Control panel download links (`public/admin.html`, lines 28 to 30) point at this repo's GitHub Releases, which stop working for the public. Publish them from a small public repo (for example `city-of-fighters/downloads`) and update the links. Don't put them in `public/` or on Hostinger's deploy folder.
 2. **Check the keep-awake job still runs.** GitHub can disable scheduled jobs after long inactivity. A paused Supabase project takes the whole app down; see the warning emails sent to the Supabase account.
 3. Confirm the Hostinger GitHub app can still read the repo, and press **Redeploy** once to prove it.
+
+## Step 9: Clean up the old project (ask the owner first)
+
+After a few days of everything working, a person removes City of Fighters data from the old project: the player emails, photos, sessions, and especially the start.gg key in `cof_startgg`. List the exact statements for the owner to approve; they must only touch `cof_` tables. Never delete the project.
 
 ## If something goes wrong
 
