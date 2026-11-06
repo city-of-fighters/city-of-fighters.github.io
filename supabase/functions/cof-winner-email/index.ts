@@ -18,19 +18,36 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
   try {
-    const { token, players, image, force } = await req.json();
+    const { token, players, image, force, test } = await req.json();
     if (typeof image !== 'string' || !image.startsWith('data:image/jpeg;base64,') || image.length > 3_000_000) return json({ error: 'Bad banner image' }, 400);
-    if (!Array.isArray(players) || !players.length || players.length > 8) return json({ error: 'No champion given' }, 400);
+    if (!test && (!Array.isArray(players) || !players.length || players.length > 8)) return json({ error: 'No champion given' }, 400);
 
     const user = Deno.env.get('GMAIL_USER'), pass = Deno.env.get('GMAIL_APP_PASSWORD');
     if (!user || !pass) return json({ error: 'Gmail is not set up (add GMAIL_USER and GMAIL_APP_PASSWORD in Supabase)' }, 500);
 
     const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const mail = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user, pass } });
+    const banner = image.slice(image.indexOf(',') + 1);
+
+    // Control panel "Send test email": for logged-in organizers only, with a sample banner
+    if (test) {
+      if (typeof test !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(test) || test.length > 120) return json({ error: 'Enter a valid email address' }, 400);
+      const { error } = await db.rpc('cof_admin_get', { p_token: token });
+      if (error) return json({ error: error.message }, 400);
+      await mail.sendMail({
+        from: `City of Fighters <${user}>`, to: test, subject: '🏆 Test: the City of Fighters winner email works',
+        text: 'This is a test of the City of Fighters winner email. The champion gets a banner like the attached one.\n',
+        html: `<div style="font-family:Arial,sans-serif;background:#0c0714;color:#f4eefc;padding:24px;text-align:center">
+          <h1 style="color:#ffd24a;margin:0 0 8px">Test email</h1><p style="font-size:18px">The champion gets a banner like this one.</p>
+          <img src="cid:banner" alt="Winner banner" style="max-width:100%;border-radius:8px"></div>`,
+        attachments: [{ filename: 'city-of-fighters-champion.jpg', content: banner, encoding: 'base64', cid: 'banner' }],
+      });
+      return json({ sent: [test] });
+    }
+
     const { data, error } = await db.rpc('cof_winner_mail', { p_token: token, p_ids: players, p_force: !!force });
     if (error) return json({ error: error.message }, 400);
 
-    const mail = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user, pass } });
-    const banner = image.slice(image.indexOf(',') + 1);
     const sent: string[] = [];
     for (const w of data.winners as { id: string; name: string; email: string }[]) {
       await mail.sendMail({
