@@ -24,6 +24,7 @@ jobs:
         with:
           node-version: 24
       - run: node test.js
+      - run: rm public/.htaccess # for Hostinger only; GitHub Pages deployments fail with it
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
