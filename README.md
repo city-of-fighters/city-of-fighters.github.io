@@ -68,6 +68,10 @@ a player without their approval: see the next section for what the app tries.
 `sponsors.html` (Sponsors tab) adds and deletes the logos in `cof_sponsors`. The overlay checks `cof_sponsors_version` every 10 s and reloads
 the logos when it changes; until the database answers it shows the original six.
 
+## Android app
+
+`android/` is a Trusted Web Activity of `/app.html`, so it always shows the live site. The **Build Android app** workflow builds and signs it, checking the key against `public/.well-known/assetlinks.json`. The APK lives at `public/downloads/City-of-Fighters.apk`. The signing key is in the repo's secrets and with the owner, never in Git.
+
 ## Log in with start.gg (players)
 
 Players log in once with their start.gg account (sessions last 90 days from the last visit) and press **Participate** on a City of

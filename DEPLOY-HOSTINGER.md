@@ -71,7 +71,7 @@ Menu names can change; check https://docs.hostinger.com/websites/git if they dif
 
 1. Open Hostinger's temporary preview address for the site.
 2. These must load: `/`, `/app.html`, `/events.html`, `/admin.html`, `/players.html`, `/sponsors.html`, `/studio.html`, `/phone.html`, `/overlay.html`.
-3. Check that `/hud/hud-bar.webm` and `/manifest.webmanifest` load, and that `/supabase/` and `/desktop/` return 404.
+3. Check that `/hud/hud-bar.webm`, `/manifest.webmanifest`, `/downloads/City-of-Fighters.apk` and `/.well-known/assetlinks.json` load, and that `/supabase/` and `/desktop/` return 404. Without `assetlinks.json` the Android app shows a browser bar.
 4. If `.htaccess` causes a 500 error, remove the failing line and report it. It hasn't been tested on Hostinger.
 
 ## Step 4: Switch the domain (ask the owner first; not during a tournament or stream)
@@ -125,6 +125,12 @@ Website files are always readable by visitors; this only hides the repo. Before 
 - **Fastest fix:** the owner puts the four GitHub A records back in Porkbun. The site returns to GitHub Pages as long as step 7 hasn't been done.
 - Hostinger: **Git** → **Redeploy**.
 - Login or Participate failing: check the `cof-startgg` logs in Supabase and the OAuth redirect URL, `https://cityoffighters.com/events.html`.
+
+## Android app
+
+- The APK is `public/downloads/City-of-Fighters.apk`, so it moves with the website. It doesn't need rebuilding for this move, because the domain stays the same.
+- New version: raise `appVersionCode` and `appVersionName` in `android/twa-manifest.json` and `versionCode`/`versionName` in `android/app/build.gradle`, run the **Build Android app** workflow, and replace the APK with the one from that run.
+- It's signed with a private key in GitHub secrets (`ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`). The owner holds the only copy of the key file. Never put it in the repo. If the key changes, `assetlinks.json` must change too, and installed apps can't update.
 
 ## The streaming PC
 
