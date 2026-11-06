@@ -128,6 +128,12 @@
     <div class="row" style="margin-top:10px"><button type="button" id="calSync">↻ Get events from start.gg now</button></div>
   </div>
 
+  <details class="card" id="mailTestCard">
+    <summary style="cursor:pointer"><h2 style="display:inline">Test the winner email</h2></summary>
+    <p class="dim" style="margin-top:8px">Sends a sample banner to any address, to check that Gmail is connected.</p>
+    <div class="row"><input type="email" id="mailTo" placeholder="you@example.com" aria-label="Send the test to" style="flex:1;min-width:220px"><button type="button" id="mailTestBtn">Send test email</button></div>
+  </details>
+
   <details class="card" id="pastCard">
     <summary style="cursor:pointer"><h2 style="display:inline">Past tournaments</h2></summary>
     <p class="dim" style="margin-top:8px">Every finished tournament is kept here and in the app (names and results only, never emails).</p>
@@ -196,6 +202,13 @@ $('createBtn').onclick = () => {
   $('newTour').open = false;
 };
 $('logoutBtn').onclick = logout;
+$('mailTestBtn').onclick = async () => {
+  const to = $('mailTo').value.trim(), b = $('mailTestBtn');
+  if (!to) return toast('Type an email address');
+  b.disabled = true;
+  try { await mailTest(to); toast(`Test email sent to ${to}`); } catch (err) { toast(err.message); }
+  b.disabled = false;
+};
 // Events calendar card: list (typed-in events can be edited), add, delete, sync from start.gg
 let calEditing = null, calList = [];
 async function drawCal() {

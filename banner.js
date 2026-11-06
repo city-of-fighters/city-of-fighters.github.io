@@ -29,6 +29,18 @@ async function drawBanner(canvas, s, champs) {
   text(`${s.players.length} players · City of Fighters`, 560, '24px system-ui, sans-serif', '#9d9daa');
 }
 
+// Control panel "Send test email": a sample banner to any address, to prove Gmail is connected.
+async function mailTest(to) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200; canvas.height = 630;
+  await drawBanner(canvas, { format: 'double', name: 'Test Tournament', game: 'Tekken 8', players: new Array(16) }, [{ name: 'Champion', w: 5, l: 0, gw: 10, gl: 2 }]);
+  const r = await fetch(MAIL_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: KEY },
+    body: JSON.stringify({ token, test: to, image: canvas.toDataURL('image/jpeg', 0.9) }) }).catch(() => null);
+  if (!r || r.status === 404) throw new Error('Winner email is not set up yet');
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || `Email failed (${r.status})`);
+}
+
 // Sends the banner to the champion(s). force = send again even if it was already sent for this tournament.
 async function mailWinner(force = false) {
   const champs = S.standings.filter(r => r.place === 1);
