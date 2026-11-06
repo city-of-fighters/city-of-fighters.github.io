@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Sponsors</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  .slist { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
+  .srow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+  .srow .logo { flex: none; width: 110px; height: 64px; padding: 4px; background: #0a0a0c; }
+  .srow .logo img, #preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .srow b { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  #add { max-width: 640px; }
+  #preview { width: 220px; height: 100px; background: #0a0a0c; margin-top: 10px; padding: 8px; }
+  body.locked main > .card:not(#login), body.locked main > section, body:not(.locked) #login { display: none; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--pink); color: #fff; padding: 8px 16px; display: none; z-index: 50; }
+</style>
+</head>
+<body class="locked">
+<main>
+  <h1 class="brand"><img src="hud/cof-logo.png" alt="">City of <span>Fighters</span> · Sponsors</h1>
+  <nav class="tabs"><a href="admin.html">Control panel</a><a href="players.html">Players</a><a class="on" href="sponsors.html">Sponsors</a><a href="studio.html">Stream</a></nav>
+
+  <form class="card" id="login" style="max-width:420px">
+    <h2>Admin login</h2>
+    <p class="dim" style="margin-top:0">3 wrong passwords lock the login for 15 minutes.</p>
+    <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
+    <p class="err" id="loginErr"></p>
+    <button class="primary" type="submit">Unlock</button>
+  </form>
+
+  <section class="card" id="add">
+    <h2>Add a sponsor</h2>
+    <p class="dim" style="margin-top:0">Shows on stream within about 10 seconds, bottom right, one logo at a time. A PNG with a see-through background looks best.</p>
+    <form id="addForm">
+      <label for="sName">Sponsor name</label><input type="text" id="sName" maxlength="60" required>
+      <label for="sFile">Logo</label><input type="file" id="sFile" accept="image/png,image/jpeg,image/webp" required>
+      <div id="preview" hidden></div>
+      <p class="err" id="sErr" role="alert"></p>
+      <button class="primary" type="submit">Add sponsor</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Sponsors on stream (<span id="count">0</span>)</h2>
+    <div class="slist" id="slist"></div>
+  </section>
+</main>
+<div id="toast" role="alert"></div>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="banner.js"></script><script src="control.js"></script>
+<script>
+let logo = null, tall = false, list = [], shown;
+// Logos are shrunk in the browser (keeping transparency), so the stream loads them quickly.
+async function shrink(file) {
+  const img = await createImageBitmap(file);
+  const k = Math.min(1, 480 / img.width, 192 / img.height), c = document.createElement('canvas');
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  let data = c.toDataURL('image/png');
+  if (data.length > 280000) data = c.toDataURL('image/webp', 0.85);
+  if (data.length > 280000) throw new Error('That logo is too detailed. Try a simpler or smaller one.');
+  return { data, tall: img.width / img.height < 2.2 }; // squarer logos show larger, like the original ones
+}
+$('sFile').onchange = async e => {
+  $('sErr').textContent = ''; logo = null; $('preview').hidden = true;
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    ({ data: logo, tall } = await shrink(f));
+    $('preview').innerHTML = `<img src="${logo}" alt="">`; $('preview').hidden = false;
+  } catch (err) { e.target.value = ''; $('sErr').textContent = /detailed/.test(err.message) ? err.message : 'That file is not a picture this browser can read.'; }
+};
+$('addForm').onsubmit = async e => {
+  e.preventDefault();
+  $('sErr').textContent = '';
+  if (!logo) return ($('sErr').textContent = 'Choose a logo first.');
+  try {
+    await rpc('cof_admin_sponsor_add', { p_token: token, p_name: $('sName').value, p_logo: logo, p_tall: tall });
+    toast('Sponsor added'); e.target.reset(); logo = null; $('preview').hidden = true;
+    await draw();
+  } catch (err) { $('sErr').textContent = /not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message; }
+};
+$('slist').addEventListener('click', async e => {
+  const b = e.target.closest('[data-del]');
+  if (!b || !confirm(`Delete ${b.dataset.name} from the sponsors? It disappears from the stream.`)) return;
+  try { await rpc('cof_admin_sponsor_delete', { p_token: token, p_id: b.dataset.del }); toast('Sponsor deleted'); await draw(); } catch (err) { toast(err.message); }
+});
+async function draw() {
+  S = view(await adminGet());
+  document.body.classList.remove('locked');
+  const v = await rpc('cof_sponsors_version').catch(() => null);
+  if (v === shown) return; // this page redraws every 1.5 s: load the logos only when the list changed
+  shown = v;
+  list = await rpc('cof_sponsors_list').catch(() => []);
+  $('count').textContent = list.length;
+  $('slist').innerHTML = list.map(s => `<div class="srow"><div class="logo"><img src="${esc(s.logo)}" alt=""></div><b>${esc(s.name)}</b>
+      <button type="button" class="small" data-del="${esc(s.id)}" data-name="${esc(s.name)}">Delete</button></div>`).join('')
+    || '<p class="dim">No sponsors yet. If you expected some, run the updated database file in Supabase.</p>';
+}
+boot();
+</script>
+</body>
+</html>

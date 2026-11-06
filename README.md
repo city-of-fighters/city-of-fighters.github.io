@@ -11,6 +11,7 @@ Website (GitHub Pages): https://city-of-fighters.github.io/
 | Player registration | https://city-of-fighters.github.io/ |
 | Control panel (password) | https://city-of-fighters.github.io/admin.html |
 | Players tab: add, edit, photos (password) | https://city-of-fighters.github.io/players.html |
+| Sponsors tab: add and delete logos (password) | https://city-of-fighters.github.io/sponsors.html |
 | Stream tab: preview and deploy what OBS shows, OBS cameras and Coming Up scene | https://city-of-fighters.github.io/studio.html |
 | Phone remote (password) | https://city-of-fighters.github.io/phone.html |
 | **OBS Browser Source** (1920×1080, the only one needed) | https://city-of-fighters.github.io/overlay.html |
@@ -61,6 +62,11 @@ on a computer. Press Start on the start.gg bracket too. Code: `public/startgg.js
 While a tournament is linked, the Register tab sends players to the start.gg registration page and the control panel pulls new
 sign-ups in every 3 minutes until the bracket starts. start.gg's API has no anonymous access and no documented way to register
 a player without their approval: see the next section for what the app tries.
+
+## Sponsors
+
+`sponsors.html` (Sponsors tab) adds and deletes the logos in `cof_sponsors`. The overlay checks `cof_sponsors_version` every 10 s and reloads
+the logos when it changes; until the database answers it shows the original six.
 
 ## Log in with start.gg (players)
 

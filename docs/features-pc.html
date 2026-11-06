@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>City of Fighters PC app features</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<div class="kicker">Every feature · 6 November 2026</div>
+<h1>The <span>PC</span> app</h1>
+<p>Everything the PC app can do. It’s for organizers and needs the admin password. It shows the live website in its own window, so it updates itself. Features marked “needs setup” switch on after the steps in the “Connect email and start.gg” PDF.</p>
+
+<h2>The app window</h2>
+<table>
+  <tr><td><span class="key">Ctrl</span> + <span class="key">1</span></td><td>Control panel: tournaments, players, start.gg, calendar.</td></tr>
+  <tr><td><span class="key">Ctrl</span> + <span class="key">2</span></td><td>Players: add, edit, photos.</td></tr>
+  <tr><td><span class="key">Ctrl</span> + <span class="key">3</span></td><td>Stream: what OBS shows, cameras, Coming Up.</td></tr>
+  <tr><td>Sponsors tab</td><td>Add or delete sponsors. Open it from the tabs at the top of any page (<span class="key">Ctrl</span> + <span class="key">4</span> from desktop app 1.3.3).</td></tr>
+  <tr><td>View menu</td><td>Reload (<span class="key">Ctrl</span> + <span class="key">R</span>), full screen and zoom.</td></tr>
+  <tr><td>No internet</td><td>Shows a message and tries again every 5 seconds.</td></tr>
+  <tr><td>Links</td><td>Other websites open in your normal browser.</td></tr>
+  <tr><td>Login</td><td>3 wrong passwords lock it for 15 minutes. You stay logged in for 24 hours. <b>Log out</b> is in the Tournament box.</td></tr>
+</table>
+
+<h2>Control panel: tournament</h2>
+<table>
+  <tr><td>📲 Get the apps</td><td>Download links for Windows (installer or portable) and Linux, and how to get the phone app.</td></tr>
+  <tr><td>＋ Create a new tournament</td><td>Name, game, date and time, and type. A finished tournament is kept under Past tournaments first.</td></tr>
+  <tr><td>Tournament types</td><td>Double elimination, single elimination, round robin (points) or Swiss (points).</td></tr>
+  <tr><td>Settings</td><td>Change the name, game, date and rules, then <b>Save settings</b>.</td></tr>
+  <tr><td>Reset bracket</td><td>Deletes the bracket and results, keeps the players.</td></tr>
+  <tr><td>End tournament</td><td>The app then says no tournament is in progress.</td></tr>
+  <tr><td>Players box</td><td>The seeding list with ▲ ▼, <b>Shuffle seeds</b>, team names and <b>Remove</b>. <b>Start tournament</b> makes the bracket.</td></tr>
+  <tr><td>Ready to play</td><td>Every match that can be played now, with <b>Put on stream</b>.</td></tr>
+  <tr><td>On stream</td><td>The current match, with <b>Take off stream</b>.</td></tr>
+  <tr><td>Standings</td><td>Live places.</td></tr>
+  <tr><td>Bracket</td><td>The full bracket.</td></tr>
+  <tr><td>Finished matches</td><td>All results, with <b>Reopen</b> to undo a finished match.</td></tr>
+  <tr><td>↶ Undo last action</td><td>Steps back through your recent actions on this computer.</td></tr>
+  <tr><td>Results image</td><td>When a tournament ends, a picture of the results with <b>Download PNG</b>.</td></tr>
+  <tr><td>📧 Email the winner banner <span class="dim">(needs setup)</span></td><td>The champion gets a banner by email once, automatically, or when you press it. The player needs an email in the Players tab.</td></tr>
+  <tr><td>Past tournaments</td><td>Every finished tournament is saved by itself, with <b>Delete</b> for each one.</td></tr>
+</table>
+
+<h2>Control panel: start.gg and calendar</h2>
+<table>
+  <tr><td>Connect <span class="dim">(needs setup)</span></td><td>Save the start.gg API key once, and link each tournament to its start.gg event. Instructions are in the box.</td></tr>
+  <tr><td>Get players from start.gg <span class="dim">(needs setup)</span></td><td>Adds signed-up players with their team and seeding. It also runs by itself every 3 minutes until the bracket starts.</td></tr>
+  <tr><td>Send results automatically <span class="dim">(needs setup)</span></td><td>Every result goes to start.gg within seconds, with the game score, while the Control panel or Stream tab is open. Tick or untick it.</td></tr>
+  <tr><td>Send results now <span class="dim">(needs setup)</span></td><td>Sends waiting results straight away.</td></tr>
+  <tr><td>Undo on start.gg <span class="dim">(needs setup)</span></td><td>Undoing a result here resets it on start.gg too.</td></tr>
+  <tr><td>Problems list <span class="dim">(needs setup)</span></td><td>Says in plain words why a result couldn’t be sent.</td></tr>
+  <tr><td>Disconnect</td><td>Removes the link. Results already sent stay on start.gg.</td></tr>
+  <tr><td>Events calendar</td><td>Add, edit and delete events: name, date, game, place and link.</td></tr>
+  <tr><td>Events from start.gg <span class="dim">(needs setup)</span></td><td>Hosted tournaments appear by themselves every 30 minutes. <b>↻ Get events from start.gg now</b> does it at once.</td></tr>
+</table>
+
+<h2 class="page">Players tab</h2>
+<table>
+  <tr><td>Add a player</td><td>Gamer tag, plus optional team and email. Useful for someone without a start.gg account.</td></tr>
+  <tr><td>Edit</td><td>Change anyone’s tag, team, email or photo, even after the bracket has started.</td></tr>
+  <tr><td>Photo</td><td>Upload a picture; it’s cropped to a square automatically. <b>Remove photo</b> takes it away.</td></tr>
+  <tr><td>No photo</td><td>Shows just the name, never an empty box.</td></tr>
+  <tr><td>Remove</td><td>Removes a player before the bracket starts.</td></tr>
+</table>
+
+<h2>Sponsors tab</h2>
+<table>
+  <tr><td>Add a sponsor</td><td>Type the name and pick a logo (PNG, JPEG or WebP). A PNG with a see-through background looks best. It’s resized automatically.</td></tr>
+  <tr><td>Delete</td><td>Removes a sponsor from the list and the stream.</td></tr>
+  <tr><td>On stream by itself</td><td>OBS updates within about 10 seconds. Nothing to refresh.</td></tr>
+  <tr><td>Where it shows</td><td>Bottom right, one logo at a time. Up to 30 sponsors.</td></tr>
+</table>
+
+<h2>Stream tab: what viewers see</h2>
+<table>
+  <tr><td>Choose a layout</td><td>Scoreboard, Bracket, Standings or Podium.</td></tr>
+  <tr><td>Match on the scoreboard</td><td>Pick which match shows.</td></tr>
+  <tr><td>Preview</td><td>See it before viewers do. <b>Preview Coming Up</b> shows that screen too.</td></tr>
+  <tr><td>Deploy to OBS</td><td>Sends it live within 2 seconds.</td></tr>
+  <tr><td>Now on OBS</td><td>A small window showing what’s live.</td></tr>
+  <tr><td>How to connect to OBS</td><td>Step-by-step help with a Copy link button.</td></tr>
+</table>
+
+<h2>Stream tab: OBS control</h2>
+<table>
+  <tr><td>Connects by itself</td><td>The PC app reads the OBS password from OBS’s own settings. In a normal browser you type it once.</td></tr>
+  <tr><td>＋ Add camera</td><td>Adds the camera and picks one that really gives a picture, skipping laptop infrared sensors.</td></tr>
+  <tr><td>Camera list</td><td>Pick the device, switch <b>In the stream / Hidden</b>, or <b>Remove</b>.</td></tr>
+  <tr><td>Coming Up scene</td><td>Choose the game and cameras, then <b>Set up Coming Up scene in OBS</b>.</td></tr>
+  <tr><td>One camera, two players</td><td>Cuts one camera in half, one half per player. <b>Swap the halves</b> turns it around.</td></tr>
+  <tr><td>Cameras during matches</td><td>Small outlined boxes in the bottom corners.</td></tr>
+  <tr><td>Scene switching</td><td>OBS goes to Coming Up between matches and back when a match goes on stream.</td></tr>
+  <tr><td>Phone live view</td><td>Sends a small picture of OBS each second, only while a phone is watching.</td></tr>
+</table>
+
+<h2>What the stream shows</h2>
+<table>
+  <tr><td>Scoreboard</td><td>Top of the screen: names, teams, photos, games won and the round.</td></tr>
+  <tr><td>Logos</td><td>Gaming Malta and City of Fighters bottom left. Sponsors bottom right, fading in one at a time for 4 seconds each.</td></tr>
+  <tr><td>Result popups</td><td>Off-stream results fade in for about 5 seconds, then fade out.</td></tr>
+  <tr><td>Winner screen</td><td>The winner and photo for 6 seconds.</td></tr>
+  <tr><td>Coming Up</td><td>The game in the big window, cameras labelled PLAYER 1 and PLAYER 2, and the next round on top.</td></tr>
+  <tr><td>Bracket and Standings</td><td>The whole tournament, animated as players move on.</td></tr>
+  <tr><td>Podium</td><td>Top three with photos, crown and confetti. Appears by itself when the tournament ends.</td></tr>
+</table>
+
+<footer>City of Fighters · Keep passwords and tokens off stream.</footer>
+</body>
+</html>

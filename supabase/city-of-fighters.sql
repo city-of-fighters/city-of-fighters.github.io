@@ -46,6 +46,23 @@ alter table public.cof_accounts enable row level security;
 alter table public.cof_account_sessions enable row level security;
 alter table public.cof_participants enable row level security;
 revoke all on public.cof_accounts, public.cof_account_sessions, public.cof_participants from anon, authenticated;
+-- Sponsors on the stream (control panel → Sponsors tab). The first run brings in the original six once; deleted ones stay deleted.
+create table if not exists public.cof_sponsors (id uuid primary key default gen_random_uuid(), name text not null check (char_length(name) between 1 and 60),
+  logo text not null check (char_length(logo) <= 300000 and logo ~ '^(hud/sponsors/[a-z0-9-]+\.png|data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$'),
+  tall boolean not null default false, created_at timestamptz not null default now());
+create table if not exists public.cof_sponsors_seeded (done boolean primary key);
+alter table public.cof_sponsors enable row level security;
+alter table public.cof_sponsors_seeded enable row level security;
+revoke all on public.cof_sponsors, public.cof_sponsors_seeded from anon, authenticated;
+do $$ begin
+  if not exists (select 1 from public.cof_sponsors_seeded) then
+    insert into public.cof_sponsors (name, logo, tall, created_at) values
+      ('Rupture', 'hud/sponsors/rupture.png', false, now()), ('Gamebreaker', 'hud/sponsors/gamebreaker.png', false, now() + interval '1 second'),
+      ('Immerse VR Gaming Arena', 'hud/sponsors/immerse.png', false, now() + interval '2 seconds'), ('Level Academy', 'hud/sponsors/level-academy.png', true, now() + interval '3 seconds'),
+      ('Malta Esports Association', 'hud/sponsors/malta-esports-association.png', true, now() + interval '4 seconds'), ('New Madras', 'hud/sponsors/new-madras.png', true, now() + interval '5 seconds');
+    insert into public.cof_sponsors_seeded values (true);
+  end if;
+end $$;
 -- Past tournaments: a snapshot of each finished one (names, standings, match results; never emails). Public to read.
 create table if not exists public.cof_archive (key text primary key check (char_length(key) <= 100), at timestamptz not null default now(),
   data jsonb not null check (pg_column_size(data) < 600000));
@@ -336,6 +353,31 @@ language sql security definer set search_path = public as $$
   insert into cof_participants (event, account) values (p_event, p_account) on conflict do nothing
 $$;
 
+-- Sponsors: anyone can read (they're on the stream); the overlay checks the short version often and loads the logos only when it changes.
+create or replace function public.cof_sponsors_list() returns jsonb
+language sql security definer set search_path = public stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'name', name, 'logo', logo, 'tall', tall) order by created_at), '[]'::jsonb) from cof_sponsors
+$$;
+create or replace function public.cof_sponsors_version() returns text
+language sql security definer set search_path = public stable as $$
+  select md5(coalesce(string_agg(id::text, ',' order by created_at), '')) from cof_sponsors
+$$;
+create or replace function public.cof_admin_sponsor_add(p_token text, p_name text, p_logo text, p_tall boolean) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare sid uuid;
+begin
+  perform cof_auth(p_token);
+  p_name := trim(coalesce(p_name, ''));
+  if char_length(p_name) not between 1 and 60 then raise exception 'Sponsor name must be 1–60 characters'; end if;
+  if coalesce(p_logo, '') !~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$' or char_length(p_logo) > 300000 then raise exception 'The logo must be a PNG, JPEG or WebP under 200 KB'; end if;
+  if (select count(*) from cof_sponsors) >= 30 then raise exception 'At most 30 sponsors'; end if;
+  insert into cof_sponsors (name, logo, tall) values (p_name, p_logo, coalesce(p_tall, false)) returning id into sid;
+  return sid;
+end $$;
+create or replace function public.cof_admin_sponsor_delete(p_token text, p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); delete from cof_sponsors where id = p_id; end $$;
+
 -- Past tournaments: the control panel saves a finished tournament (again after a reopen), anyone can read them.
 create or replace function public.cof_admin_archive_save(p_token text, p_key text, p_data jsonb) returns void
 language plpgsql security definer set search_path = public as $$
@@ -423,6 +465,7 @@ revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(te
 grant execute on function public.cof_public(), public.cof_admin_team(text, uuid, text),
   public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text),
   public.cof_me(text), public.cof_account_logout(text),
+  public.cof_sponsors_list(), public.cof_sponsors_version(), public.cof_admin_sponsor_add(text, text, text, boolean), public.cof_admin_sponsor_delete(text, uuid),
   public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),
   public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;
