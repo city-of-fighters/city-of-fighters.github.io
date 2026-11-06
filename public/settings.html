@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Settings</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  body.locked main > .card:not(#login), body:not(.locked) #login { display: none; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #ff6b9a; color: #000; padding: 8px 16px; display: none; z-index: 50; }
+</style>
+</head>
+<body class="locked">
+<main>
+  <h1 class="brand"><img src="hud/cof-logo.png" alt="">City of <span>Fighters</span> · Settings</h1>
+  <nav class="tabs"><a href="admin.html">Control panel</a><a href="players.html">Players</a><a href="sponsors.html">Sponsors</a><a href="studio.html">Stream</a><a class="on" href="settings.html">Settings</a></nav>
+  <p class="dim">Things you set once or rarely. Running a tournament happens in the Control panel.</p>
+
+  <form class="card" id="login" style="max-width:420px">
+    <h2>Admin login</h2>
+    <p class="dim" style="margin-top:0">3 wrong passwords lock the login for 15 minutes.</p>
+    <input type="password" id="pw" autocomplete="current-password" required aria-label="Password">
+    <p class="err" id="loginErr"></p>
+    <button class="primary" type="submit">Unlock</button>
+  </form>
+
+  <div class="card" id="sggCard" hidden>
+    <h2>start.gg</h2>
+    <p id="sggMode" style="margin-top:0;font-weight:600"></p>
+    <label class="row" style="color:var(--text);margin-bottom:10px"><input type="checkbox" id="sggTest" checked> Test mode (nothing is sent to start.gg)</label>
+    <p id="sggStatus" style="margin-top:0">Not connected. Results stay on this site only.</p>
+    <details id="sggHelp">
+      <summary>How to connect (do this once per tournament)</summary>
+      <ol>
+        <li>Log in on <a href="https://www.start.gg" target="_blank" rel="noopener">start.gg</a> (a normal free account is fine) and create your tournament with one event, for example “Tekken 8”.</li>
+        <li>In that event, add a bracket of the same type as here (Double elimination, Single elimination, Round robin or Swiss).</li>
+        <li>Get an API key (once, from the account that runs the City of Fighters hub): start.gg → your profile picture → <b>Developer Settings</b> → <b>Personal Access Tokens</b> → <b>Create new token</b>. Copy it. It is like a password: never post it anywhere else. Paste it below and press <b>Connect</b>: from then on the Events calendar fills with your upcoming start.gg tournaments by itself.</li>
+        <li>Open your event on start.gg and copy the link from the address bar (it looks like <code>start.gg/tournament/…/event/…</code>).</li>
+        <li>Paste the link and the key below and press <b>Connect</b>. Players here with the same gamer tag are linked automatically.</li>
+        <li>Players register on start.gg with their start.gg profile (the app's Register tab sends them there). They appear here by themselves within 3 minutes, with start.gg's seeding, so both brackets match. <b>Get players from start.gg</b> does it right away.</li>
+        <li>Start the bracket here, and press <b>Start</b> on the bracket in start.gg too.</li>
+        <li>That's it: every result you enter here (control panel, phone or Stream tab) goes to start.gg within a few seconds while this control panel or the Stream tab is open on a computer. Undo here resets it on start.gg.</li>
+      </ol>
+    </details>
+    <form id="sggForm">
+      <label for="sggLink">start.gg event link <span class="dim">(leave empty to only fill the Events calendar)</span></label><input type="text" id="sggLink" placeholder="https://www.start.gg/tournament/…/event/…" autocomplete="off">
+      <label for="sggKeyIn">start.gg API key</label><input type="password" id="sggKeyIn" autocomplete="off" placeholder="Paste the token from Developer Settings">
+      <div class="row" style="margin-top:10px"><button class="primary" type="submit">Connect</button></div>
+    </form>
+    <div id="sggOn" hidden>
+      <div class="row">
+        <button type="button" id="sggImport">Get players from start.gg</button>
+        <button type="button" id="sggNow">Send results now</button>
+        <label class="row" style="margin:0;color:var(--text)"><input type="checkbox" id="sggAuto"> Send results automatically</label>
+        <button type="button" id="sggOff" data-act="startgg" data-body='{"off":true}' data-confirm="Disconnect from start.gg? Results already sent stay on start.gg.">Disconnect</button>
+      </div>
+      <ul id="sggProblems" class="err" style="margin:10px 0 0"></ul>
+    </div>
+  </div>
+
+  <div class="card" id="calCard">
+    <h2>Events calendar</h2>
+    <p class="dim" style="margin-top:0">Shown in the app's 📅 Events tab. With the start.gg API key saved (start.gg box), your upcoming start.gg tournaments appear here by themselves; add other events by hand.</p>
+    <table><tbody id="calRows"></tbody></table>
+    <details id="calAdd" style="margin-top:10px"><summary style="cursor:pointer"><b id="calAddTitle">＋ Add an event</b></summary>
+      <div class="grid" style="gap:0 14px">
+        <div><label for="calName">Event name</label><input type="text" id="calName" maxlength="80"></div>
+        <div><label for="calAt">📅 Date and time</label><input type="datetime-local" id="calAt"></div>
+        <div><label for="calGame">Game <span class="dim">(optional)</span></label><input type="text" id="calGame" maxlength="40" value="Tekken 8"></div>
+        <div><label for="calPlace">Where <span class="dim">(optional)</span></label><input type="text" id="calPlace" maxlength="80"></div>
+      </div>
+      <label for="calLink">Link <span class="dim">(optional, e.g. the start.gg page)</span></label><input type="text" id="calLink" maxlength="300" placeholder="https://www.start.gg/tournament/…">
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" id="calSave">Save event</button><button type="button" id="calCancel" hidden>Cancel</button></div>
+    </details>
+    <div class="row" style="margin-top:10px"><button type="button" id="calSync">↻ Get events from start.gg now</button></div>
+  </div>
+
+  <details class="card" id="mailTestCard">
+    <summary style="cursor:pointer"><h2 style="display:inline">Test the winner email</h2></summary>
+    <p class="dim" style="margin-top:8px">Sends a sample banner to any address, to check that Gmail is connected.</p>
+    <div class="row"><input type="email" id="mailTo" placeholder="you@example.com" aria-label="Send the test to" style="flex:1;min-width:220px"><button type="button" id="mailTestBtn">Send test email</button></div>
+  </details>
+
+  <details class="card" id="pastCard">
+    <summary style="cursor:pointer"><h2 style="display:inline">Past tournaments</h2></summary>
+    <p class="dim" style="margin-top:8px">Every finished tournament is kept here and in the app (names and results only, never emails).</p>
+    <table><tbody id="pastRows"></tbody></table>
+  </details>
+
+  <details class="card" id="apps">
+    <summary style="cursor:pointer"><b>📲 Get the apps</b> <span class="dim">(computer and phone)</span></summary>
+    <p><b>Computer</b>: the control panel and Stream tab in their own window. It always shows the latest version.</p>
+    <div class="row">
+      <a class="btnlink" href="https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest/download/City-of-Fighters-Setup.exe">Windows installer (.exe)</a>
+      <a class="btnlink" href="https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest/download/City-of-Fighters-Portable.exe">Windows portable (.exe, no install)</a>
+      <a class="btnlink" href="https://github.com/city-of-fighters/city-of-fighters.github.io/releases/latest/download/City-of-Fighters.AppImage">Linux (AppImage)</a>
+    </div>
+    <p class="dim" style="font-size:13px">Windows may say “Windows protected your PC” because the app is not signed: click <b>More info → Run anyway</b>. On Linux, make the AppImage executable (right-click → Properties → Allow executing) and open it.</p>
+    <p><b>Phone</b>: open <a id="phoneLink" href="app.html">the app</a> on your phone and tap <b>Get the app</b>: choose your phone, then your browser, and follow the steps.</p>
+  </details>
+
+</main>
+<div id="toast" role="alert"></div>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="bracketview.js"></script><script src="banner.js"></script><script src="control.js"></script><script src="startgg.js"></script>
+<script>
+const toLocal = iso => iso ? new Date(new Date(iso) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+const fromLocal = v => v ? new Date(v).toISOString() : null; // datetime-local is local time
+$('mailTestBtn').onclick = async () => {
+  const to = $('mailTo').value.trim(), b = $('mailTestBtn');
+  if (!to) return toast('Type an email address');
+  b.disabled = true;
+  try { await mailTest(to); toast(`Test email sent to ${to}`); } catch (err) { toast(err.message); }
+  b.disabled = false;
+};
+// Events calendar card: list (typed-in events can be edited), add, delete, sync from start.gg
+let calEditing = null, calList = [];
+async function drawCal() {
+  calList = await rpc('cof_events_list').catch(() => []);
+  $('calRows').innerHTML = calList.map(e => `<tr><td><b>${esc(e.name)}</b> <span class="dim">${esc(new Date(e.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }))}${e.game ? ' · ' + esc(e.game) : ''}${e.place ? ' · ' + esc(e.place) : ''}</span>
+      ${e.startgg ? '<span class="dim">· from start.gg</span>' : ''}</td><td style="text-align:right;white-space:nowrap">${e.startgg ? '' : `<button class="small" data-caledit="${esc(e.id)}">Edit</button> `}<button class="small" data-caldel="${esc(e.id)}" data-name="${esc(e.name)}">Delete</button></td></tr>`).join('')
+    || '<tr><td class="dim">No upcoming events yet.</td></tr>';
+}
+function calForm(e) {
+  calEditing = e?.id ?? null;
+  $('calAddTitle').textContent = e ? `Edit ${e.name}` : '＋ Add an event';
+  $('calName').value = e?.name ?? ''; $('calAt').value = e ? toLocal(e.at) : ''; $('calGame').value = e ? e.game ?? '' : 'Tekken 8';
+  $('calPlace').value = e?.place ?? ''; $('calLink').value = e?.link ?? ''; $('calCancel').hidden = !e; $('calAdd').open = !!e;
+}
+$('calSave').onclick = async () => {
+  try {
+    await rpc('cof_admin_event_save', { p_token: token, p_id: calEditing, p_name: $('calName').value, p_at: fromLocal($('calAt').value), p_link: $('calLink').value, p_game: $('calGame').value, p_place: $('calPlace').value });
+    toast(calEditing ? 'Event saved' : 'Event added'); calForm(null); $('calAdd').open = false; drawCal();
+  } catch (err) { toast(/not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message); }
+};
+$('calCancel').onclick = () => { calForm(null); $('calAdd').open = false; };
+$('calRows').addEventListener('click', async e => {
+  const ed = e.target.closest('[data-caledit]'), del = e.target.closest('[data-caldel]');
+  if (ed) calForm(calList.find(x => x.id === ed.dataset.caledit));
+  if (del && confirm(`Delete “${del.dataset.name}” from the calendar?`)) {
+    try { await rpc('cof_admin_event_delete', { p_token: token, p_id: del.dataset.caldel }); toast('Deleted'); drawCal(); } catch (err) { toast(err.message); }
+  }
+});
+$('calSync').onclick = async () => {
+  try { const n = await sggCalendar(); toast(n === null ? 'Save the start.gg API key in the start.gg box first' : `${n} upcoming start.gg events`); drawCal(); }
+  catch (err) { toast(err.message); }
+};
+drawCal(); setInterval(drawCal, 60000);
+
+// Past tournaments card: list, and delete one
+async function drawPast() {
+  const list = await rpc('cof_archive_list').catch(() => []);
+  $('pastRows').innerHTML = list.map(t => `<tr><td><b>${esc(t.name)}</b> <span class="dim">${esc(t.game)} · ${t.players} players · ${esc(new Date(t.eventAt || t.at).toLocaleDateString())}</span></td>
+    <td>🏆 ${esc((t.champions || []).join(' & '))}</td><td style="text-align:right"><button class="small" data-delpast="${esc(t.key)}" data-name="${esc(t.name)}">Delete</button></td></tr>`).join('')
+    || '<tr><td class="dim">None yet. A tournament is saved here when its champion is decided.</td></tr>';
+}
+$('pastCard').addEventListener('toggle', () => $('pastCard').open && drawPast());
+$('pastRows').addEventListener('click', async e => {
+  const b = e.target.closest('[data-delpast]');
+  if (!b || !confirm(`Delete “${b.dataset.name}” from past tournaments? This can't be undone.`)) return;
+  try { await rpc('cof_admin_archive_delete', { p_token: token, p_key: b.dataset.delpast }); toast('Deleted'); drawPast(); } catch (err) { toast(err.message); }
+});
+async function draw() {
+  S = view(await adminGet());
+  document.body.classList.remove('locked');
+  sggDraw();
+}
+boot();
+</script>
+</body>
+</html>

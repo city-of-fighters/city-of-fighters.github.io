@@ -5,9 +5,12 @@
 // The start.gg API key lives in the database (admin-only); the link itself is kept in the tournament data as S.startgg:
 // { slug, eventId, title, auto, entrants: {playerId: entrantId}, sent: {matchId: setId} }.
 const SGG_API = 'https://api.start.gg/gql/alpha';
-let sggKey = null, sggUser = null, sggProblems = [], sggBusy = false;
+let sggKey = null, sggUser = null, sggProblems = [], sggBusy = false, sggLive = false;
+// Test mode: off unless the database says results may be sent, so any failure to read the setting stays safe.
+const sggIsLive = () => rpc('cof_admin_startgg_live', { p_token: token }).then(v => (sggLive = v === true), () => (sggLive = false));
 
 async function sgg(query, variables, key = sggKey) {
+  if (/^\s*mutation/.test(query) && !sggLive) throw new Error('Test mode is on: nothing was sent to start.gg');
   const r = await fetch(SGG_API, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify({ query, variables }) })
     .catch(() => { throw new Error('Could not reach start.gg'); });
   const d = await r.json().catch(() => ({}));
@@ -94,6 +97,7 @@ async function sggSync(manual = false) {
   const todo = S.matches.filter(m => m.winner && m.a && m.b && m.a !== 'BYE' && m.b !== 'BYE' && !sent[m.id]);
   const undone = Object.keys(sent).filter(id => !S.matches.find(m => m.id === id)?.winner);
   if (!todo.length && !undone.length) { sggProblems = []; return; }
+  if (!await sggIsLive()) { sggProblems = []; if (manual) toast('Test mode is on: nothing was sent to start.gg'); return; }
   sggBusy = true;
   const add = {}, remove = [], problems = [];
   try {
@@ -164,12 +168,16 @@ function sggCalendarEntries(tournaments, now) {
 }
 
 // Control panel card (admin.html)
-let sggKeyChecked = false;
+let sggKeyChecked = false, sggModeShown = false;
 function sggDraw() {
   const card = document.getElementById('sggCard');
   if (!card) return;
   if (!sggKeyChecked) { sggKeyChecked = true; sggGetKey().then(sggDraw, () => {}); } // is a key saved already?
   card.hidden = false;
+  if (!sggModeShown) { // once, and again after the switch changes: this page redraws every 1.5 s
+    sggModeShown = true;
+    sggIsLive().then(() => { $('sggTest').checked = !sggLive; $('sggMode').textContent = sggLive ? '🟢 Live: results are sent to start.gg.' : '🧪 Test mode: nothing is sent to start.gg.'; });
+  }
   const st = S.startgg, on = !!st?.eventId;
   $('sggForm').hidden = on; $('sggOn').hidden = !on;
   $('sggKeyIn').placeholder = sggKey ? `Saved ✓ (${sggUser ?? 'start.gg account'}). Paste a new one only to replace it` : 'Paste the token from Developer Settings';
@@ -192,6 +200,13 @@ if (document.getElementById('sggCard')) {
   };
   $('sggNow').onclick = () => sggSync(true);
   $('sggAuto').onchange = e => post('startgg', { set: { auto: e.target.checked } });
+  $('sggTest').onchange = async e => {
+    const test = e.target.checked;
+    if (!test && !confirm('Turn off test mode? From now on, results and sign-ups are sent to the real start.gg.')) return (e.target.checked = true);
+    try { await rpc('cof_admin_startgg_live_set', { p_token: token, p_on: !test }); toast(test ? 'Test mode on' : 'Live: results go to start.gg'); }
+    catch (err) { e.target.checked = true; toast(/not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message); }
+    sggModeShown = false; sggDraw();
+  };
 }
 
 // One computer tab does the work (the control panel and the Stream tab may both be open): results every 10 s,

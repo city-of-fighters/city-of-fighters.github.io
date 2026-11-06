@@ -70,6 +70,7 @@ alter table public.cof_archive enable row level security;
 revoke all on public.cof_archive from anon, authenticated;
 -- start.gg API key (control panel → start.gg card). Only admin functions can read it.
 create table if not exists public.cof_startgg (id int primary key check (id = 1), api_key text check (char_length(api_key) <= 200));
+alter table public.cof_startgg add column if not exists send_results boolean not null default false; -- off = test mode: nothing is written to start.gg
 alter table public.cof_startgg enable row level security;
 revoke all on public.cof_startgg from anon, authenticated;
 -- Latest picture of the OBS output, sent by the PC's Stream tab so the phone remote can watch it. One row.
@@ -346,7 +347,7 @@ declare a text := cof_account_of(p_session); e cof_events;
 begin
   select * into e from cof_events where id = p_event and sgg_id is not null and starts_at > now();
   if not found then raise exception 'This is not an upcoming City of Fighters event'; end if;
-  return jsonb_build_object('account', a, 'tournament', e.sgg_id, 'link', e.link, 'key', (select api_key from cof_startgg where id = 1));
+  return (select jsonb_build_object('account', a, 'tournament', e.sgg_id, 'link', e.link, 'key', case when send_results then api_key end) from (select 1) x left join cof_startgg on id = 1);
 end $$;
 create or replace function public.cof_participate_mark(p_account text, p_event uuid) returns void
 language sql security definer set search_path = public as $$
@@ -411,6 +412,17 @@ create or replace function public.cof_admin_startgg_get(p_token text) returns te
 language plpgsql security definer set search_path = public as $$
 begin perform cof_auth(p_token); return (select api_key from cof_startgg where id = 1); end $$;
 
+-- Test mode (Settings tab): results and sign-ups go to start.gg only when this is on. Reading start.gg is always allowed.
+create or replace function public.cof_admin_startgg_live(p_token text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); return coalesce((select send_results from cof_startgg where id = 1), false); end $$;
+create or replace function public.cof_admin_startgg_live_set(p_token text, p_on boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  insert into cof_startgg (id, send_results) values (1, p_on is true) on conflict (id) do update set send_results = excluded.send_results;
+end $$;
+
 -- Phone remote: the latest OBS picture and when it was taken.
 create or replace function public.cof_admin_preview_get(p_token text) returns jsonb
 language plpgsql security definer set search_path = public as $$
@@ -463,7 +475,7 @@ grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_admin_team(text, uuid, text),
-  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text),
+  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_admin_startgg_live(text), public.cof_admin_startgg_live_set(text, boolean),
   public.cof_me(text), public.cof_account_logout(text),
   public.cof_sponsors_list(), public.cof_sponsors_version(), public.cof_admin_sponsor_add(text, text, text, boolean), public.cof_admin_sponsor_delete(text, uuid),
   public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),

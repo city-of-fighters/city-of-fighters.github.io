@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       const { data: e, error } = await db.rpc('cof_participate_check', { p_session: session, p_event: event });
       if (error) return json({ error: error.message }, 400); // not logged in, or not a City of Fighters event
       const finish = { joined: false, url: `${e.link}/register` }; // start.gg's own page always works
-      if (!e.key) return json(finish);
+      if (!e.key) return json(finish); // no key, or test mode (Settings): nothing is written to start.gg by the app
       try {
         const [tournament, session] = String(e.tournament).split(':'); // calendar entries are "tournament:event"
         const eventId = session ?? pickEvent((await sgg(e.key, 'query($id: ID!) { tournament(id: $id) { events { id videogame { displayName } } } }', { id: tournament })).tournament?.events ?? []);
