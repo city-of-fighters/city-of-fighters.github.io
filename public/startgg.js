@@ -56,7 +56,9 @@ async function sggConnect(link, key) {
   const entrants = sggLinkByName(await sggEntrants(ev.id));
   post('startgg', { set: { slug, eventId: String(ev.id), title: `${ev.tournament.name} · ${ev.name}`, auto: true }, entrants });
 }
-const sggTag = e => (e.participants?.[0]?.gamerTag ?? e.name ?? '').trim().slice(0, 24);
+// A tag team has several participants: its name is the entrant's name, not one player's gamer tag.
+const sggSolo = e => (e.participants?.length ?? 0) <= 1;
+const sggTag = e => (sggSolo(e) ? e.participants?.[0]?.gamerTag ?? e.name ?? '' : e.name ?? '').trim().slice(0, 24);
 function sggLinkByName(list) { // {playerId: entrantId} for our players whose gamer tag matches
   const byTag = new Map(list.map(e => [sggTag(e).toLowerCase(), String(e.id)]));
   return Object.fromEntries(S.players.filter(p => byTag.has(p.name.toLowerCase())).map(p => [p.id, byTag.get(p.name.toLowerCase())]));
@@ -72,7 +74,7 @@ async function sggImport() {
     const tag = sggTag(e);
     let id = have.get(tag.toLowerCase());
     if (!id && !S.matches.length) {
-      try { id = await rpc('cof_admin_player_save', { p_token: token, p_id: null, p_name: tag, p_team: (e.participants?.[0]?.prefix ?? '').trim().slice(0, 24) || null, p_email: null }); }
+      try { id = await rpc('cof_admin_player_save', { p_token: token, p_id: null, p_name: tag, p_team: sggSolo(e) ? (e.participants?.[0]?.prefix ?? '').trim().slice(0, 24) || null : null, p_email: null }); }
       catch (err) { skipped.push(`${tag} (${err.message})`); }
     }
     if (id) entrants[id] = String(e.id); else if (S.matches.length) skipped.push(`${tag} (the bracket has started)`);
@@ -126,22 +128,39 @@ function sggGames(m, ent) {
   return games.length ? games : null; // a result without a game score: just the winner
 }
 
-// Events calendar: upcoming tournaments City of Fighters hosts on start.gg, never ones the account only plays in:
-// those the key's account created (start.gg's "tournaments by owner") plus those where it is an admin.
-const SGG_T = 'id name slug startAt city isOnline events { videogame { displayName } }';
+// Events calendar: every upcoming session of the tournaments City of Fighters hosts on start.gg, never ones the account
+// only plays in: those the key's account created (start.gg's "tournaments by owner") plus those where it is an admin.
+// A tournament can run for weeks with one event per session, so each event gets its own calendar entry and date.
+const SGG_T = 'id name slug startAt endAt city isOnline events { id name startAt videogame { displayName } }';
 async function sggCalendar() {
   if (!await sggGetKey()) return null;
   const me = (await sgg('query { currentUser { id } }')).currentUser;
   if (!me) throw new Error('start.gg did not accept the API key');
-  const owned = (await sgg(`query($id: ID!) { tournaments(query: { perPage: 100, filter: { ownerId: $id } }) { nodes { ${SGG_T} } } }`, { id: me.id })).tournaments?.nodes ?? [];
-  const admin = await sgg(`query { currentUser { tournaments(query: { perPage: 50, filter: { upcoming: true, tournamentView: "admin" } }) { nodes { ${SGG_T} } } } }`)
+  const owned = [];
+  for (let page = 1, total = 1; page <= total && page <= 12; page++) { // small pages: start.gg limits how much one request returns
+    const c = (await sgg(`query($id: ID!, $page: Int!) { tournaments(query: { page: $page, perPage: 25, filter: { ownerId: $id } }) { pageInfo { totalPages } nodes { ${SGG_T} } } }`, { id: me.id, page })).tournaments;
+    total = c?.pageInfo?.totalPages ?? 1;
+    owned.push(...(c?.nodes ?? []));
+  }
+  const admin = await sgg(`query { currentUser { tournaments(query: { perPage: 25, filter: { upcoming: true, tournamentView: "admin" } }) { nodes { ${SGG_T} } } } }`)
     .then(d => d.currentUser?.tournaments?.nodes ?? [], () => []); // if start.gg rejects this lookup, the created ones still show
-  const now = Date.now() / 1000, seen = new Set();
-  const list = [...owned, ...admin].filter(t => t.startAt > now - 86400 && t.slug && !seen.has(t.id) && seen.add(t.id))
-    .sort((x, y) => x.startAt - y.startAt).slice(0, 100).map(t => ({
-      id: String(t.id), name: String(t.name).slice(0, 80), at: t.startAt, link: 'https://www.start.gg/' + t.slug,
-      game: t.events?.[0]?.videogame?.displayName ?? null, place: t.isOnline ? 'Online' : t.city ?? null }));
+  const list = sggCalendarEntries([...owned, ...admin], Date.now() / 1000);
   return rpc('cof_admin_events_sync', { p_token: token, p_events: list });
+}
+function sggCalendarEntries(tournaments, now) {
+  const seen = new Set(), out = [];
+  for (const t of tournaments) {
+    if (!t.slug || seen.has(t.id)) continue;
+    seen.add(t.id);
+    const events = t.events?.length ? t.events : [{}]; // a tournament without events yet still gets one entry
+    for (const e of events) {
+      const at = e.startAt ?? t.startAt;
+      if (!(at > now - 86400)) continue; // today's sessions stay until tomorrow
+      out.push({ id: e.id ? `${t.id}:${e.id}` : String(t.id), name: `${t.name}${events.length > 1 && e.name ? ` · ${e.name}` : ''}`.slice(0, 80), at,
+        link: 'https://www.start.gg/' + t.slug, game: e.videogame?.displayName ?? null, place: t.isOnline ? 'Online' : t.city ?? null });
+    }
+  }
+  return out.sort((x, y) => x.at - y.at).slice(0, 100);
 }
 
 // Control panel card (admin.html)

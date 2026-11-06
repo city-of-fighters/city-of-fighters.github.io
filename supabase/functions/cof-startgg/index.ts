@@ -54,8 +54,9 @@ Deno.serve(async (req) => {
       const finish = { joined: false, url: `${e.link}/register` }; // start.gg's own page always works
       if (!e.key) return json(finish);
       try {
-        const t = (await sgg(e.key, 'query($id: ID!) { tournament(id: $id) { events { id videogame { displayName } } } }', { id: e.tournament })).tournament;
-        const registration = { eventIds: [pickEvent(t?.events ?? [])] };
+        const [tournament, session] = String(e.tournament).split(':'); // calendar entries are "tournament:event"
+        const eventId = session ?? pickEvent((await sgg(e.key, 'query($id: ID!) { tournament(id: $id) { events { id videogame { displayName } } } }', { id: tournament })).tournament?.events ?? []);
+        const registration = { eventIds: [eventId] };
         const { generateRegistrationToken: registrationToken } = await sgg(e.key,
           'mutation($r: TournamentRegistrationInput!, $u: ID!) { generateRegistrationToken(registration: $r, userId: $u) }', { r: registration, u: e.account });
         await sgg(e.key, 'mutation($r: TournamentRegistrationInput, $t: String) { registerForTournament(registration: $r, registrationToken: $t) { id } }', { r: registration, t: registrationToken });
