@@ -255,18 +255,32 @@ function podiumHTML(s) {
     <div class="stands">${stand(2, at(2))}${stand(1, at(1))}${stand(3, at(3))}</div><div class="confetti">${confetti}</div>`;
 }
 
-// --- Sponsors: one at a time; each fades in, stays 4 s, fades out, then the next fades in ---
+// --- Sponsors: one at a time; each fades in, stays 4 s, fades out, then the next fades in.
+// The list comes from the database (Sponsors tab); these six stay until it answers, so the stream always has logos.
 const SPONSORS = [['rupture', 'Rupture'], ['gamebreaker', 'Gamebreaker'], ['immerse', 'Immerse VR Gaming Arena'],
-  ['level-academy', 'Level Academy', 'tall'], ['malta-esports-association', 'Malta Esports Association', 'tall'], ['new-madras', 'New Madras', 'tall']];
+  ['level-academy', 'Level Academy', 1], ['malta-esports-association', 'Malta Esports Association', 1], ['new-madras', 'New Madras', 1]]
+  .map(([f, name, tall]) => ({ logo: `hud/sponsors/${f}.png`, name, tall }));
 const sponsorBox = document.getElementById('sponsors');
-sponsorBox.innerHTML = SPONSORS.map(([f, n, c]) => `<img src="hud/sponsors/${f}.png" alt="${n}"${c ? ` class="${c}"` : ''}>`).join('');
+const drawSponsors = list => (sponsorBox.innerHTML = list.map(p => `<img src="${esc(p.logo)}" alt="${esc(p.name)}"${p.tall ? ' class="tall"' : ''}>`).join(''));
 function nextSponsor(i) {
-  const img = sponsorBox.children[i % SPONSORS.length];
+  const img = sponsorBox.children[i % (sponsorBox.children.length || 1)];
+  if (!img) return setTimeout(() => nextSponsor(0), 2000); // no sponsors right now
   img.classList.add('on');
   setTimeout(() => img.classList.remove('on'), 800 + 4000); // fade in, then 4 s fully visible
   setTimeout(() => nextSponsor(i + 1), 800 + 4000 + 800); // next one starts once this one has faded out
 }
+drawSponsors(SPONSORS);
 setTimeout(() => nextSponsor(0), 100); // after the first paint, so the first logo fades in too
+let sponsorVersion = null;
+async function checkSponsors() {
+  try {
+    const v = await rpc('cof_sponsors_version');
+    if (v === sponsorVersion) return;
+    drawSponsors(await rpc('cof_sponsors_list'));
+    sponsorVersion = v;
+  } catch {} // database file not updated yet: keep showing what's there
+}
+checkSponsors(); setInterval(checkSponsors, 10000);
 
 // --- Scoreboard: live match, then winner for 6 s, then "waiting" until a new match goes on stream ---
 const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
