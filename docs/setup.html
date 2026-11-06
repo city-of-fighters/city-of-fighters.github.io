@@ -34,14 +34,14 @@
   <li>Log in to <a href="https://www.start.gg">start.gg</a> with the master account.</li>
   <li>Profile picture → <b>Developer Settings</b> → <b>Personal Access Tokens</b> → <b>Create new token</b>. Name it “City of Fighters” and save.</li>
   <li>Copy it straight away: start.gg shows it only once. It lasts one year; put a reminder in your calendar to make a new one.</li>
-  <li>Open the <a href="https://city-of-fighters.github.io/admin.html">Control panel</a>, go to the <b>start.gg</b> box, paste it under <b>API key</b>, leave the link empty and press <b>Connect</b>.</li>
+  <li>Open the <a href="https://cityoffighters.com/admin.html">Control panel</a>, go to the <b>start.gg</b> box, paste it under <b>API key</b>, leave the link empty and press <b>Connect</b>.</li>
 </ol>
-<p><b>Check:</b> the box says “API key saved”, and your upcoming City of Fighters events appear in the <a href="https://city-of-fighters.github.io/events.html">Events tab</a>. If they don’t, press <b>↻ Get events from start.gg now</b>.</p>
+<p><b>Check:</b> the box says “API key saved”, and your upcoming City of Fighters events appear in the <a href="https://cityoffighters.com/events.html">Events tab</a>. If they don’t, press <b>↻ Get events from start.gg now</b>.</p>
 
 <h2>Part 2: Log in with start.gg (players)</h2>
 <ol>
   <li>On start.gg, open the <a href="https://developer.start.gg/docs/oauth/oauth-overview">developer portal</a> in Developer Settings and create an <b>OAuth application</b>.</li>
-  <li>Set the redirect URL to exactly: <span class="url">https://city-of-fighters.github.io/events.html</span></li>
+  <li>Set the redirect URL to exactly: <span class="url">https://cityoffighters.com/events.html</span></li>
   <li>Copy the <b>Client ID</b> and <b>Client Secret</b>.</li>
   <li>Open <a href="https://supabase.com/dashboard/project/glqxyghdcindimggnwml/functions/secrets">Supabase Edge Function Secrets</a> and add <code>SGG_CLIENT_ID</code> and <code>SGG_CLIENT_SECRET</code> with those values.</li>
   <li>Open <a href="https://supabase.com/dashboard/project/glqxyghdcindimggnwml/functions">Supabase Edge Functions</a> → <b>Deploy a new function</b> → <b>Via editor</b>. Name it exactly <code>cof-startgg</code>.</li>
@@ -55,7 +55,7 @@
 <ol>
   <li>On start.gg, create the tournament with one Tekken event and a bracket of the same type as here.</li>
   <li>Copy the event’s link (it contains <code>/tournament/…/event/…</code>).</li>
-  <li>In the <a href="https://city-of-fighters.github.io/admin.html">Control panel</a>, create the tournament. In the <b>start.gg</b> box paste the link, leave the key empty, and press <b>Connect</b>.</li>
+  <li>In the <a href="https://cityoffighters.com/admin.html">Control panel</a>, create the tournament. In the <b>start.gg</b> box paste the link, leave the key empty, and press <b>Connect</b>.</li>
   <li>Keep the Control panel or Stream tab open on a computer: new sign-ups appear within 3 minutes, in start.gg’s seeding.</li>
   <li>When sign-up closes, press <b>Start tournament</b> here <b>and</b> <b>Start</b> on the bracket in start.gg.</li>
 </ol>

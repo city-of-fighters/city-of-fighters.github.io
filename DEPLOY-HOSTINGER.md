@@ -1,7 +1,9 @@
 # Move City of Fighters to Hostinger
 
 Instructions for the Claude (and the person) doing this move. Follow them in order.
-Written 6 November 2026. The site currently runs on GitHub Pages at https://city-of-fighters.github.io/ and must keep working until Hostinger is proven.
+Written 6 November 2026. The site runs on GitHub Pages at https://cityoffighters.com and must keep working until Hostinger is proven.
+
+**The address doesn't change in this move.** The code, PC app, OBS link and start.gg redirect URL already use `cityoffighters.com`. Only the Hostinger files and the domain's DNS records change.
 
 ## Rules
 
@@ -32,9 +34,9 @@ Checked against the live system:
 - [x] Winner email function deployed and reachable
 - [ ] Gmail secrets: not confirmed
 - [ ] Latest `supabase/city-of-fighters.sql` run: **not yet** (`cof_sponsors_version` is missing). The Sponsors tab needs it.
-- [ ] `cof-startgg` function: **not deployed** (wait for the final address, step 4)
-- [ ] start.gg token: the hub owner hasn't supplied it yet
-- [ ] Domain: `cityoffighters.com` **not registered yet**
+- [ ] `cof-startgg` function: **not deployed**; its code already uses the final address
+- [x] start.gg token: saved in the Control panel
+- [x] Domain: `cityoffighters.com` registered at Porkbun, pointing at GitHub Pages with HTTPS on
 - [ ] Nothing has been tested against the real start.gg
 
 Re-check these rather than trusting this list.
@@ -44,14 +46,14 @@ Re-check these rather than trusting this list.
 Only a person can do these. Ask for them when you reach that step:
 
 - Give the Hostinger account access to the GitHub repo (the GitHub popup in step 2).
-- Buy or connect the domain.
+- Change the DNS records at Porkbun.
 - Run SQL in Supabase and paste secrets into Supabase.
 - Create the start.gg token and OAuth app.
 
 ## Step 1: Hostinger plan and domain
 
 1. Confirm the plan supports Git deployment: web or cloud hosting with a custom PHP/HTML website. It isn't available on agency hosting.
-2. Add the website in hPanel. Buy `cityoffighters.com` at Hostinger, or use one bought elsewhere and point its DNS at Hostinger. Before buying, confirm with the owner: the name may have been bought in the meantime.
+2. Add the website in hPanel as `cityoffighters.com`, as an existing domain. **Don't buy the domain again.** It stays registered at Porkbun, and DNS stays pointing at GitHub until step 7.
 
 ## Step 2: Connect GitHub
 
@@ -67,25 +69,17 @@ Menu names can change; check https://docs.hostinger.com/websites/git if they dif
 
 ## Step 3: Test before anything else changes
 
-1. In hPanel turn on the SSL certificate and **Force HTTPS**.
-2. Open the temporary or final Hostinger address. These must load: `/`, `/app.html`, `/events.html`, `/admin.html`, `/players.html`, `/sponsors.html`, `/studio.html`, `/phone.html`, `/overlay.html`.
+1. Open Hostinger's temporary preview address for the site.
+2. These must load: `/`, `/app.html`, `/events.html`, `/admin.html`, `/players.html`, `/sponsors.html`, `/studio.html`, `/phone.html`, `/overlay.html`.
 3. Check that `/hud/hud-bar.webm` and `/manifest.webmanifest` load, and that `/supabase/` and `/desktop/` return 404.
 4. If `.htaccess` causes a 500 error, remove the failing line and report it. It hasn't been tested on Hostinger.
 
-## Step 4: Change the address in the code
+## Step 4: Switch the domain (ask the owner first; not during a tournament or stream)
 
-Only after the domain works over HTTPS. Replace `https://city-of-fighters.github.io` with the final address in the files below. Don't touch `github.com/city-of-fighters/...` links.
-
-- `desktop/main.cjs` (`SITE`, keep the trailing slash)
-- `supabase/functions/cof-startgg/index.ts` (comment and `SITE`, no trailing slash)
-- `README.md`, `docs/guide.html`, `docs/setup.html`
-
-Then:
-
-1. Check with `git grep "city-of-fighters.github.io"`. Only `github.com` repo links should remain.
-2. Bump `version` in `desktop/package.json`, run `node test.js`, commit, push.
-3. Tag the same version (for example `v1.3.3`) and push the tag. GitHub builds the Windows and Linux apps and smoke-tests them.
-4. Ask a person to deploy `cof-startgg` with the new code. See step 5.
+1. Get the A record address (or addresses) for this website from hPanel. Look it up there; don't guess it.
+2. The owner opens Porkbun DNS for `cityoffighters.com` and replaces the four GitHub A records (`185.199.108.153` to `.111.153`) with Hostinger's. If hPanel gives a value for `www`, replace that CNAME too. Don't change the nameservers.
+3. When DNS shows the new address, turn on the SSL certificate and **Force HTTPS** in hPanel. The site can show a certificate warning until then.
+4. Confirm https://cityoffighters.com and https://www.cityoffighters.com load from Hostinger.
 
 ## Step 5: Server setup in Supabase (a person does this)
 
@@ -110,12 +104,13 @@ Steps with direct links are in `docs/setup.html`.
 - [ ] Winner banner email arrives
 - [ ] PC app 1.3.3 connects to OBS by itself
 
-## Step 7: Switch off the old site (ask the owner first)
+## Step 7: Switch off GitHub Pages (ask the owner first)
 
-Only when step 6 passes and no event is running:
+Only when step 6 passes:
 
-1. Disable the `Deploy website` workflow (`.github/workflows/pages.yml`).
-2. In the repo's Pages settings, unpublish GitHub Pages. Tell the owner first: old links, installed phone apps and old PC apps stop working.
+1. Remove the custom domain from the repo's Pages settings. Do this after DNS has moved, otherwise the live site breaks.
+2. Disable the `Deploy website` workflow (`.github/workflows/pages.yml`).
+3. The old `city-of-fighters.github.io` links stop working once Pages is off. Installed PC apps from 1.3.3 and phone apps use the new address, so they keep working. Older PC apps need updating.
 
 ## Step 8: Making the repo private (ask the owner first)
 
@@ -127,16 +122,10 @@ Website files are always readable by visitors; this only hides the repo. Before 
 
 ## If something goes wrong
 
-- The GitHub Pages site stays up until step 7, so the fix is to go back to it: set the OBS source and PC app back to the old address.
+- **Fastest fix:** the owner puts the four GitHub A records back in Porkbun. The site returns to GitHub Pages as long as step 7 hasn't been done.
 - Hostinger: **Git** → **Redeploy**.
-- Login or Participate failing: check the `cof-startgg` logs in Supabase, the `SITE` value and the OAuth redirect URL. They must all match the final address exactly.
-- If the old address must stay reachable, keep GitHub Pages published.
+- Login or Participate failing: check the `cof-startgg` logs in Supabase and the OAuth redirect URL, `https://cityoffighters.com/events.html`.
 
-## The streaming PC after the switch
+## The streaming PC
 
-Tell the owner to:
-
-1. Change the OBS Browser Source URL to `<final address>/overlay.html`.
-2. Install the new PC app.
-3. Open the Stream tab and press **Set up Coming Up scene in OBS** so the frame uses the new address.
-4. Log in again on each device. Phone users reinstall the app.
+Nothing changes for this move: the OBS link, PC app and phone app already use `cityoffighters.com`.
