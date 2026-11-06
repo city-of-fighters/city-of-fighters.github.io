@@ -1,0 +1,30 @@
+name: Prepare Hostinger branch
+
+# Hostinger's Git deploy has no build step and publishes the whole branch, so the "hostinger" branch holds only the
+# contents of public/. The database and desktop code stay off the web server. Point Hostinger at this branch.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hostinger
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node test.js
+      - run: |
+          git subtree split --prefix=public -b site
+          git push -f origin site:hostinger
