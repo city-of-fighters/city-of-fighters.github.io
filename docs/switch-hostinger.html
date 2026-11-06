@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>City of Fighters: switch to Hostinger</title>
+<!-- Source of City-of-Fighters-Switch-to-Hostinger.pdf -->
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<div class="kicker">What you do when moving · 6 November 2026</div>
+<h1>Switch to <span>Hostinger</span></h1>
+<p>What the owner of <b>cityoffighters.com</b> needs to do when the site moves from GitHub to Hostinger. Your partner’s Claude does the technical side from <code>DEPLOY-HOSTINGER.md</code> in the GitHub repo.</p>
+<p class="note">the address stays <b>cityoffighters.com</b>, so OBS, the PC app, the phone app and player logins don’t change. Your players, results and photos stay in Supabase and aren’t moved.</p>
+
+<h2>Before you start</h2>
+<table class="check">
+  <tr><td>☐</td><td>Your partner has a Hostinger plan that supports Git deployment (web or cloud hosting, not agency hosting)</td></tr>
+  <tr><td>☐</td><td>Your partner has access to the GitHub repo</td></tr>
+  <tr><td>☐</td><td>You can log in to <a href="https://porkbun.com/account/domains">Porkbun</a></td></tr>
+  <tr><td>☐</td><td>No tournament or stream is running or coming up that day</td></tr>
+</table>
+<p class="warn">don’t buy the domain again on Hostinger, and don’t change the Porkbun nameservers. You only change the records in Step 2.</p>
+
+<h2>Step 1: your partner prepares Hostinger</h2>
+<p>He tells his Claude:</p>
+<p><code>Clone city-of-fighters/city-of-fighters.github.io, read DEPLOY-HOSTINGER.md, and follow it step by step. Ask me before anything it says to ask about.</code></p>
+<p>Wait until he confirms that the site works on Hostinger’s temporary address. <b>Your live site isn’t touched in this step.</b></p>
+
+<h2>Step 2: you change the DNS records</h2>
+<ol>
+  <li>Ask your partner for the <b>A record address</b> from Hostinger’s control panel (hPanel). It’s a number like <code>123.45.67.89</code>. Use the one he gives you, not one from a search.</li>
+  <li>Log in to <a href="https://porkbun.com/account/domains">Porkbun Domain Management</a>. Open <b>DNS</b> for <code>cityoffighters.com</code>.</li>
+  <li><b>Write down or screenshot the current records.</b> You’ll need them to undo this.</li>
+  <li>Delete these four A records:
+    <ul><li><code>185.199.108.153</code></li><li><code>185.199.109.153</code></li><li><code>185.199.110.153</code></li><li><code>185.199.111.153</code></li></ul></li>
+  <li>Add one new record: Type <code>A</code>, Host empty, Target the Hostinger address, TTL <code>600</code>. Click <b>Add</b>.</li>
+  <li>Only if your partner gives you a different value for <code>www</code>, change the <code>www</code> CNAME to it. Otherwise leave it.</li>
+</ol>
+
+<h2>Step 3: your partner finishes</h2>
+<ol>
+  <li>When the new records are visible, usually within minutes but sometimes up to 24 hours, he turns on SSL and <b>Force HTTPS</b> in hPanel.</li>
+  <li>The site can show a security warning until the certificate is ready. That’s normal for a short time.</li>
+</ol>
+
+<h2>Step 4: check it together</h2>
+<table class="check">
+  <tr><td>☐</td><td><a href="https://cityoffighters.com">cityoffighters.com</a> and www.cityoffighters.com open with a padlock</td></tr>
+  <tr><td>☐</td><td>The Leaderboard shows your data</td></tr>
+  <tr><td>☐</td><td>The Control panel logs in; Players, Sponsors and Stream open</td></tr>
+  <tr><td>☐</td><td>OBS shows the overlay, and a new sponsor appears within 10 seconds</td></tr>
+  <tr><td>☐</td><td>The phone app opens and the Events tab shows your events</td></tr>
+  <tr><td>☐</td><td>The test winner email arrives</td></tr>
+</table>
+
+<h2>If something goes wrong</h2>
+<p>In Porkbun, delete the Hostinger A record and add the four GitHub A records from Step 2 back. The site returns to GitHub. This only works while GitHub Pages is still on, so <b>don’t switch GitHub off until every check passes.</b></p>
+
+<h2>Step 5: after it’s been working for a few days</h2>
+<ol>
+  <li>Your partner’s Claude removes the domain from GitHub Pages and turns Pages off (it asks first).</li>
+  <li><b>Keep the GitHub repo.</b> It holds the code, and the job that stops Supabase from pausing. If you delete it, the database can pause and take the whole app down.</li>
+  <li>Keep it public until the PC app downloads have been moved, or the download links stop working.</li>
+</ol>
+
+<h2>What stays where</h2>
+<table>
+  <tr><td>Domain</td><td>Porkbun. Keep auto-renew on. It renews on 6 November each year.</td></tr>
+  <tr><td>Website files</td><td>Hostinger, updated automatically from GitHub.</td></tr>
+  <tr><td>Code and backups of it</td><td>GitHub, and the CityOF APP files folder.</td></tr>
+  <tr><td>Database and server functions</td><td>Supabase. Nothing changes.</td></tr>
+  <tr><td>Email</td><td>Your Gmail. Nothing changes.</td></tr>
+  <tr><td>Calendar and results</td><td>start.gg. Nothing changes.</td></tr>
+</table>
+<footer>City of Fighters · Never send passwords, tokens or app passwords in a chat. Paste them only where a step says.</footer>
+</body>
+</html>
