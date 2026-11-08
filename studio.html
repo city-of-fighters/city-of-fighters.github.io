@@ -186,10 +186,15 @@ $('obsForm').onsubmit = async e => {
 };
 // Live picture for the phone remote: a small JPEG of what OBS is showing, once a second while a phone is watching.
 // Go live / End stream: OBS's own start and stop, with the Twitch account set up in OBS.
+// Also carries out the same buttons pressed on the Control panel or the phone.
+let streamErr = null;
 async function drawLive() {
   const on = (await obs.call('GetStreamStatus')).outputActive;
   $('goLive').hidden = on; $('endLive').hidden = !on;
   $('liveState').textContent = on ? 'OBS is live on your stream.' : 'OBS is not streaming.';
+  const cmd = await rpc('cof_admin_stream_sync', { p_token: token, p_live: on, p_err: streamErr }).catch(() => null);
+  streamErr = null;
+  if (cmd === (on ? 'stop' : 'start')) obs.call(on ? 'StopStream' : 'StartStream').catch(e => { streamErr = e.message; });
 }
 $('goLive').onclick = () => confirm('Start the stream now? Viewers will see it.') && obs.call('StartStream').catch(e => obsStatus(e.message));
 $('endLive').onclick = () => confirm('End the stream now?') && obs.call('StopStream').catch(e => obsStatus(e.message));
