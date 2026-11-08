@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Titles</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<style> main { max-width: 760px; } </style>
+</head>
+<body class="app">
+<main>
+  <h1 style="text-align:center;font-size:26px">🏅 Player <span>titles</span></h1>
+  <p class="dim" id="intro" style="text-align:center">Terms from our scene and stories from the last 2 years.</p>
+  <div class="card" id="mine" hidden><div id="picker"></div><p class="err" id="err" role="alert"></p><button class="primary" type="button" id="save">Save my 5 titles</button></div>
+  <div class="card" id="all"><div class="tp-all" id="list"></div></div>
+  <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
+</main>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="account.js"></script><script src="titles.js"></script>
+<script>
+// Everyone can read the titles. A logged-in player picks their 5 here; the database refuses titles only organizers give.
+const $ = id => document.getElementById(id);
+$('list').innerHTML = COF_TITLES.map(t => `<div class="tp-t" style="border:1px solid var(--line)"><img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}${t.locked ? ' <i>Given by organizers.</i>' : ''}</span></div>`).join('');
+(async () => {
+  const me = await acctConfig() && await acctMe();
+  if (!me) return;
+  const c = await rpc('cof_card', { p_tag: me.name }).catch(() => null), chosen = [...(c?.titles ?? [])], held = [...chosen];
+  $('intro').textContent = `Hi ${me.name}. Choose up to 5 titles to show on your player card.`;
+  $('mine').hidden = false; $('all').hidden = true;
+  titlePicker($('picker'), chosen, { canUse: t => !t.locked || held.includes(t.id) });
+  $('save').onclick = async () => {
+    $('err').textContent = '';
+    try { await rpc('cof_card_save_mine', { p_session: acctSession(), p_titles: chosen }); $('err').textContent = ''; $('save').textContent = '✓ Saved'; setTimeout(() => ($('save').textContent = 'Save my 5 titles'), 2000); }
+    catch (err) { $('err').textContent = err.message; }
+  };
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

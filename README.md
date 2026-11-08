@@ -68,6 +68,10 @@ a player without their approval: see the next section for what the app tries.
 `sponsors.html` (Sponsors tab) adds and deletes the logos in `cof_sponsors`. The overlay checks `cof_sponsors_version` every 10 s and reloads
 the logos when it changes; until the database answers it shows the original six.
 
+## Player cards and titles
+
+`public/titles.js` lists the titles (`hud/titles/<id>.webp`). `cof_cards` stores 5 titles and a portrait per gamer tag, so they survive a new tournament. Organizers edit them in the Players tab; logged-in players use `titles.html`. Ten earned titles are organizer-only: the list is in `cof_card_save_mine` and marked `locked` in `titles.js`, so change both together. The **Player cards** stream screen shows the next match.
+
 ## Android app
 
 `android/` is a Trusted Web Activity of `/app.html`, so it always shows the live site. The **Build Android app** workflow builds and signs it, checking the key against `public/.well-known/assetlinks.json`. The APK lives at `public/downloads/City-of-Fighters.apk`. The signing key is in the repo's secrets and with the owner, never in Git.

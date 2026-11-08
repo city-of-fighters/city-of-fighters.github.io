@@ -37,7 +37,8 @@ async function accountCard() {
   if (!cfg) return false;
   const me = await acctMe();
   $('reg').innerHTML = me ? `<div class="big">You're logged in</div><p>as <b>${esc(me.name)}</b>. Pick an event and press Participate.</p>
-      <a class="btnlink go" href="events.html">Open the calendar</a>`
+      <a class="btnlink go" href="events.html">Open the calendar</a>
+      <a class="btnlink go" href="titles.html" style="background:none;border:1px solid var(--pink)">Choose your 5 titles</a>`
     : `<div class="big">Register with start.gg</div><p>Log in once with your start.gg account and stay logged in. Then join any City of Fighters event from the calendar.</p>
       <button type="button" class="btnlink go" id="in">Log in with start.gg</button>`;
   return true;
