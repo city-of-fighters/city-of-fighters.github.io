@@ -1,7 +1,7 @@
 # Move City of Fighters to Hostinger
 
 Instructions for the Claude (and the person) doing this move. Follow them in order.
-Written 6 November 2026. The site runs on GitHub Pages at https://cityoffighters.com and must keep working until Hostinger is proven.
+Written 6 November 2026, updated 8 November. The site runs on GitHub Pages at https://cityoffighters.com and must keep working until Hostinger is proven.
 
 **Plan:** the website moves to Hostinger, and the City of Fighters database moves to a **new Supabase project in a new account**. Iron Fist Academy shares the old project and stays there.
 
@@ -35,10 +35,10 @@ Checked against the live system:
 
 - [x] Winner email deployed on the old project, Gmail secrets set and tested there
 - [x] Latest `supabase/city-of-fighters.sql` run on the old project; the new project still needs it
-- [ ] `cof-startgg` function: **not deployed**; its code already uses the final address
+- [x] `cof-startgg` function deployed on the old project; Log in with start.gg worked for real
 - [x] start.gg token: saved (Settings tab). Test mode is on, so nothing is sent to start.gg
 - [x] Domain: `cityoffighters.com` registered at Porkbun, pointing at GitHub Pages with HTTPS on
-- [ ] Nothing has been tested against the real start.gg
+- [ ] Results, stream marks and the two-way link have not been tested against a real start.gg event
 
 Re-check these rather than trusting this list.
 
@@ -63,11 +63,13 @@ Hostinger gets its files from `main`, so point the code at the new database befo
    - `public/api.js` lines 3 and 4
    - `public/banner.js` line 3
    - `public/account.js` line 3
+   - `docs/setup.html`: its direct links to the Supabase dashboard
    - `.github/workflows/keep-awake.yml`: **add** a ping for the new project. Keep the old ping unless the owner confirms Iron Fist Academy pings it elsewhere, or that project can pause.
 4. A person adds the Edge Function secrets to the new project and deploys `cof-winner-email` and `cof-startgg` with **Verify JWT with legacy secret** off.
 5. A person pastes the start.gg token in Settings on the new setup. Test mode starts on.
-6. Data: the SQL file builds an empty database with the 6 original sponsors. The calendar refills from start.gg. Players, photos, added sponsors and past tournaments don't come across. Ask the owner whether to start clean. If not, a person exports the `cof_` tables from the old project first.
+6. Data: the SQL file builds an empty database with the 6 original sponsors. The calendar refills from start.gg. Players, photos, added sponsors, past tournaments, chosen titles and uploaded card pictures don't come across. The 6 original portraits come back without titles, and everyone logs in with start.gg again. Ask the owner whether to start clean. If not, a person exports the `cof_` tables from the old project first.
 
+## Step 1: Add the website to Hostinger
 
 1. Confirm the plan supports Git deployment: web or cloud hosting with a custom PHP/HTML website. It isn't available on agency hosting.
 2. Add the website in hPanel as `cityoffighters.com`, as an existing domain. **Don't buy the domain again.** It stays registered at Porkbun, and DNS stays pointing at GitHub until step 7.
@@ -119,7 +121,11 @@ Steps with direct links are in `docs/setup.html`.
 - [ ] Phone Admin shows the live OBS picture
 - [ ] A test result reaches start.gg; undo resets it
 - [ ] Winner banner email arrives
-- [ ] PC app 1.3.3 connects to OBS by itself
+- [ ] PC app 1.3.4 connects to OBS by itself
+- [ ] Go live and End stream work from the Stream tab, Control panel and phone (use a private stream)
+- [ ] Player cards show at the first black screen after Put on stream
+- [ ] A picture upload saves both the Player card and the scoreboard square
+- [ ] With test mode off: Put on stream marks the match on start.gg, a match marked there goes on stream here, and a result entered there shows the winner screen
 
 ## Step 7: Switch off GitHub Pages (ask the owner first)
 
@@ -135,7 +141,7 @@ Only when step 6 passes:
 
 Website files are always readable by visitors; this only hides the repo. Before making it private:
 
-1. **Move the PC installers.** Control panel download links (`public/admin.html`, lines 28 to 30) point at this repo's GitHub Releases, which stop working for the public. Publish them from a small public repo (for example `city-of-fighters/downloads`) and update the links. Don't put them in `public/` or on Hostinger's deploy folder.
+1. **Move the PC installers.** Control panel download links (`public/settings.html`, lines 94 to 96) point at this repo's GitHub Releases, which stop working for the public. Publish them from a small public repo (for example `city-of-fighters/downloads`) and update the links. Don't put them in `public/` or on Hostinger's deploy folder.
 2. **Check the keep-awake job still runs.** GitHub can disable scheduled jobs after long inactivity. A paused Supabase project takes the whole app down; see the warning emails sent to the Supabase account.
 3. Confirm the Hostinger GitHub app can still read the repo, and press **Redeploy** once to prove it.
 
@@ -157,4 +163,7 @@ After a few days of everything working, a person removes City of Fighters data f
 
 ## The streaming PC
 
-Nothing changes for this move: the OBS link, PC app and phone app already use `cityoffighters.com`.
+The PC app and phone app already use `cityoffighters.com`, so they don't change for this move.
+
+- The OBS browser source must use `https://cityoffighters.com/overlay.html?cams=1`. An older source on `city-of-fighters.github.io` stops working in step 7.
+- Keep the Stream tab open and connected to OBS during a tournament, with the **Game screen** chosen. Black-screen cards, Go live and End stream need it.

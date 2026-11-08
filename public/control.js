@@ -72,7 +72,7 @@ const actions = {
   },
   resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard', status: 'setup' }); },
   report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
-  reopen: (d, b) => B.reopen(d.matches, b.id),
+  reopen: (d, b) => played(d, () => B.reopen(d.matches, b.id)),
   score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1)),
   stream: (d, b) => { d.streamMatch = b.id || null; if (b.id) d.screen = 'scoreboard'; markStreamed(d, b.id); },
   streamSgg: (d, b) => { // marked for the stream on start.gg
@@ -127,7 +127,7 @@ function played(d, fn) {
   const was = B.finished(d.matches);
   fn();
   if (!was && B.finished(d.matches)) Object.assign(d, { screen: 'podium', status: 'finished' });
-  if (was && !B.finished(d.matches)) d.status = 'running';
+  if (was && !B.finished(d.matches)) { d.status = 'running'; if (d.screen === 'podium') d.screen = 'scoreboard'; } // the podium has nothing to show any more
 }
 
 // Undo steps back through this device's own last 20 actions (kept in memory, so the overlays
