@@ -89,6 +89,26 @@ async function sggImport() {
   return { added: Object.keys(entrants).length, skipped };
 }
 
+const sggSetOf = (sets, ea, eb) => sets.find(x => { const ids = x.slots.map(s => String(s.entrant?.id)); return ids.includes(ea) && ids.includes(eb); });
+
+// Put on stream here also puts the set on the stream on start.gg.
+// shortcut: one try per match and the tournament's first stream, retry or a stream choice only if organizers need them.
+let sggStreamed = null;
+async function sggAssignStream() {
+  const st = S?.startgg, m = S?.matches.find(x => x.id === S.streamMatch);
+  if (sggBusy || !st?.eventId || !st.auto || !m || m.winner || sggStreamed === m.id || !await sggIsLive()) return;
+  sggStreamed = m.id;
+  try {
+    await sggGetKey();
+    const ea = st.entrants?.[m.a], eb = st.entrants?.[m.b];
+    const set = ea && eb && sggSetOf(await sggSets(st.eventId), ea, eb);
+    if (!set || String(set.id).startsWith('preview')) throw new Error('this match isn’t in the started bracket there');
+    const stream = (await sgg('query($id: ID!) { event(id: $id) { tournament { streams { id } } } }', { id: st.eventId })).event?.tournament?.streams?.[0];
+    if (!stream) throw new Error('add your Twitch channel to the tournament there first');
+    await sgg('mutation($set: ID!, $stream: ID!) { assignStream(setId: $set, streamId: $stream) { id } }', { set: String(set.id), stream: String(stream.id) });
+  } catch (e) { toast(`Not put on stream on start.gg: ${e.message}`); }
+}
+
 // Sends every decided result that start.gg doesn't have yet, and resets sets whose result was undone here.
 async function sggSync(manual = false) {
   const st = S?.startgg;
@@ -107,7 +127,7 @@ async function sggSync(manual = false) {
     for (const m of todo) {
       const ea = ent[m.a], eb = ent[m.b], who = `${m.aName} vs ${m.bName}`;
       if (!ea || !eb) { problems.push(`${who}: link both players first (Get players from start.gg)`); continue; }
-      const set = sets.find(x => { const ids = x.slots.map(s => String(s.entrant?.id)); return ids.includes(ea) && ids.includes(eb); });
+      const set = sggSetOf(sets, ea, eb);
       if (!set) { problems.push(`${who}: start.gg has no set between these two (its bracket differs), report it there by hand`); continue; }
       if (String(set.id).startsWith('preview')) { problems.push(`${who}: press Start on the bracket in start.gg first`); continue; }
       if (set.state !== 3) await sgg(`mutation($set: ID!, $w: ID!, $games: [BracketSetGameDataInput]) { reportBracketSet(setId: $set, winnerId: $w, gameData: $games) { id } }`,
@@ -257,6 +277,7 @@ async function sggTick() {
   const t = sggTicks++;
   if (!S || !token) return;
   await sggSync();
+  await sggAssignStream();
   if (t % 18 === 0 && S.startgg?.eventId && !S.matches.length && S.status !== 'none' && !sggStarting) await sggImport().catch(e => (sggProblems = [`Getting players: ${e.message}`]));
   if (t % 180 === 1) await sggCalendar().catch(() => {});
 }

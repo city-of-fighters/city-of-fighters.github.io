@@ -198,4 +198,11 @@ async function sha256b64(text) {
   return btoa(s);
 }
 
-if (typeof module === 'object') module.exports = { OBSRemote, COMING_UP_WINDOWS, OBS_COMING_UP, OBS_SPLIT_CAM, HUD_CAMS };
+// How much of a picture (RGBA pixels) is dark, 0 to 1. "Dark" rather than exactly 0, because a capture card's black never is.
+function pictureDarkShare(px) {
+  let dark = 0;
+  for (let i = 0; i < px.length; i += 4) if (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11 < 40) dark++;
+  return dark / (px.length / 4);
+}
+
+if (typeof module === 'object') module.exports = { OBSRemote, COMING_UP_WINDOWS, OBS_COMING_UP, OBS_SPLIT_CAM, HUD_CAMS, pictureDarkShare };
