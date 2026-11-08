@@ -51,6 +51,7 @@ create table if not exists public.cof_cards (tag text primary key check (char_le
   portrait text check (char_length(portrait) <= 400000 and portrait ~ '^(hud/players/[a-z0-9-]+\.webp|data:image/(png|webp);base64,[A-Za-z0-9+/=]+)$'), updated_at timestamptz not null default now());
 alter table public.cof_cards enable row level security;
 revoke all on public.cof_cards from anon, authenticated;
+alter table public.cof_cards add column if not exists photo text check (char_length(photo) <= 200000); -- the square chosen for the scoreboard, winner screen, podium and email
 insert into public.cof_cards (tag, portrait) values ('abz', 'hud/players/abz.webp'), ('addicttekken', 'hud/players/addicttekken.webp'), ('genc', 'hud/players/genc.webp'),
   ('kaiju', 'hud/players/kaiju.webp'), ('vidal', 'hud/players/vidal.webp'), ('yar sen', 'hud/players/yar-sen.webp') on conflict (tag) do nothing;
 -- Sponsors on the stream (control panel → Sponsors tab). The first run brings in the original six once; deleted ones stay deleted.
@@ -217,7 +218,7 @@ end $$;
 create or replace function public.cof_photo(p_id uuid) returns text
 language sql security definer set search_path = public stable as $$
   select coalesce((select data from cof_photos where player = p_id),
-                  (select c.portrait from cof_players p join cof_cards c on c.tag = lower(trim(p.name)) where p.id = p_id))
+                  (select coalesce(c.photo, c.portrait) from cof_players p join cof_cards c on c.tag = lower(trim(p.name)) where p.id = p_id))
 $$;
 
 -- Players tab: add a player (p_id null) or edit one. Email is optional here.
@@ -418,7 +419,15 @@ language plpgsql security definer set search_path = public as $$
 begin
   perform cof_auth(p_token);
   if p_portrait is not null and (p_portrait !~ '^data:image/(png|webp);base64,[A-Za-z0-9+/=]+$' or char_length(p_portrait) > 400000) then raise exception 'The portrait must be a PNG or WebP under 300 KB'; end if;
-  insert into cof_cards (tag, portrait) values (lower(trim(p_tag)), p_portrait) on conflict (tag) do update set portrait = excluded.portrait, updated_at = now();
+  insert into cof_cards (tag, portrait) values (lower(trim(p_tag)), p_portrait) on conflict (tag) do update set portrait = excluded.portrait,
+    photo = case when excluded.portrait is null then null else cof_cards.photo end, updated_at = now(); -- removing the portrait removes its square too
+end $$;
+create or replace function public.cof_admin_card_photo(p_token text, p_tag text, p_photo text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  if p_photo is null or p_photo !~ '^data:image/(png|webp);base64,[A-Za-z0-9+/=]+$' or char_length(p_photo) > 200000 then raise exception 'The square picture must be a PNG or WebP under 150 KB'; end if;
+  insert into cof_cards (tag, photo) values (lower(trim(p_tag)), p_photo) on conflict (tag) do update set photo = excluded.photo, updated_at = now();
 end $$;
 -- Players tab: everyone who has logged in with start.gg, so organizers can set their titles.
 create or replace function public.cof_admin_accounts(p_token text) returns jsonb
@@ -567,7 +576,7 @@ revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(te
 grant execute on function public.cof_public(), public.cof_admin_team(text, uuid, text),
   public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_stream_cmd(text, text), public.cof_admin_stream_get(text), public.cof_admin_stream_sync(text, boolean, text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_admin_startgg_live(text), public.cof_admin_startgg_live_set(text, boolean),
   public.cof_me(text), public.cof_account_logout(text),
-  public.cof_card(text), public.cof_admin_card_titles(text, text, jsonb), public.cof_admin_accounts(text), public.cof_admin_card_portrait(text, text, text), public.cof_card_save_mine(text, jsonb),
+  public.cof_card(text), public.cof_admin_card_titles(text, text, jsonb), public.cof_admin_accounts(text), public.cof_admin_card_portrait(text, text, text), public.cof_admin_card_photo(text, text, text), public.cof_card_save_mine(text, jsonb),
   public.cof_sponsors_list(), public.cof_sponsors_version(), public.cof_admin_sponsor_add(text, text, text, boolean), public.cof_admin_sponsor_delete(text, uuid),
   public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),
   public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),

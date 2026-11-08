@@ -71,7 +71,7 @@ the logos when it changes; until the database answers it shows the original six.
 
 ## Player cards and titles
 
-`public/titles.js` lists the titles (`hud/titles/<id>.webp`). `cof_cards` stores 5 titles and a portrait per gamer tag, so they survive a new tournament. Any player can use any title: organizers pick up to 5 in the Players tab, or players do on `titles.html` once logged in. The **Player cards** stream screen shows the next match. With OBS connected, the Stream tab watches the Game screen and tells the stream page about the match's first black screen (`cofPicture`, through obs-browser's `emit_event`); the 4-second cards show then, or on Put on stream if the Stream tab isn't watching.
+`public/titles.js` lists the titles (`hud/titles/<id>.webp`). `cof_cards` stores 5 titles, a portrait and the square chosen for the scoreboard per gamer tag, so they survive a new tournament. Any player can use any title: organizers pick up to 5 in the Players tab, or players do on `titles.html` once logged in. The **Player cards** stream screen shows the next match. With OBS connected, the Stream tab watches the Game screen and tells the stream page about the match's first black screen (`cofPicture`, through obs-browser's `emit_event`); the 4-second cards show then, or on Put on stream if the Stream tab isn't watching.
 
 ## Android app
 

@@ -56,12 +56,21 @@
     </form>
   </section>
 
+  <dialog id="picker" aria-labelledby="pickTitle" style="background:var(--card);color:var(--text);border:1px solid var(--line);padding:18px;max-width:calc(100vw - 32px)">
+    <h3 id="pickTitle" style="margin-top:0"></h3>
+    <p class="dim" style="margin-top:0">Drag the picture to move it. Zoom with the slider or the mouse wheel.</p>
+    <canvas id="pickStage" tabindex="0" aria-label="The picture under the frame. Arrow keys move it." style="display:block;touch-action:none;cursor:move"></canvas>
+    <label for="pickZoom">Zoom</label>
+    <input type="range" id="pickZoom" min="0" max="100" step="0.5" style="width:100%">
+    <form method="dialog" class="row" style="margin-top:10px"><button class="primary" value="ok" id="pickOk"></button><button value="no">Cancel</button></form>
+  </dialog>
+
   <section class="card" id="cardBox" hidden>
     <h2 id="cardTitle">Player card</h2>
     <p class="dim" style="margin-top:0">The portrait and 5 titles shown on stream. They stay with this gamer tag between tournaments.</p>
     <div class="photoBox"><img id="cardImg" alt="" hidden style="object-fit:contain;background:#0a0a0c">
-      <div><label for="cardFile" style="margin-top:0">Portrait <span class="dim">(a cut-out PNG with a see-through background looks best)</span></label>
-        <input type="file" id="cardFile" accept="image/png,image/webp">
+      <div><label for="cardFile" style="margin-top:0">Portrait <span class="dim">(a cut-out PNG with a see-through background looks best; you then choose the area for the card and for the scoreboard)</span></label>
+        <input type="file" id="cardFile" accept="image/*">
         <div class="row" style="margin-top:8px"><button type="button" id="cardRemove" hidden>Remove portrait</button></div></div></div>
     <h3 style="margin-top:14px">Showing on the card <span class="dim">(up to 5; the player can change these)</span></h3>
     <div id="cardShown"></div>
@@ -86,13 +95,48 @@
 // Editing state: null = adding a new player. photo: undefined = unchanged, null = remove, data URL = new photo.
 let editing = null, newPhoto;
 
-// Photos are cropped to a square and shrunk to 400×400 JPEG in the browser, so they stay small (about 40 KB).
-async function shrink(file) {
-  const img = await createImageBitmap(file);
-  const side = Math.min(img.width, img.height), c = document.createElement('canvas');
-  c.width = c.height = 400;
-  c.getContext('2d').drawImage(img, (img.width - side) / 2, 0, side, side, 0, 0, 400, 400); // from the top, so tall photos keep the head
-  return c.toDataURL('image/jpeg', 0.85);
+// Choose the area of a picture: the frame keeps its shape, the picture moves and zooms under it. Returns a w×h canvas, or null if cancelled.
+// whole = the picture may zoom out until all of it fits (for cut-outs, whose empty parts stay see-through); otherwise it always fills the frame.
+function pickArea(img, { title, ok, w, h, whole }) {
+  const box = $('picker'), stage = $('pickStage'), zoom = $('pickZoom'), g = stage.getContext('2d');
+  $('pickTitle').textContent = title; $('pickOk').textContent = ok;
+  const W = Math.min(460, innerWidth - 72), M = 16, H0 = Math.max(180, Math.min(420, innerHeight - 290));
+  const fh = Math.min(H0, (W - 2 * M) * h / w), fw = fh * w / h, H = fh + 2 * M, fx = (W - fw) / 2, fy = M, dpr = devicePixelRatio || 1;
+  stage.width = W * dpr; stage.height = H * dpr; stage.style.width = W + 'px'; stage.style.height = H + 'px';
+  const cover = Math.max(fw / img.width, fh / img.height), lo = whole ? Math.min(fw / img.width, fh / img.height) : cover, hi = cover * 4;
+  const scaleAt = v => lo * (hi / lo) ** (v / 100);
+  // x, y = where the picture's top-left corner is, measured from the frame's top-left corner
+  let s = lo, x = (fw - img.width * s) / 2, y = whole ? fh - img.height * s : 0;
+  const clamp = () => {
+    const dw = fw - img.width * s, dh = fh - img.height * s;
+    x = Math.min(Math.max(dw, 0), Math.max(Math.min(dw, 0), x)); y = Math.min(Math.max(dh, 0), Math.max(Math.min(dh, 0), y));
+  };
+  const paint = () => {
+    clamp();
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#55555f'; g.fillRect(0, 0, W, H);
+    g.drawImage(img, fx + x, fy + y, img.width * s, img.height * s);
+    g.fillStyle = '#000000b0'; g.fillRect(0, 0, W, fy); g.fillRect(0, fy + fh, W, H - fy - fh); g.fillRect(0, fy, fx, fh); g.fillRect(fx + fw, fy, W - fx - fw, fh);
+    g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(fx, fy, fw, fh);
+  };
+  const setScale = v => { const k = v / s; x = fw / 2 - (fw / 2 - x) * k; y = fh / 2 - (fh / 2 - y) * k; s = v; zoom.value = Math.log(s / lo) / Math.log(hi / lo) * 100; paint(); };
+  let drag = null;
+  stage.onpointerdown = e => { stage.setPointerCapture(e.pointerId); drag = [e.clientX, e.clientY]; };
+  stage.onpointermove = e => { if (!drag) return; x += e.clientX - drag[0]; y += e.clientY - drag[1]; drag = [e.clientX, e.clientY]; paint(); };
+  stage.onpointerup = stage.onpointercancel = () => { drag = null; };
+  stage.onwheel = e => { e.preventDefault(); setScale(Math.min(hi, Math.max(lo, s * (e.deltaY < 0 ? 1.08 : 1 / 1.08)))); };
+  stage.onkeydown = e => { const m = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[e.key]; if (m) { e.preventDefault(); x += m[0]; y += m[1]; paint(); } };
+  zoom.oninput = () => setScale(scaleAt(+zoom.value));
+  zoom.value = 0; zoom.disabled = hi <= lo;
+  box.showModal(); paint();
+  return new Promise(done => {
+    box.onclose = () => { if (box.returnValue !== 'ok') return done(null);
+      const c = document.createElement('canvas'), k = w / fw;
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, x * k, y * k, img.width * s * k, img.height * s * k);
+      done(c); };
+    box.returnValue = '';
+  });
 }
 
 function startEdit(p) {
@@ -137,11 +181,15 @@ $('cardFile').onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
   try { // keeps the see-through background
-    const img = await createImageBitmap(f), b = personBox(img), k = Math.min(1, 900 / b.h), c = document.createElement('canvas');
-    c.width = Math.round(b.w * k); c.height = Math.round(b.h * k);
-    c.getContext('2d').drawImage(img, b.x, b.y, b.w, b.h, 0, 0, c.width, c.height);
-    const data = c.toDataURL('image/webp', 0.85);
+    const img = await createImageBitmap(f), b = personBox(img), t = document.createElement('canvas');
+    t.width = b.w; t.height = b.h;
+    t.getContext('2d').drawImage(img, b.x, b.y, b.w, b.h, 0, 0, b.w, b.h);
+    const card = await pickArea(t, { title: 'Step 1 of 2: the Player card', ok: 'Next', w: 744, h: 900, whole: true }); // the shape of the picture area on the card
+    const square = card && await pickArea(t, { title: 'Step 2 of 2: the scoreboard', ok: 'Save', w: 400, h: 400 });
+    if (!square) { e.target.value = ''; return; }
+    const data = card.toDataURL('image/webp', 0.85);
     await rpc('cof_admin_card_portrait', { p_token: token, p_tag: cardFor.name, p_portrait: data });
+    await rpc('cof_admin_card_photo', { p_token: token, p_tag: cardFor.name, p_photo: square.toDataURL('image/webp', 0.85) });
     showPortrait(data); toast('Portrait saved');
   } catch (err) { cardFail(err); }
   e.target.value = '';
@@ -166,7 +214,11 @@ function showPhoto(src) { $('edPhoto').hidden = !src; if (src) $('edPhoto').src 
 $('edFile').onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
-  try { newPhoto = await shrink(f); showPhoto(newPhoto); } catch { $('edErr').textContent = 'That file is not a picture this browser can read.'; }
+  try {
+    const c = await pickArea(await createImageBitmap(f), { title: 'Choose the photo area', ok: 'Use this photo', w: 400, h: 400 });
+    if (c) { newPhoto = c.toDataURL('image/jpeg', 0.85); showPhoto(newPhoto); } // about 40 KB
+  } catch { $('edErr').textContent = 'That file is not a picture this browser can read.'; }
+  e.target.value = ''; // so the same file can be chosen again
 };
 $('edRemovePhoto').onclick = () => { newPhoto = null; $('edFile').value = ''; showPhoto(null); };
 $('edCancel').onclick = () => startEdit(null);
