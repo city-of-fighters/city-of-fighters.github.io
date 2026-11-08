@@ -26,6 +26,24 @@ function drawSwap() {
   if (box.dataset.html !== html) { box.dataset.html = html; box.innerHTML = html; } // these pages redraw every 1.5 s
 }
 
+// Go live / End stream on the Control panel and the phone: the command goes through the database to the Stream tab on the OBS computer.
+async function drawLiveBox() {
+  const box = $('liveBox');
+  if (!token || document.hidden || document.body.classList.contains('locked')) return;
+  let html;
+  try {
+    const s = await rpc('cof_admin_stream_get', { p_token: token });
+    const button = (cmd, label, ask) => `<button data-act="streamCmd" data-body='{"cmd":"${cmd}"}' data-confirm="${ask}">${label}</button>`;
+    const [text, action] = !s.on ? ['To use Go live and End stream, open the Stream tab on the OBS computer and connect OBS.', '']
+      : s.pending ? ['Waiting for OBS…', '']
+      : s.live ? ['🔴 <b>Live</b>', button('stop', 'End stream', 'End the stream now?')]
+      : ['Not streaming', button('start', 'Go live', 'Start the stream now? Viewers will see it.')];
+    html = `<div class="row" style="justify-content:space-between;align-items:center"><span>Twitch stream: ${text}</span>${action}</div>${s.err ? `<p class="err">OBS: ${esc(s.err)}</p>` : ''}`;
+  } catch (e) { html = `<p class="dim">${esc(/not set up|does not exist|Could not find/.test(e.message) ? 'Run the updated database file in Supabase to use Go live and End stream.' : e.message)}</p>`; }
+  if (box.dataset.html !== html) { box.dataset.html = html; box.innerHTML = html; }
+}
+if ($('liveBox')) { setInterval(drawLiveBox, 3000); drawLiveBox(); }
+
 const notStarted = d => { if (d.matches.length) throw new Error('Bracket already started'); };
 const actions = {
   settings: (d, b) => {
@@ -108,6 +126,7 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
   let decided = false;
   try {
     if (act === 'removePlayer') await rpc('cof_admin_remove', { p_token: token, p_id: body.id });
+    else if (act === 'streamCmd') { await rpc('cof_admin_stream_cmd', { p_token: token, p_cmd: body.cmd }); drawLiveBox(); }
     else if (act === 'create') {
       if (S?.finished) await saveArchive(S); // keep the finished one before it's cleared
       await rpc('cof_admin_reset', { p_token: token, p_data: newTournament(body) });

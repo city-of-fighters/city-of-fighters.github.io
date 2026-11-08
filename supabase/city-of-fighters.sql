@@ -83,6 +83,8 @@ revoke all on public.cof_startgg from anon, authenticated;
 -- Latest picture of the OBS output, sent by the PC's Stream tab so the phone remote can watch it. One row.
 create table if not exists public.cof_preview (id int primary key check (id = 1), img text check (char_length(img) <= 300000),
   at timestamptz, wanted timestamptz);
+alter table public.cof_preview add column if not exists stream_cmd text check (stream_cmd in ('start', 'stop')), add column if not exists stream_cmd_at timestamptz,
+  add column if not exists stream_live boolean, add column if not exists stream_seen timestamptz, add column if not exists stream_err text;
 alter table public.cof_preview enable row level security;
 revoke all on public.cof_preview from anon, authenticated;
 
@@ -489,6 +491,37 @@ begin
   return jsonb_build_object('img', r.img, 'at', r.at);
 end $$;
 
+-- Go live / End stream from any admin page. Only the Stream tab on the OBS computer can reach OBS, so the command waits here
+-- for it, for 20 seconds at most: an old "go live" must never start the stream later.
+create or replace function public.cof_admin_stream_cmd(p_token text, p_cmd text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  if p_cmd is null or p_cmd not in ('start', 'stop') then raise exception 'Unknown stream command'; end if;
+  insert into cof_preview (id, stream_cmd, stream_cmd_at, stream_err) values (1, p_cmd, now(), null)
+  on conflict (id) do update set stream_cmd = excluded.stream_cmd, stream_cmd_at = excluded.stream_cmd_at, stream_err = null;
+end $$;
+create or replace function public.cof_admin_stream_get(p_token text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare r cof_preview;
+begin
+  perform cof_auth(p_token);
+  select * into r from cof_preview where id = 1;
+  return jsonb_build_object('on', coalesce(r.stream_seen > now() - interval '15 seconds', false), 'live', coalesce(r.stream_live, false),
+    'pending', coalesce(r.stream_cmd is not null and r.stream_cmd_at > now() - interval '20 seconds', false), 'err', r.stream_err);
+end $$;
+-- The Stream tab reports whether OBS is live and takes the waiting command, so it runs once even with two tabs open.
+create or replace function public.cof_admin_stream_sync(p_token text, p_live boolean, p_err text) returns text
+language plpgsql security definer set search_path = public as $$
+declare c text;
+begin
+  perform cof_auth(p_token);
+  insert into cof_preview (id) values (1) on conflict (id) do nothing;
+  select case when stream_cmd_at > now() - interval '20 seconds' then stream_cmd end into c from cof_preview where id = 1 for update;
+  update cof_preview set stream_cmd = null, stream_live = p_live, stream_seen = now(), stream_err = coalesce(left(p_err, 200), stream_err) where id = 1;
+  return c;
+end $$;
+
 -- New tournament: removes all players and results, then applies the new settings (p_data may be null).
 create or replace function public.cof_admin_reset(p_token text, p_data jsonb default null) returns void
 language plpgsql security definer set search_path = public as $$
@@ -532,7 +565,7 @@ grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.
 
 revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(text), public.cof_view(boolean) from public, anon, authenticated;
 grant execute on function public.cof_public(), public.cof_admin_team(text, uuid, text),
-  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_admin_startgg_live(text), public.cof_admin_startgg_live_set(text, boolean),
+  public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_stream_cmd(text, text), public.cof_admin_stream_get(text), public.cof_admin_stream_sync(text, boolean, text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_admin_startgg_live(text), public.cof_admin_startgg_live_set(text, boolean),
   public.cof_me(text), public.cof_account_logout(text),
   public.cof_card(text), public.cof_admin_card_titles(text, text, jsonb), public.cof_admin_accounts(text), public.cof_admin_card_portrait(text, text, text), public.cof_card_save_mine(text, jsonb),
   public.cof_sponsors_list(), public.cof_sponsors_version(), public.cof_admin_sponsor_add(text, text, text, boolean), public.cof_admin_sponsor_delete(text, uuid),
