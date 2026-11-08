@@ -210,7 +210,7 @@ begin
     raise exception 'Bracket already started';
   end if;
   delete from cof_players where id = p_id;
-  update cof_state set data = jsonb_set(data, '{order}', data->'order' - p_id::text) where id = 1;
+  update cof_state set data = jsonb_set(data, '{order}', (data->'order') - p_id::text) where id = 1;
 end $$;
 
 -- A player's photo for the app and stream (public, like the gamer tag): the one uploaded for them, else their card portrait.
