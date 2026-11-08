@@ -96,14 +96,12 @@
 <p><code>update public.cof_admin set pass_hash = extensions.crypt('NEW-PASSWORD', extensions.gen_salt('bf')); delete from public.cof_sessions;</code></p>
 
 <h2>Make a tournament</h2>
-<p>On the PC (Control panel). The phone can’t make tournaments.</p>
+<p>Tournaments are made on start.gg. start.gg doesn’t let apps create them, so you make each one there once and the app picks it up.</p>
 <ol>
-  <li>In the <b>Tournament</b> box, click <b>＋ Create a new tournament</b>.</li>
-  <li>Type a name (like “Friday Fights”) and the game (Tekken 8). Pick the 📅 date and time.</li>
-  <li>Pick the type. Not sure? <b>Double elimination</b> (out after losing twice).</li>
-  <li>Pick when registration opens: <b>Right away</b> or <b>At a date and time</b>. Click <b>Create tournament</b>.</li>
+  <li>On the PC, in the <b>Tournament</b> box, click <b>＋ Create a new tournament on start.gg</b>.</li>
+  <li>Fill in what start.gg asks for, and add one event with its date, time and bracket type. Not sure of the type? <b>Double elimination</b> (out after losing twice).</li>
+  <li>It appears in the Events calendar by itself. The Control panel notices it within 5 minutes.</li>
 </ol>
-<p class="note">a new tournament clears the old players and results, but a finished tournament is kept under <b>Past tournaments</b> first.</p>
 <h3>Tournament types, super simple</h3>
 <ul>
   <li><b>Double elimination</b>: lose twice = out. Winners side and losers side.</li>
@@ -114,7 +112,7 @@
 
 <h2>Players</h2>
 <h3>Players sign up themselves</h3>
-<p>Players register <b>only with their start.gg account</b>. They tap <b>✍️ Register</b> → <b>Log in with start.gg</b> once and stay logged in. Then they open <b>📅 Events</b> and tap <b>Participate</b> on a City of Fighters event. If start.gg asks them to finish on its own page, they tap to confirm there. They appear in the bracket under their start.gg name within 3 minutes, while the tournament is linked and the Control panel or Stream tab is open.</p>
+<p>Players register <b>only with their start.gg account</b>. They tap <b>✍️ Register</b> → <b>Log in with start.gg</b> once and stay logged in. Then they open <b>📅 Events</b> and tap <b>Participate</b> on a City of Fighters event. If start.gg asks them to finish on its own page, they tap to confirm there. They come into the bracket under their start.gg name when the organizer presses <b>Start tournament</b> on the day.</p>
 <p class="note">Log in with start.gg needs a one-time setup (see the README). Until then, the Register tab simply links to start.gg.</p>
 <h3>Or you add them (Players tab, <span class="key">Ctrl</span> + <span class="key">2</span>)</h3>
 <ol>
@@ -124,9 +122,11 @@
 </ol>
 <h3>Start it</h3>
 <ol>
-  <li>When everyone has signed up: Control panel → Players box. Change who plays who first with ▲ ▼ or <b>Shuffle seeds</b>.</li>
-  <li>Click <b>Start tournament</b>. Registration closes and the bracket is made automatically.</li>
+  <li>On the day of the event, it shows at the top of the Control panel with a <b>Start tournament</b> button.</li>
+  <li>Click it and confirm. Everyone signed up comes in with start.gg’s seeding and bracket type, registration closes and the bracket is made.</li>
 </ol>
+<p class="note">starting replaces the players and results of whatever is set up in the app, but a finished tournament is kept under <b>Past tournaments</b> first. If a tournament is running, finish or end it first.</p>
+<p>Walk-in or different seeding? Press <b>Reset bracket</b> right after starting, before any match is played. The players stay. Add people in the Players tab, use ▲ ▼ or <b>Shuffle seeds</b>, then click <b>Start tournament</b> in the Players box.</p>
 
 <h2>Run matches (phone remote)</h2>
 <p>One match = first to 2 games. One game = first to 3 rounds. The app counts it for you. Open the phone app → 🔒 Admin.</p>
@@ -196,13 +196,12 @@
 </ul>
 
 <h2>start.gg (official bracket)</h2>
-<p>Results entered here go to your start.gg bracket by themselves. Set it up once per tournament, in Settings → <b>start.gg</b> box (open “How to connect”):</p>
+<p>Results entered here go to your start.gg bracket by themselves, once test mode is off. Save the token once, in Settings → <b>start.gg</b> box (open “How to connect”):</p>
 <ol>
-  <li>Log in on start.gg (a normal free account) and create the tournament with one event and the same bracket type.</li>
-  <li>start.gg → profile picture → <b>Developer Settings</b> → <b>Personal Access Tokens</b> → <b>Create new token</b>. Copy it. (Once only, from the account that runs the hub. Paste it alone and press Connect to fill the calendar.)</li>
-  <li>Copy the event’s link from start.gg. Paste link and token in the start.gg box and click <b>Connect</b>.</li>
-  <li>Players register on start.gg; they’re added here by themselves every 3 minutes until the bracket starts (<b>Get players from start.gg</b> does it at once).</li>
-  <li>Start the bracket here <b>and</b> press <b>Start</b> on the bracket in start.gg.</li>
+  <li>start.gg → profile picture → <b>Developer Settings</b> → <b>Personal Access Tokens</b> → <b>Create new token</b>. Copy it, from the account that runs the hub.</li>
+  <li>Paste it in the start.gg box and click <b>Connect</b>. The calendar fills by itself.</li>
+  <li>For each tournament, press <b>Start tournament</b> in the Control panel on the day. It links the event by itself.</li>
+  <li>Also press <b>Start</b> on the bracket in start.gg.</li>
 </ol>
 <p class="note">results are sent while the Control panel or Stream tab is open on a computer. Undo here resets the match on start.gg too. If something can’t be sent, the start.gg box says why.</p>
 <p class="warn">the token is like a password. Paste it only into the start.gg box, never in a chat, email or on stream.</p>
@@ -233,7 +232,7 @@
   <tr><td>Phone live view says “No live picture”</td><td>Open the Stream tab on the PC and connect OBS.</td></tr>
   <tr><td>“Run the updated database file”</td><td>Supabase → SQL Editor → paste all of <code>supabase/city-of-fighters.sql</code> → Run. Safe to run again.</td></tr>
   <tr><td>Phone app looks old</td><td>Close it completely (swipe it away) and open it again.</td></tr>
-  <tr><td>Register tab shows no button for the tournament</td><td>Link the tournament to its start.gg event: Control panel → start.gg box → paste the event link → Connect.</td></tr>
+  <tr><td>Register tab shows no button for the tournament</td><td>Link the tournament to its start.gg event: Settings → start.gg box → paste the event link → Connect.</td></tr>
   <tr><td>Scored the wrong player</td><td>↶ Undo. Finished match: Control panel → Finished matches → Reopen.</td></tr>
   <tr><td>start.gg: “press Start on the bracket”</td><td>On start.gg open the bracket and press Start, then click <b>Send results now</b>.</td></tr>
 </table>

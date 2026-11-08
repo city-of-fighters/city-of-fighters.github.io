@@ -49,7 +49,7 @@ and admin functions need the login token. Player emails, the start.gg key and th
 ## Past tournaments
 
 When a champion is decided the control panel saves a snapshot (names, teams, standings, match results; no emails) to `cof_archive`,
-and again before "Create a new tournament" clears a finished one. The app's Leaderboard lists them for everyone; the control panel's
+and again before a new tournament replaces a finished one. The app's Leaderboard lists them for everyone; the control panel's
 **Past tournaments** card can delete one.
 
 ## start.gg
@@ -115,7 +115,7 @@ Keep the privacy page in step with what the code collects.
 
 ## The app
 
-https://cityoffighters.com/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (sends players to start.gg), **Admin** (password). Organizers create tournaments in the dashboard (`admin.html`): name, game, type, and when registration opens (right away, or at a date and time).
+https://cityoffighters.com/app.html (installable on phones). Tabs: **Leaderboard** (public, read-only), **Register** (sends players to start.gg), **Admin** (password). Tournaments are created on start.gg, because its API has no way to create them. On an event's day the dashboard (`admin.html`) shows **Start tournament**: one click creates it here, links the event, imports the players and builds the bracket with start.gg's type.
 
 ## Rules built in
 

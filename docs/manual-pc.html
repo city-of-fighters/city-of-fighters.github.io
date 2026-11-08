@@ -29,30 +29,30 @@
 <p>The same tabs are at the top of every page. <span class="key">Ctrl</span> + <span class="key">R</span> reloads a page. The View menu has full screen and zoom. If the keys don’t work, update the app (see the OBS manual, section 9), or use the tabs.</p>
 
 <h2>3. Run a tournament, start to finish</h2>
-<h3>Step 1: Create it</h3>
+<h3>Step 1: Create it on start.gg</h3>
 <ol>
-  <li>In the Control panel, open <b>Create a new tournament</b> in the Tournament box.</li>
-  <li>Type the name and game, and pick the date and time.</li>
-  <li>Pick the type:
+  <li>In the Control panel, click <b>Create a new tournament on start.gg</b>. It opens start.gg’s own page.</li>
+  <li>Fill in what start.gg asks for, and add one event with its date, time and bracket type:
     <ul>
       <li><b>Double elimination:</b> out after losing twice. The usual choice.</li>
       <li><b>Single elimination:</b> out after one loss. Fast.</li>
       <li><b>Round robin:</b> everyone plays everyone. A win is 3 points.</li>
       <li><b>Swiss:</b> several rounds; players with the same points meet. Good for big groups.</li>
     </ul></li>
-  <li>Click <b>Create tournament</b>.</li>
+  <li>That’s all. It appears in the Events calendar by itself. The Control panel notices it within 5 minutes.</li>
 </ol>
-<p class="warn">creating a tournament removes the old players and results. A finished tournament is saved under Past tournaments first; an unfinished one isn’t.</p>
-<h3>Step 2: Get the players in</h3>
-<ul>
-  <li><b>From start.gg:</b> link the tournament in Settings (section 8). Players who sign up there come in by themselves.</li>
-  <li><b>By hand:</b> add them in the Players tab, for example someone at the venue without a start.gg account.</li>
-</ul>
-<h3>Step 3: Seed and start</h3>
+<p class="note">start.gg doesn’t let apps create tournaments, so this is the only step done there. You make it once and never type it into the app.</p>
+<h3>Step 2: Players sign up</h3>
+<p>Players sign up for the event on start.gg, or tap <b>Participate</b> in the app’s Events tab.</p>
+<h3>Step 3: Start it on the day</h3>
 <ol>
-  <li>In the Players box, set who plays who first with the arrows, or press <b>Shuffle seeds</b>.</li>
-  <li>Check the type, then click <b>Start tournament</b>. The bracket is created.</li>
+  <li>On the day of the event, it shows at the top of the Control panel with a <b>Start tournament</b> button.</li>
+  <li>Click it. A popup shows the number of players and the bracket type. Click <b>OK</b>.</li>
+  <li>The app creates the tournament, brings in everyone signed up with start.gg’s seeding, and makes the bracket.</li>
+  <li>When test mode is off, also press <b>Start</b> on the bracket on start.gg, so results can be sent there.</li>
 </ol>
+<p class="warn">starting replaces the players and results of whatever is set up in the app. A finished tournament is saved under Past tournaments first; an unfinished one isn’t. If a tournament is running, finish or end it first.</p>
+<p>Someone signing up late, a walk-in, or different seeding? Press <b>Reset bracket</b> right after starting. The players stay. Add people in the Players tab, change the order with the arrows or <b>Shuffle seeds</b>, then click <b>Start tournament</b> in the Players box. Do this before any match is played, because it deletes results.</p>
 <h3>Step 4: Play the matches</h3>
 <ol>
   <li><b>Ready to play</b> lists matches that can start. Click <b>Put on stream</b> on one.</li>
@@ -109,7 +109,7 @@
   <li><b>Test mode</b> is on by default. The app reads from start.gg (calendar, players) but <b>sends nothing</b>. Your tournaments on start.gg aren’t touched.</li>
   <li>Untick it only for a real tournament, after a private test. Results then go to start.gg within seconds, while the Control panel or Stream tab is open.</li>
   <li><b>API key:</b> paste the token once and press <b>Connect</b>. It lasts one year.</li>
-  <li><b>Event link:</b> paste each tournament’s start.gg event link and press <b>Connect</b>, so its players come in.</li>
+  <li><b>Event link:</b> normally not needed, because <b>Start tournament</b> links the event by itself. Use it only to link an event by hand.</li>
   <li><b>Get players from start.gg</b> does it at once. Otherwise it runs every 3 minutes until the bracket starts.</li>
   <li><b>Disconnect</b> removes the link. Anything already on start.gg stays there.</li>
 </ul>
