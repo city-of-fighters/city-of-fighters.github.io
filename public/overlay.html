@@ -295,7 +295,7 @@ checkSponsors(); setInterval(checkSponsors, 10000);
 
 // --- Scoreboard: live match, then winner for 6 s, then "waiting" until a new match goes on stream ---
 const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
-let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {}, sbPhase = 'none';
+let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {}, sbPhase = 'none', sbSwapped = false;
 
 // --- Coming Up screen (between matches) ---
 // holes = true in OBS's "CoF Coming Up" scene: the windows stay see-through for the live screen and cameras that OBS
@@ -303,9 +303,11 @@ let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {}, sbPhase = 'non
 const has = new Set((params.get('has') || '').split(',').filter(Boolean));
 function nextMatch(s) {
   const cur = s.matches.find(x => x.id === s.streamMatch);
-  if (cur && !cur.winner) return cur;
-  return s.matches.find(x => x.ready && x.id !== s.streamMatch) ?? null;
+  if (cur && !cur.winner) return seats(s, cur);
+  return seats(s, s.matches.find(x => x.ready && x.id !== s.streamMatch) ?? null);
 }
+// "Switch sides": the match as drawn on stream when its players sit the other way round. The bracket itself isn't touched.
+const seats = (s, m) => m && s.swapSides === m.id ? { ...m, swapped: true, a: m.b, b: m.a, aName: m.bName, bName: m.aName, aTeam: m.bTeam, bTeam: m.aTeam, aPlayer: m.bPlayer, bPlayer: m.aPlayer, ga: m.gb, gb: m.ga } : m;
 // Player cards: the two players of the next match, mirrored, each with their portrait and 5 titles in an L around the outer corner.
 const CARD_SPOTS = [[80, 568], [80, 728], [80, 896], [262, 896], [444, 896]]; // left card; the right card mirrors these
 let cardsKey = '', cardsAt = 0;
@@ -358,6 +360,7 @@ function scoreboard(s, m) {
   }
   const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
   if (live && (sbMatch !== m.id || !sbLive)) { restart($('hud'), 'enter'); prevGames = { a: m.ga, b: m.gb }; }
+  if (!!m?.swapped !== sbSwapped) { sbSwapped = !!m?.swapped; if (m) prevGames = { a: m.ga, b: m.gb }; } // switching sides isn't a point scored
   if (live) {
     $('hlabel').textContent = m.label;
     for (const k of ['a', 'b']) {
@@ -401,7 +404,7 @@ async function draw() {
     shown = screen;
   }
 
-  scoreboard(s, s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch))); // ?match= previews another match
+  scoreboard(s, seats(s, s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch)))); // ?match= previews another match
   if (screen === 'comingup') {
     comingUp($('cuLive'), s, true);
     const cur = s.matches.find(x => x.id === s.streamMatch);

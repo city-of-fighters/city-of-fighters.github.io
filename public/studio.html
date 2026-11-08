@@ -70,6 +70,7 @@
       <label for="match">Match on the scoreboard</label>
       <select id="match"></select>
       <button class="primary" id="deploy">Deploy to OBS</button>
+      <div id="swapBox" style="margin-top:12px"></div>
       <p class="dim" id="deployHint" style="font-size:13px"></p>
       <p class="dim" style="font-size:13px">The podium shows up on OBS by itself when the tournament ends. Results of matches played off stream pop up over the scoreboard and bracket.</p>
     </div>
@@ -160,6 +161,7 @@ async function draw() {
   document.body.classList.remove('locked');
   if (!draft || !dirty) draft = { screen: S.screen, match: S.streamMatch || '' };
   render();
+  drawSwap();
 }
 // --- OBS: cameras and the Coming Up scene (talks to OBS on this computer) ---
 const obs = new OBSRemote();

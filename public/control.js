@@ -18,6 +18,14 @@ async function logout() { await rpc('cof_logout', { p_token: token }).catch(() =
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => (t.style.display = 'none'), 3000); }
 
+// "Switch sides" for the match on stream (Stream tab and phone OBS tab), with who is where right now.
+function drawSwap() {
+  const m = S.matches.find(x => x.id === S.streamMatch), box = $('swapBox');
+  const [l, r] = m && S.swapSides === m.id ? [m.bName, m.aName] : [m?.aName, m?.bName];
+  const html = m ? `<div class="row" style="justify-content:space-between;align-items:center"><span>Left: <b>${esc(l)}</b> · Right: <b>${esc(r)}</b></span>${btn('⇄ Switch sides', 'swap', { id: m.id }, '')}</div>` : '';
+  if (box.dataset.html !== html) { box.dataset.html = html; box.innerHTML = html; } // these pages redraw every 1.5 s
+}
+
 const notStarted = d => { if (d.matches.length) throw new Error('Bracket already started'); };
 const actions = {
   settings: (d, b) => {
@@ -47,6 +55,7 @@ const actions = {
   reopen: (d, b) => B.reopen(d.matches, b.id),
   score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1)),
   stream: (d, b) => { d.streamMatch = b.id || null; },
+  swap: (d, b) => { d.swapSides = d.swapSides === b.id ? null : b.id; }, // which match shows its players on the opposite sides (OBS only; the bracket is unchanged)
   result: (d, b) => played(d, () => { // quick final score for a match played off stream, e.g. 2–1
     const m = d.matches.find(x => x.id === b.id);
     if (!m || !B.isReady(m)) throw new Error('Match is not ready');
@@ -108,13 +117,14 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
       if (act === 'undo') {
         if (!undoStack.length) throw new Error('Nothing to undo');
         const prev = undoStack.pop();
+        prev.swapSides = d.swapSides ?? null; // seating isn't a result either
         if (d.startgg) prev.startgg = d.startgg; else delete prev.startgg; // the start.gg link isn't undone: it must see the undo to reset the set
         try { await rpc('cof_admin_save', { p_token: token, p_data: prev }); } catch (e) { undoStack.push(prev); throw e; }
       } else {
         const before = structuredClone(d);
         actions[act](d, body);
         await rpc('cof_admin_save', { p_token: token, p_data: d });
-        if (act !== 'startgg') undoStack.push(before); // undo is for results, not for start.gg bookkeeping
+        if (act !== 'startgg' && act !== 'swap') undoStack.push(before); // undo is for results, not for start.gg bookkeeping or seating
         if (undoStack.length > 20) undoStack.shift();
         decided = !B.finished(before.matches) && B.finished(d.matches);
       }
