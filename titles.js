@@ -1,11 +1,11 @@
-// Player titles from the organizers: id (also the file in hud/titles/), name, what it means. locked = only an admin can give it.
+// Player titles from the organizers: id (also the file in hud/titles/), name, what it means.
 const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"Often gets/got a perfect at the end of the round."},
 {"id":"albatross-move","name":"Albatross move","desc":"Goes for a safe mid or high counter hit launcher when under pressure."},
 {"id":"alt-f4","name":"ALT+F4","desc":"A quitter."},
 {"id":"always-floated","name":"Always Floated","desc":"Frequently ends in an airbourne state when player gets clipped"},
 {"id":"arcade-stick","name":"Arcade Stick","desc":"Plays with arcade stick."},
 {"id":"ashes-and-stone","name":"Ashes and Stone","desc":"Got rid of bad habits"},
-{"id":"award-winner","name":"Award Winner","desc":"Won an award.","locked":1},
+{"id":"award-winner","name":"Award Winner","desc":"Won an award."},
 {"id":"backswing-blower","name":"Backswing blower","desc":"Uses backswing blow very fequently"},
 {"id":"big-banger","name":"Big Banger","desc":"Has played the game since its first installment."},
 {"id":"boomer","name":"Boomer","desc":"Has played the game for at least six generations."},
@@ -13,7 +13,7 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"brickwall","name":"Brickwall","desc":"Unsure how to progress further in the game."},
 {"id":"camera-man","name":"Camera Man","desc":"Aided by the game’s camera"},
 {"id":"casual","name":"Casual","desc":"Plays the game casually"},
-{"id":"champion","name":"Champion","desc":"Won an event or tournament.","locked":1},
+{"id":"champion","name":"Champion","desc":"Won an event or tournament."},
 {"id":"change-swimsuit","name":"Change Swimsuit","desc":"The frame-of-mind-change one needs to do to readjust after losing badly."},
 {"id":"cheese","name":"Cheese","desc":"Bluffs way to victory."},
 {"id":"chill","name":"Chill","desc":"Player stays chill and cool-tempered."},
@@ -45,7 +45,7 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"gabu-chips","name":"Gabu Chips","desc":"Steam Rolled over another player"},
 {"id":"gaer-gaeaf-bro","name":"Gaer Gaeaf Bro","desc":"Lost to knowledge checks because the player failed to study the matchup"},
 {"id":"gentleman","name":"Gentleman","desc":"For letting players pick their favorite side even in the fiercest of competitions."},
-{"id":"goat","name":"GOAT","desc":"Greatest of All Time.","locked":1},
+{"id":"goat","name":"GOAT","desc":"Greatest of All Time."},
 {"id":"god-match","name":"God Match","desc":"Was able to pull off 3 perfect rounds in a row in a single match with no rounds lost."},
 {"id":"grand-master","name":"Grand Master","desc":"Is able to switch from an aggressive to a defensive playstyle and vice versa."},
 {"id":"grappler","name":"Grappler","desc":"Player’s grappling is frequent and/or optimized."},
@@ -63,7 +63,7 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"hunter","name":"Hunter","desc":"Player’s refusal to crouch is frequent and/or optimized."},
 {"id":"husbando","name":"Husbando","desc":"Only plays male characters."},
 {"id":"inner-self","name":"Inner-self","desc":"Has mastered the use of their favourite character."},
-{"id":"invictus","name":"Invictus","desc":"Undefeated this season.","locked":1},
+{"id":"invictus","name":"Invictus","desc":"Undefeated this season."},
 {"id":"irreversible","name":"Irreversible","desc":"Frequently performs moves that are irreversible"},
 {"id":"iwr","name":"IWR","desc":"Frequently performs/is able to perform Instant-While-Running"},
 {"id":"jail","name":"Jail","desc":"Frequently performs jailing moves"},
@@ -96,11 +96,11 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"one-and-done","name":"One and Done","desc":"for those players who one match online and do not rematch."},
 {"id":"outer-self","name":"Outer-self","desc":"Knows the match-up knowledge against all characters."},
 {"id":"parry-master","name":"Parry Master","desc":"Player’s parry usage is frequent and/or optimized."},
-{"id":"patriot","name":"Patriot","desc":"Officially represented the country.","locked":1},
+{"id":"patriot","name":"Patriot","desc":"Officially represented the country."},
 {"id":"pet-lover","name":"Pet Lover","desc":"Player’s usage of pets is frequent and/or optimized."},
 {"id":"phoenix","name":"Phoenix","desc":"Never gives up."},
 {"id":"pitbull","name":"Pitbull","desc":"Naturally plays very aggressive gameplay."},
-{"id":"podium","name":"Podium","desc":"Reached top 3.","locked":1},
+{"id":"podium","name":"Podium","desc":"Reached top 3."},
 {"id":"poker","name":"Poker","desc":"Player’s poking is frequent and/or optimized."},
 {"id":"pro","name":"Pro","desc":"Plays the game on a professional level."},
 {"id":"prodigy","name":"Prodigy","desc":"Shows signs of greatness."},
@@ -118,9 +118,9 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"safe","name":"Safe","desc":"Likes to use low-risk moves."},
 {"id":"salty","name":"Salty","desc":"Gets upset when losing."},
 {"id":"scholar","name":"Scholar","desc":"Studies the work of others online and/or offline."},
-{"id":"season-champion","name":"Season Champion","desc":"Won a City of Fighters’ Season this year.","locked":1},
-{"id":"season-x2-champion","name":"Season x2 Champion","desc":"Won 2 City of Fighters’ Seasons this year.","locked":1},
-{"id":"season-x3-champion","name":"Season x3 Champion","desc":"Won 3 City of Fighters’ Seasons this year.","locked":1},
+{"id":"season-champion","name":"Season Champion","desc":"Won a City of Fighters’ Season this year."},
+{"id":"season-x2-champion","name":"Season x2 Champion","desc":"Won 2 City of Fighters’ Seasons this year."},
+{"id":"season-x3-champion","name":"Season x3 Champion","desc":"Won 3 City of Fighters’ Seasons this year."},
 {"id":"self-aware","name":"Self Aware","desc":"Does not enjoy mirror matches."},
 {"id":"semi-pro","name":"Semi-pro","desc":"Plays the game semi-professionally."},
 {"id":"shieldmaiden","name":"Shieldmaiden","desc":"Player’s use of power crush is frequent and/or optimized."},
@@ -137,7 +137,7 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"tiki-tuk-tuk","name":"Tiki tuk tuk","desc":"Successfully baits rage arts"},
 {"id":"time-out","name":"Time-out","desc":"Needs a break from the game."},
 {"id":"timing","name":"Timing","desc":"Player’s usage of timing is frequent and/or optimized."},
-{"id":"top-8","name":"Top 8","desc":"Reached top 8.","locked":1},
+{"id":"top-8","name":"Top 8","desc":"Reached top 8."},
 {"id":"tornado","name":"Tornado","desc":"Frequently performs moves which inflict tornado."},
 {"id":"turtle","name":"Turtle","desc":"Naturally plays very defensive gameplay."},
 {"id":"tweaker","name":"Tweaker","desc":"For players who react negatively when they lose."},
@@ -150,15 +150,15 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"young-man-s-reactions","name":"Young Man’s Reactions","desc":"Has lightning-fast reactions."}];
 const cofTitle = id => COF_TITLES.find(t => t.id === id);
 
-// Title chooser (Players tab and titles.html). Needs esc() from api.js. canUse(title, chosen) decides whether a title may be added.
-function titlePicker(box, chosen, { canUse = () => true, onChange = () => {} } = {}) {
+// Title chooser (Players tab and titles.html). Needs esc() from api.js. only = title ids that may be chosen (default all).
+function titlePicker(box, chosen, { max = Infinity, only = null, onChange = () => {} } = {}) {
   let q = '';
-  const card = (t, on) => `<button type="button" class="tp-t${on ? ' on' : ''}" data-t="${esc(t.id)}" ${!on && (chosen.length >= 5 || !canUse(t, chosen)) ? 'disabled' : ''}>
-    <img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}${t.locked ? ' <i>Given by organizers.</i>' : ''}</span></button>`;
+  const card = (t, on) => `<button type="button" class="tp-t${on ? ' on' : ''}" data-t="${esc(t.id)}" ${!on && chosen.length >= max ? 'disabled' : ''}>
+    <img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span></button>`;
   const draw = () => {
-    const hit = COF_TITLES.filter(t => !chosen.includes(t.id) && (t.name + ' ' + t.desc).toLowerCase().includes(q));
-    box.querySelector('.tp-chosen').innerHTML = chosen.map(id => cofTitle(id)).filter(Boolean).map(t => card(t, true)).join('') || '<p class="dim">No titles chosen yet.</p>';
-    box.querySelector('.tp-count').textContent = `${chosen.length} of 5 chosen`;
+    const hit = COF_TITLES.filter(t => !chosen.includes(t.id) && (!only || only.includes(t.id)) && (t.name + ' ' + t.desc).toLowerCase().includes(q));
+    box.querySelector('.tp-chosen').innerHTML = chosen.map(id => cofTitle(id)).filter(Boolean).map(t => card(t, true)).join('') || '<p class="dim">None chosen yet.</p>';
+    box.querySelector('.tp-count').textContent = max === Infinity ? `${chosen.length} chosen` : `${chosen.length} of ${max} chosen`;
     box.querySelector('.tp-all').innerHTML = hit.map(t => card(t, false)).join('');
   };
   box.innerHTML = '<p class="tp-count"></p><div class="tp-chosen"></div><input type="text" class="tp-q" placeholder="Search titles" aria-label="Search titles"><div class="tp-all"></div>';

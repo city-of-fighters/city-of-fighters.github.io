@@ -63,8 +63,10 @@
       <div><label for="cardFile" style="margin-top:0">Portrait <span class="dim">(a cut-out PNG with a see-through background looks best)</span></label>
         <input type="file" id="cardFile" accept="image/png,image/webp">
         <div class="row" style="margin-top:8px"><button type="button" id="cardRemove" hidden>Remove portrait</button></div></div></div>
-    <h3 style="margin-top:14px">Titles</h3>
-    <div id="cardTitles"></div>
+    <h3 style="margin-top:14px">Titles this player can use</h3>
+    <div id="cardAllowed"></div>
+    <h3 style="margin-top:14px">Showing on the card <span class="dim">(up to 5; the player can change these)</span></h3>
+    <div id="cardShown"></div>
     <p class="err" id="cardErr"></p>
     <button class="primary" type="button" id="cardSave">Save titles</button>
   </section>
@@ -101,7 +103,8 @@ function startEdit(p) {
   if (p) $('editor').scrollIntoView({ behavior: 'smooth' });
 }
 // Player card: portrait and 5 titles, saved by gamer tag
-let cardTitles = [];
+let cardAllowed = [], cardTitles = [];
+const drawShown = () => titlePicker($('cardShown'), cardTitles, { max: 5, only: cardAllowed });
 const showPortrait = src => { $('cardImg').hidden = !src; if (src) $('cardImg').src = src; $('cardRemove').hidden = !src; };
 async function showCard(p) {
   $('cardBox').hidden = !p; $('cardErr').textContent = '';
@@ -109,12 +112,13 @@ async function showCard(p) {
   $('cardTitle').textContent = `${p.name}: player card`;
   const c = await rpc('cof_card', { p_tag: p.name }).catch(() => null);
   if (editing !== p) return; // moved on while it loaded
-  cardTitles = [...(c?.titles ?? [])];
+  cardAllowed = [...(c?.allowed ?? [])]; cardTitles = [...(c?.titles ?? [])];
   showPortrait(c?.portrait);
-  titlePicker($('cardTitles'), cardTitles);
+  titlePicker($('cardAllowed'), cardAllowed, { onChange: () => { cardTitles = cardTitles.filter(id => cardAllowed.includes(id)); drawShown(); } });
+  drawShown();
 }
 const cardFail = err => ($('cardErr').textContent = /not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message);
-$('cardSave').onclick = () => rpc('cof_admin_card_titles', { p_token: token, p_tag: editing.name, p_titles: cardTitles }).then(() => toast('Titles saved'), cardFail);
+$('cardSave').onclick = () => rpc('cof_admin_card_titles', { p_token: token, p_tag: editing.name, p_allowed: cardAllowed, p_titles: cardTitles }).then(() => toast('Titles saved'), cardFail);
 $('cardRemove').onclick = () => rpc('cof_admin_card_portrait', { p_token: token, p_tag: editing.name, p_portrait: null }).then(() => { showPortrait(null); toast('Portrait removed'); }, cardFail);
 $('cardFile').onchange = async e => {
   const f = e.target.files[0];
