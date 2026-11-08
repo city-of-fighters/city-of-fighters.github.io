@@ -44,6 +44,8 @@ async function drawLiveBox() {
 }
 if ($('liveBox')) { setInterval(drawLiveBox, 3000); drawLiveBox(); }
 
+// A match put on stream once isn't taken from start.gg again, so Take off stream stays off.
+const markStreamed = (d, id) => { if (id && d.startgg) (d.startgg.streamed ??= {})[id] = true; };
 const notStarted = d => { if (d.matches.length) throw new Error('Bracket already started'); };
 const actions = {
   settings: (d, b) => {
@@ -72,7 +74,19 @@ const actions = {
   report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
   reopen: (d, b) => B.reopen(d.matches, b.id),
   score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1)),
-  stream: (d, b) => { d.streamMatch = b.id || null; if (b.id) d.screen = 'scoreboard'; },
+  stream: (d, b) => { d.streamMatch = b.id || null; if (b.id) d.screen = 'scoreboard'; markStreamed(d, b.id); },
+  streamSgg: (d, b) => { // marked for the stream on start.gg
+    const cur = d.matches.find(x => x.id === d.streamMatch);
+    if ((cur && !cur.winner) || d.startgg?.streamed?.[b.id]) return;
+    Object.assign(d, { streamMatch: b.id, screen: 'scoreboard' }); markStreamed(d, b.id);
+  },
+  sggResult: (d, b) => played(d, () => { // entered on start.gg
+    const m = d.matches.find(x => x.id === b.id);
+    if (!m || !B.isReady(m)) return;
+    Object.assign(m, { ga: b.ga, gb: b.gb, ra: 0, rb: 0 });
+    B.report(d.matches, m.id, b.slot);
+    (d.startgg.sent ??= {})[m.id] = b.set;
+  }),
   swap: (d, b) => { d.swapSides = d.swapSides === b.id ? null : b.id; }, // which match shows its players on the opposite sides (OBS only; the bracket is unchanged)
   result: (d, b) => played(d, () => { // quick final score for a match played off stream, e.g. 2–1
     const m = d.matches.find(x => x.id === b.id);
@@ -94,7 +108,7 @@ const actions = {
   },
   deploy: (d, b) => { // Stream tab: put the previewed layout (and match) live on OBS
     if (SCREENS[b.screen]) d.screen = b.screen;
-    if ('match' in b) d.streamMatch = b.match || null;
+    if ('match' in b) { d.streamMatch = b.match || null; markStreamed(d, b.match); }
   },
 };
 // Settings for a brand-new tournament (the database clears players and results first).
@@ -143,7 +157,7 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
         const before = structuredClone(d);
         actions[act](d, body);
         await rpc('cof_admin_save', { p_token: token, p_data: d });
-        if (act !== 'startgg' && act !== 'swap') undoStack.push(before); // undo is for results, not for start.gg bookkeeping or seating
+        if (!['startgg', 'swap', 'sggResult', 'streamSgg'].includes(act)) undoStack.push(before); // undo is for this device's results, not for start.gg bookkeeping or seating
         if (undoStack.length > 20) undoStack.shift();
         decided = !B.finished(before.matches) && B.finished(d.matches);
       }
