@@ -58,7 +58,7 @@ and again before a new tournament replaces a finished one. The app's Leaderboard
 Settings tab → **start.gg** card (instructions inside). **Test mode** is on by default: the app reads from start.gg but writes nothing until it's unticked. Paste the event link and a personal API token
 (start.gg → Developer Settings). **Get players from start.gg** imports entrants and start.gg's seeding; every result
 decided here is reported to the matching set on start.gg (undo resets it) while the control panel or Stream tab is open
-on a computer. Press Start on the start.gg bracket too. Put on stream also assigns the set to the tournament's first stream on start.gg (test mode off). Code: `public/startgg.js`.
+on a computer. Press Start on the start.gg bracket too. With test mode off it also works both ways: Put on stream assigns the set to the tournament's first stream on start.gg, and results and stream marks made on start.gg come into the app. Code: `public/startgg.js`.
 
 While a tournament is linked, the Register tab sends players to the start.gg registration page and the control panel pulls new
 sign-ups in every 3 minutes until the bracket starts. start.gg's API has no anonymous access and no documented way to register

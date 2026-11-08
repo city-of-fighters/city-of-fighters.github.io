@@ -52,7 +52,8 @@ create table if not exists public.cof_cards (tag text primary key check (char_le
 alter table public.cof_cards enable row level security;
 revoke all on public.cof_cards from anon, authenticated;
 alter table public.cof_cards add column if not exists photo text check (char_length(photo) <= 200000); -- the square chosen for the scoreboard, winner screen, podium and email
-insert into public.cof_cards (tag, portrait) values ('abz', 'hud/players/abz.webp'), ('addicttekken', 'hud/players/addicttekken.webp'), ('genc', 'hud/players/genc.webp'),
+update public.cof_cards set tag = 'g3nc' where tag = 'genc' and not exists (select 1 from public.cof_cards where tag = 'g3nc'); -- his gamer tag on start.gg
+insert into public.cof_cards (tag, portrait) values ('abz', 'hud/players/abz.webp'), ('addicttekken', 'hud/players/addicttekken.webp'), ('g3nc', 'hud/players/genc.webp'),
   ('kaiju', 'hud/players/kaiju.webp'), ('vidal', 'hud/players/vidal.webp'), ('yar sen', 'hud/players/yar-sen.webp') on conflict (tag) do nothing;
 -- Sponsors on the stream (control panel → Sponsors tab). The first run brings in the original six once; deleted ones stay deleted.
 create table if not exists public.cof_sponsors (id uuid primary key default gen_random_uuid(), name text not null check (char_length(name) between 1 and 60),

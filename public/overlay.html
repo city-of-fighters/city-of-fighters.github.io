@@ -452,7 +452,9 @@ function scoreboard(s, m) {
 let shown = null, lastBracket = null, bracketKey = '', podiumKey = '';
 async function draw() {
   const s = view(await rpc('cof_public'));
-  const screen = params.get('screen') || s.screen;
+  let screen = params.get('screen') || s.screen;
+  const onStream = s.matches.find(x => x.id === s.streamMatch);
+  if (screen === 'podium' && !params.get('screen') && (Date.now() < winUntil || (onStream?.winner && sbMatch === onStream.id && sbLive))) screen = 'scoreboard'; // the winner screen plays first
 
   // popups (not over the podium)
   const done = s.matches.filter(x => x.winner && !x.auto);
