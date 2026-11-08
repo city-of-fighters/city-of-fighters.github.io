@@ -18,16 +18,17 @@
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
 <script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="account.js"></script><script src="titles.js"></script>
 <script>
-// Everyone can read the titles. A logged-in player picks their 5 here; the database refuses titles only organizers give.
+// Everyone can read the titles. A logged-in player picks up to 5 of the ones organizers gave them; the database checks this.
 const $ = id => document.getElementById(id);
-$('list').innerHTML = COF_TITLES.map(t => `<div class="tp-t" style="border:1px solid var(--line)"><img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}${t.locked ? ' <i>Given by organizers.</i>' : ''}</span></div>`).join('');
+$('list').innerHTML = COF_TITLES.map(t => `<div class="tp-t" style="border:1px solid var(--line)"><img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span></div>`).join('');
 (async () => {
   const me = await acctConfig() && await acctMe();
   if (!me) return;
-  const c = await rpc('cof_card', { p_tag: me.name }).catch(() => null), chosen = [...(c?.titles ?? [])], held = [...chosen];
-  $('intro').textContent = `Hi ${me.name}. Choose up to 5 titles to show on your player card.`;
-  $('mine').hidden = false; $('all').hidden = true;
-  titlePicker($('picker'), chosen, { canUse: t => !t.locked || held.includes(t.id) });
+  const c = await rpc('cof_card', { p_tag: me.name }).catch(() => null), chosen = [...(c?.titles ?? [])], allowed = c?.allowed ?? [];
+  if (!allowed.length) return ($('intro').textContent = `Hi ${me.name}. The organizers haven't given you any titles yet.`);
+  $('intro').textContent = `Hi ${me.name}. Choose up to 5 of your titles to show on your player card.`;
+  $('mine').hidden = false;
+  titlePicker($('picker'), chosen, { max: 5, only: allowed });
   $('save').onclick = async () => {
     $('err').textContent = '';
     try { await rpc('cof_card_save_mine', { p_session: acctSession(), p_titles: chosen }); $('err').textContent = ''; $('save').textContent = '✓ Saved'; setTimeout(() => ($('save').textContent = 'Save my 5 titles'), 2000); }

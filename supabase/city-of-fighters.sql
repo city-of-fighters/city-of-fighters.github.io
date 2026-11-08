@@ -49,6 +49,8 @@ revoke all on public.cof_accounts, public.cof_account_sessions, public.cof_parti
 -- Player cards: 5 titles and a cut-out portrait, kept by gamer tag so they stay when a new tournament clears the players.
 create table if not exists public.cof_cards (tag text primary key check (char_length(tag) between 1 and 60), titles jsonb not null default '[]'::jsonb,
   portrait text check (char_length(portrait) <= 400000 and portrait ~ '^(hud/players/[a-z0-9-]+\.webp|data:image/(png|webp);base64,[A-Za-z0-9+/=]+)$'), updated_at timestamptz not null default now());
+alter table public.cof_cards add column if not exists allowed jsonb not null default '[]'::jsonb;
+update public.cof_cards set allowed = titles where allowed = '[]'::jsonb and titles <> '[]'::jsonb; -- titles set before organizers granted them
 alter table public.cof_cards enable row level security;
 revoke all on public.cof_cards from anon, authenticated;
 insert into public.cof_cards (tag, portrait) values ('abz', 'hud/players/abz.webp'), ('addicttekken', 'hud/players/addicttekken.webp'), ('genc', 'hud/players/genc.webp'),
@@ -386,23 +388,27 @@ create or replace function public.cof_admin_sponsor_delete(p_token text, p_id uu
 language plpgsql security definer set search_path = public as $$
 begin perform cof_auth(p_token); delete from cof_sponsors where id = p_id; end $$;
 
--- Player cards. Anyone can read them (they're on the stream). Organizers set anything; a logged-in player sets their own 5,
--- but can't add a title only organizers give (those stay if an organizer already gave them).
-create or replace function public.cof_titles_check(p jsonb) returns void language plpgsql immutable as $$
+-- Player cards. Anyone can read them (they're on the stream). Organizers grant the titles a player may use (allowed);
+-- the player, or an organizer, picks up to 5 of those to show (titles).
+drop function if exists public.cof_admin_card_titles(text, text, jsonb);
+create or replace function public.cof_titles_check(p jsonb, p_max int) returns void language plpgsql immutable as $$
 begin
-  if jsonb_typeof(p) <> 'array' or jsonb_array_length(p) > 5 then raise exception 'Choose at most 5 titles'; end if;
+  if jsonb_typeof(p) <> 'array' or jsonb_array_length(p) > p_max then raise exception 'Choose at most % titles', p_max; end if;
   if exists (select 1 from jsonb_array_elements(p) t where jsonb_typeof(t) <> 'string' or t #>> '{}' !~ '^[a-z0-9-]{1,40}$') then raise exception 'Unknown title'; end if;
   if (select count(distinct t) from jsonb_array_elements_text(p) t) <> jsonb_array_length(p) then raise exception 'Each title can only be chosen once'; end if;
 end $$;
+drop function if exists public.cof_titles_check(jsonb);
 create or replace function public.cof_card(p_tag text) returns jsonb
 language sql security definer set search_path = public stable as $$
-  select jsonb_build_object('titles', titles, 'portrait', portrait) from cof_cards where tag = lower(trim(p_tag))
+  select jsonb_build_object('allowed', allowed, 'titles', titles, 'portrait', portrait) from cof_cards where tag = lower(trim(p_tag))
 $$;
-create or replace function public.cof_admin_card_titles(p_token text, p_tag text, p_titles jsonb) returns void
+create or replace function public.cof_admin_card_titles(p_token text, p_tag text, p_allowed jsonb, p_titles jsonb) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  perform cof_auth(p_token); perform cof_titles_check(p_titles);
-  insert into cof_cards (tag, titles) values (lower(trim(p_tag)), p_titles) on conflict (tag) do update set titles = excluded.titles, updated_at = now();
+  perform cof_auth(p_token); perform cof_titles_check(p_allowed, 500); perform cof_titles_check(p_titles, 5);
+  if not p_allowed @> p_titles then raise exception 'A shown title must be one this player can use'; end if;
+  insert into cof_cards (tag, allowed, titles) values (lower(trim(p_tag)), p_allowed, p_titles)
+  on conflict (tag) do update set allowed = excluded.allowed, titles = excluded.titles, updated_at = now();
 end $$;
 create or replace function public.cof_admin_card_portrait(p_token text, p_tag text, p_portrait text) returns void
 language plpgsql security definer set search_path = public as $$
@@ -415,12 +421,10 @@ create or replace function public.cof_card_save_mine(p_session text, p_titles js
 language plpgsql security definer set search_path = public as $$
 declare a text := cof_account_of(p_session); -- first, so a bad session is always refused
   t text := (select lower(trim(gamer_tag)) from cof_accounts where sgg_user = a);
-  locked text[] := array['award-winner','champion','goat','invictus','patriot','podium','season-champion','season-x2-champion','season-x3-champion','top-8'];
 begin
-  perform cof_titles_check(p_titles);
-  if exists (select 1 from jsonb_array_elements_text(p_titles) n where n = any(locked)
-             and not coalesce((select titles ? n from cof_cards where tag = t), false)) then raise exception 'Only an organizer can give that title'; end if;
-  insert into cof_cards (tag, titles) values (t, p_titles) on conflict (tag) do update set titles = excluded.titles, updated_at = now();
+  perform cof_titles_check(p_titles, 5);
+  if not coalesce((select allowed from cof_cards where tag = t), '[]'::jsonb) @> p_titles then raise exception 'That title hasn''t been given to you yet'; end if;
+  update cof_cards set titles = p_titles, updated_at = now() where tag = t;
 end $$;
 
 -- Past tournaments: the control panel saves a finished tournament (again after a reopen), anyone can read them.
@@ -513,7 +517,7 @@ language sql security definer set search_path = public as $$
 $$;
 
 revoke all on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) from public, anon, authenticated;
-revoke all on function public.cof_titles_check(jsonb) from public, anon, authenticated;
+revoke all on function public.cof_titles_check(jsonb, int) from public, anon, authenticated;
 revoke all on function public.cof_account_login(text, text, text), public.cof_account_of(text), public.cof_participate_check(text, uuid), public.cof_participate_mark(text, uuid) from public, anon, authenticated;
 grant execute on function public.cof_account_login(text, text, text), public.cof_participate_check(text, uuid), public.cof_participate_mark(text, uuid) to service_role;
 grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) to service_role;
@@ -522,7 +526,7 @@ revoke all on function public.cof_default(), public.cof_ip(), public.cof_auth(te
 grant execute on function public.cof_public(), public.cof_admin_team(text, uuid, text),
   public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_admin_startgg_live(text), public.cof_admin_startgg_live_set(text, boolean),
   public.cof_me(text), public.cof_account_logout(text),
-  public.cof_card(text), public.cof_admin_card_titles(text, text, jsonb), public.cof_admin_card_portrait(text, text, text), public.cof_card_save_mine(text, jsonb),
+  public.cof_card(text), public.cof_admin_card_titles(text, text, jsonb, jsonb), public.cof_admin_card_portrait(text, text, text), public.cof_card_save_mine(text, jsonb),
   public.cof_sponsors_list(), public.cof_sponsors_version(), public.cof_admin_sponsor_add(text, text, text, boolean), public.cof_admin_sponsor_delete(text, uuid),
   public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),
   public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),

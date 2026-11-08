@@ -70,7 +70,7 @@ the logos when it changes; until the database answers it shows the original six.
 
 ## Player cards and titles
 
-`public/titles.js` lists the titles (`hud/titles/<id>.webp`). `cof_cards` stores 5 titles and a portrait per gamer tag, so they survive a new tournament. Organizers edit them in the Players tab; logged-in players use `titles.html`. Ten earned titles are organizer-only: the list is in `cof_card_save_mine` and marked `locked` in `titles.js`, so change both together. The **Player cards** stream screen shows the next match.
+`public/titles.js` lists the titles (`hud/titles/<id>.webp`). `cof_cards` stores 5 titles and a portrait per gamer tag, so they survive a new tournament. Organizers grant the titles each player may use in the Players tab; players pick up to 5 of those on `titles.html` once logged in. The **Player cards** stream screen shows the next match.
 
 ## Android app
 
