@@ -411,8 +411,8 @@ function scoreboard(s, m) {
   }
   const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
   if (live && (sbMatch !== m.id || !sbLive)) {
-    // not on page load or a reopened match, and not in OBS's Coming Up scene (it has its own copy of this page)
-    if (sbDrawn && sbMatch !== m.id && (params.get('screen') || s.screen) === 'scoreboard' && m.aPlayer?.photo && m.bPlayer?.photo) showIntro(m);
+    // not on page load or a reopened match, and not in OBS's Coming Up scene or a preview (they force a ?screen=)
+    if (sbDrawn && sbMatch !== m.id && !params.get('screen') && m.aPlayer?.photo && m.bPlayer?.photo) showIntro(m);
     else if (!introOn) restart($('hud'), 'enter');
     prevGames = { a: m.ga, b: m.gb };
   }

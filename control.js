@@ -54,7 +54,7 @@ const actions = {
   report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
   reopen: (d, b) => B.reopen(d.matches, b.id),
   score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1)),
-  stream: (d, b) => { d.streamMatch = b.id || null; },
+  stream: (d, b) => { d.streamMatch = b.id || null; if (b.id) d.screen = 'scoreboard'; },
   swap: (d, b) => { d.swapSides = d.swapSides === b.id ? null : b.id; }, // which match shows its players on the opposite sides (OBS only; the bracket is unchanged)
   result: (d, b) => played(d, () => { // quick final score for a match played off stream, e.g. 2–1
     const m = d.matches.find(x => x.id === b.id);
