@@ -413,7 +413,8 @@ begin
 end $$;
 create or replace function public.cof_card_save_mine(p_session text, p_titles jsonb) returns void
 language plpgsql security definer set search_path = public as $$
-declare t text := (select lower(trim(gamer_tag)) from cof_accounts where sgg_user = cof_account_of(p_session));
+declare a text := cof_account_of(p_session); -- first, so a bad session is always refused
+  t text := (select lower(trim(gamer_tag)) from cof_accounts where sgg_user = a);
   locked text[] := array['award-winner','champion','goat','invictus','patriot','podium','season-champion','season-x2-champion','season-x3-champion','top-8'];
 begin
   perform cof_titles_check(p_titles);
