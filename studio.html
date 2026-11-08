@@ -119,7 +119,7 @@ const base = location.href.replace(/studio\.html.*$/, '');
 $('obs').textContent = base + 'overlay.html';
 $('copy').onclick = () => navigator.clipboard.writeText(base + 'overlay.html').then(() => toast('Copied'), () => toast('Copy failed'));
 try { if (!localStorage.getItem('cofObsHelpSeen')) { $('obsHelp').open = true; if (canSave()) localStorage.setItem('cofObsHelpSeen', '1'); } } catch {} // open the first time
-const ICONS = { scoreboard: '🎮', bracket: '🏆', standings: '📊', podium: '🥇' };
+const ICONS = { scoreboard: '🎮', bracket: '🏆', standings: '📊', podium: '🥇', cards: '🃏' };
 let draft = null, dirty = false; // { screen, match } being previewed; follows what is live until you change it
 
 // Scale the 1920×1080 pages down to the boxes.

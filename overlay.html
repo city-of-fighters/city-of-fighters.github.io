@@ -31,6 +31,16 @@
   #ai { left: 312px; } #bi { left: 1215px; justify-content: flex-end; }
   #hlabel { position: absolute; top: 0; left: 738px; width: 442px; height: 21px; display: grid; place-items: center;
             font: 700 13px 'Rajdhani', sans-serif; letter-spacing: 4px; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px #6a0030; }
+  /* Player cards screen */
+  #cards { position: absolute; inset: 0; background: #08080c; }
+  #cards .pframe { position: absolute; top: 50px; width: 660px; height: 830px; --a: #d000e0; --b: #3cc9d4;
+    background: linear-gradient(90deg, var(--a) 50%, var(--b) 50%) top / 100% 7px no-repeat, linear-gradient(var(--a), #808080) left / 7px 100% no-repeat,
+                linear-gradient(var(--b), #808080) right / 7px 100% no-repeat, linear-gradient(#808080, #808080) bottom / 100% 7px no-repeat; }
+  #cards .pframe.l { left: 262px; } #cards .pframe.r { right: 262px; --a: #3cc9d4; --b: #d000e0; }
+  #cards .pframe img { position: absolute; left: 7px; right: 7px; bottom: 7px; width: calc(100% - 14px); height: calc(100% - 90px); object-fit: contain; object-position: bottom; }
+  #cards .pname { position: absolute; top: 18px; left: 0; right: 0; text-align: center; font: 700 52px var(--hud-font); letter-spacing: 3px; color: #fff; overflow: hidden; white-space: nowrap; }
+  #cards .badge { position: absolute; width: 156px; height: 156px; object-fit: contain; }
+  #cards .cvs { position: absolute; top: 410px; left: 922px; width: 76px; text-align: center; font: 700 64px var(--hud-font); color: #ff0a6c; text-shadow: 0 0 18px #ff0a6c99; }
   /* player cameras (?cams=1) in the bottom corners, above the logos and clear of the game's health bars:
      OBS puts the cameras behind these see-through outlined boxes */
   .hcam { position: absolute; top: 816px; width: 240px; height: 135px; box-sizing: border-box; border: 3px solid #ff0a6c; box-shadow: 0 0 12px #ff0a6caa; }
@@ -187,9 +197,10 @@
 <div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
 <div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
 <div class="screen" id="s-podium"><div id="podium"></div></div>
+<div class="screen" id="s-cards"><div id="cards"></div></div>
 <div class="screen" id="s-comingup"><div class="cu" id="cuLive"></div></div>
 <div id="pop" aria-live="polite"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="bracketview.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="titles.js"></script><script src="bracketview.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -294,6 +305,22 @@ function nextMatch(s) {
   const cur = s.matches.find(x => x.id === s.streamMatch);
   if (cur && !cur.winner) return cur;
   return s.matches.find(x => x.ready && x.id !== s.streamMatch) ?? null;
+}
+// Player cards: the two players of the next match, mirrored, each with their portrait and 5 titles in an L around the outer corner.
+const CARD_SPOTS = [[80, 568], [80, 728], [80, 896], [262, 896], [444, 896]]; // left card; the right card mirrors these
+let cardsKey = '', cardsAt = 0;
+async function drawCards(s) {
+  const m = nextMatch(s), P = [m?.aPlayer, m?.bPlayer], names = JSON.stringify(P.map(p => p?.name));
+  if (names === cardsKey && Date.now() - cardsAt < 15000) return; // the portraits are large: check every 15 s
+  cardsKey = names; cardsAt = Date.now();
+  const C = await Promise.all(P.map(p => p ? rpc('cof_card', { p_tag: p.name }).catch(() => null) : null));
+  const one = (p, c, side) => {
+    if (!p) return '';
+    const src = c?.portrait || photoOf(p), pos = side === 'r' ? 'right' : 'left';
+    const badges = (c?.titles ?? []).map(id => cofTitle(id)).filter(Boolean).map((t, i) => `<img class="badge" src="hud/titles/${esc(t.id)}.webp" alt="${esc(t.name)}" style="${pos}:${CARD_SPOTS[i][0]}px;top:${CARD_SPOTS[i][1]}px">`).join('');
+    return `<div class="pframe ${side}">${src ? `<img src="${esc(src)}" alt="">` : ''}<div class="pname">${esc(p.name.toUpperCase())}</div></div>${badges}`;
+  };
+  $('cards').innerHTML = m ? one(P[0], C[0], 'l') + '<div class="cvs">VS</div>' + one(P[1], C[1], 'r') : '<div class="cvs" style="width:auto;left:0;right:0">NEXT MATCH SOON</div>';
 }
 let cuKey = '';
 function comingUp(el, s, holes) {
@@ -402,6 +429,7 @@ async function draw() {
 
   // podium
   const pkey = JSON.stringify(s.standings.slice(0, 4));
+  if (screen === 'cards') drawCards(s);
   if (screen === 'podium' && pkey !== podiumKey) { $('podium').innerHTML = s.finished ? podiumHTML(s) : params.get('preview') ? '<h1 style="margin-top:400px;color:#3cc9d4">The podium appears when the tournament ends</h1>' : ''; podiumKey = pkey; }
 }
 // Designed at 1920×1080; any other Browser Source size scales the whole page to fit.
