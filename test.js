@@ -65,4 +65,10 @@ for (let n = 2; n <= 20; n++) for (let t = 0; t < 10; t++) {
   }
   assert.strictEqual(B.standings(players, sw).reduce((a, r) => a + r.w, 0), sw.length, 'swiss: one win per match (byes too)');
 }
+const { pictureDarkShare } = require('./public/obs');
+const rgba = (n, v) => new Uint8ClampedArray(n * 4).fill(v);
+assert.strictEqual(pictureDarkShare(rgba(100, 18)), 1, 'a capture card\'s near-black counts as dark');
+assert.strictEqual(pictureDarkShare(rgba(100, 200)), 0);
+const logo = rgba(100, 0); logo.fill(255, 0, 8);
+assert.strictEqual(pictureDarkShare(logo), 0.98, 'share of dark pixels');
 console.log('all bracket tests passed');

@@ -44,6 +44,7 @@ and admin functions need the login token. Player emails, the start.gg key and th
   between matches and back when a match goes on stream (the overlay's browser source needs page permission "Advanced", set automatically).
 - **One camera for both players**: tick it to cut one camera in halves (left → Player 1, or swapped). Uses the helper scene `CoF Players camera`.
 - **Cameras in the HUD**: the same cameras in outlined boxes in the bottom corners during a match (`CoF HUD cameras` scene, overlay `?cams=1`).
+- **Go live / End stream**: Stream tab only, while connected to OBS. They use OBS's own start and stop.
 - **Phone live view**: while connected, the Stream tab sends a small picture of OBS once a second when a phone's Admin → Score or OBS tab is open.
 
 ## Past tournaments
@@ -57,7 +58,7 @@ and again before a new tournament replaces a finished one. The app's Leaderboard
 Settings tab → **start.gg** card (instructions inside). **Test mode** is on by default: the app reads from start.gg but writes nothing until it's unticked. Paste the event link and a personal API token
 (start.gg → Developer Settings). **Get players from start.gg** imports entrants and start.gg's seeding; every result
 decided here is reported to the matching set on start.gg (undo resets it) while the control panel or Stream tab is open
-on a computer. Press Start on the start.gg bracket too. Code: `public/startgg.js`.
+on a computer. Press Start on the start.gg bracket too. Put on stream also assigns the set to the tournament's first stream on start.gg (test mode off). Code: `public/startgg.js`.
 
 While a tournament is linked, the Register tab sends players to the start.gg registration page and the control panel pulls new
 sign-ups in every 3 minutes until the bracket starts. start.gg's API has no anonymous access and no documented way to register
@@ -70,7 +71,7 @@ the logos when it changes; until the database answers it shows the original six.
 
 ## Player cards and titles
 
-`public/titles.js` lists the titles (`hud/titles/<id>.webp`). `cof_cards` stores 5 titles and a portrait per gamer tag, so they survive a new tournament. Any player can use any title: organizers pick up to 5 in the Players tab, or players do on `titles.html` once logged in. The **Player cards** stream screen shows the next match.
+`public/titles.js` lists the titles (`hud/titles/<id>.webp`). `cof_cards` stores 5 titles and a portrait per gamer tag, so they survive a new tournament. Any player can use any title: organizers pick up to 5 in the Players tab, or players do on `titles.html` once logged in. The **Player cards** stream screen shows the next match. With OBS connected, the Stream tab watches the Game screen and tells the stream page about the match's first black screen (`cofPicture`, through obs-browser's `emit_event`); the 4-second cards show then, or on Put on stream if the Stream tab isn't watching.
 
 ## Android app
 

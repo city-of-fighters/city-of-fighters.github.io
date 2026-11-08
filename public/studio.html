@@ -95,7 +95,11 @@
       <button class="primary" type="submit" id="obsConnect">Connect to OBS</button>
     </form>
     <p id="obsStatus" class="dim" role="status">Not connected.</p>
+    <p id="blackWatch" class="dim"></p>
     <div id="obsBody" hidden>
+      <h3>Twitch stream</h3>
+      <p class="dim" id="liveState"></p>
+      <div class="row"><button type="button" class="primary" id="goLive" hidden>Go live</button><button type="button" id="endLive" hidden>End stream</button></div>
       <h3>Cameras</h3>
       <div id="camList"></div>
       <div class="row" style="margin-top:8px"><button type="button" id="camAdd">＋ Add camera</button></div>
@@ -177,9 +181,52 @@ $('obsForm').onsubmit = async e => {
     await obs.keepOverlayRunning().catch(() => {});
     await obsRefresh();
     sendPreview();
+    watchBlack();
   } catch (err) { $('obsBody').hidden = true; obsStatus(err.message); }
 };
 // Live picture for the phone remote: a small JPEG of what OBS is showing, once a second while a phone is watching.
+// Go live / End stream: OBS's own start and stop, with the Twitch account set up in OBS.
+async function drawLive() {
+  const on = (await obs.call('GetStreamStatus')).outputActive;
+  $('goLive').hidden = on; $('endLive').hidden = !on;
+  $('liveState').textContent = on ? 'OBS is live on your stream.' : 'OBS is not streaming.';
+}
+$('goLive').onclick = () => confirm('Start the stream now? Viewers will see it.') && obs.call('StartStream').catch(e => obsStatus(e.message));
+$('endLive').onclick = () => confirm('End the stream now?') && obs.call('StopStream').catch(e => obsStatus(e.message));
+setInterval(() => { if (obs.ws) drawLive().catch(() => {}); }, 2000);
+
+// The first black screen of a match (right after the stage is chosen) tells the stream page to show the player cards.
+// Sent straight to the page inside OBS. If these messages stop, the page shows the cards on Put on stream instead.
+const BLACK_SHARE = 0.98, BLACK_SAMPLES = 3; // about half a second, so a quick fade doesn't count
+let watchRunning = false;
+async function watchBlack() {
+  if (watchRunning) return;
+  watchRunning = true;
+  const c = document.createElement('canvas'), g = c.getContext('2d', { willReadFrequently: true });
+  c.width = 64; c.height = 36;
+  let streak = 0, tick = 0;
+  while (obs.ws) {
+    try {
+      const sourceName = $('cuScreen').value;
+      if (!sourceName) throw new Error('no game source');
+      const img = new Image();
+      img.src = (await obs.call('GetSourceScreenshot', { sourceName, imageFormat: 'jpeg', imageWidth: 64, imageHeight: 36, imageCompressionQuality: 50 })).imageData;
+      await img.decode();
+      g.drawImage(img, 0, 0, 64, 36);
+      const dark = pictureDarkShare(g.getImageData(0, 0, 64, 36).data);
+      streak = dark >= BLACK_SHARE ? streak + 1 : 0;
+      const black = streak === BLACK_SAMPLES && await obs.mainScene() !== OBS_COMING_UP; // only when it starts, so a capture left black doesn't count
+      if (black || tick++ % 4 === 0) {
+        await obs.call('CallVendorRequest', { vendorName: 'obs-browser', requestType: 'emit_event', requestData: { event_name: 'cofPicture', event_data: { black } } });
+        $('blackWatch').textContent = `Black screen watch is on: ${sourceName}, ${Math.round(dark * 100)}% dark.`;
+      }
+    } catch { streak = 0; $('blackWatch').textContent = 'Black screen watch is off: pick the Game screen below. The cards then show on Put on stream.'; }
+    await new Promise(r => setTimeout(r, 150));
+  }
+  $('blackWatch').textContent = '';
+  watchRunning = false;
+}
+
 let previewRunning = false;
 async function sendPreview() {
   if (previewRunning) return;

@@ -354,9 +354,10 @@ async function drawCards(s) {
   const html = m ? await cardsHTML(m) : '<div class="cvs" style="width:auto;left:0;right:0">NEXT MATCH SOON</div>';
   if (html !== cardsShown) $('cards').innerHTML = cardsShown = html; // otherwise the animation would replay on every check
 }
-// Put on stream: when both players have a picture, their cards fill the screen for 4 s before the scoreboard comes in.
+// When both players have a picture, their cards fill the screen for 4 s: at the match's first black screen (the Stream tab watches for it),
+// or on Put on stream when the Stream tab isn't watching.
 const INTRO_MS = 4000, INTRO_OUT = 400;
-let introOn = false, introTimer = 0, introRun = 0;
+let introOn = false, introTimer = 0, introRun = 0, cardsWait = null, watchedAt = 0;
 const introEnd = () => { clearTimeout(introTimer); introTimer = setTimeout(() => {
   const run = introRun;
   $('intro').classList.add('out');
@@ -371,8 +372,15 @@ async function showIntro(m) {
   await Promise.race([Promise.all([...box.querySelectorAll('img')].map(i => i.decode().catch(() => {}))), new Promise(r => setTimeout(r, 2000))]); // never show half-loaded cards
   if (run !== introRun) return;
   box.hidden = false;
+  $('hud').style.opacity = 0;
   introEnd();
 }
+addEventListener('cofPicture', e => {
+  watchedAt = Date.now();
+  if (!e.detail.black || !cardsWait || cardsWait.id !== sbMatch || !sbLive) return;
+  const m = cardsWait; cardsWait = null;
+  showIntro(m);
+});
 // OBS changes from the Coming Up scene a moment after this page sees the match: start again so viewers get all 4 s.
 addEventListener('obsSourceActiveChanged', e => { if (e.detail.active && introOn && !$('intro').hidden) { const b = $('intro'), html = b.innerHTML; b.classList.remove('out'); b.innerHTML = html; introEnd(); } });
 let cuKey = '';
@@ -412,7 +420,9 @@ function scoreboard(s, m) {
   const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
   if (live && (sbMatch !== m.id || !sbLive)) {
     // not on page load or a reopened match, and not in OBS's Coming Up scene or a preview (they force a ?screen=)
-    if (sbDrawn && sbMatch !== m.id && !params.get('screen') && m.aPlayer?.photo && m.bPlayer?.photo) showIntro(m);
+    const cards = sbDrawn && sbMatch !== m.id && !params.get('screen') && m.aPlayer?.photo && m.bPlayer?.photo, wait = cards && Date.now() - watchedAt < 6000;
+    cardsWait = wait ? m : null;
+    if (cards && !wait) showIntro(m);
     else if (!introOn) restart($('hud'), 'enter');
     prevGames = { a: m.ga, b: m.gb };
   }
@@ -430,6 +440,7 @@ function scoreboard(s, m) {
     }
     prevGames = { a: m.ga, b: m.gb };
   }
+  if (live && cardsWait?.id === m.id) cardsWait = m; // keeps Switch sides up to date
   $('hud').style.opacity = live && !introOn ? 1 : 0;
   $('winCard').classList.toggle('on', phase === 'winner');
   $('cuCard').classList.toggle('on', phase === 'waiting');
