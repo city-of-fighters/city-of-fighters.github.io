@@ -16,6 +16,20 @@ Written 6 November 2026, updated 8 November. The site runs on GitHub Pages at ht
 5. **Don't do the switch during a tournament or stream.**
 6. Stage specific files only, and run `node test.js` before pushing to `main`.
 
+## Order of work
+
+Follow the steps in this order. Step 0.3 is what moves the live site to the new database, so it comes late.
+
+1. Steps 0.1, 0.2 and 0.4: build the new database and server functions. The live site isn't affected.
+2. Steps 1 to 3: set up and test on Hostinger's temporary address. It still uses the old database, so sign-ins and data there are the old ones. Live site isn't affected.
+3. Ask the person to confirm the day is clear: no tournament or stream. **From here the live site changes.**
+4. Step 0.3: change the addresses and push to `main`, after the person says OK. Wait for both GitHub Pages and Hostinger to deploy it. The live site now uses the new, empty database.
+5. Step 0.5: the person pastes the start.gg token in Settings. Step 0.6 if the owner kept any data.
+6. Step 4: DNS. The domain owner (Gaber) makes the Porkbun change; give them the exact values.
+7. Step 5: only what isn't already done. Steps 5.2 and 5.3 repeat 0.4, and the start.gg OAuth redirect URL doesn't change.
+8. Step 6: check everything together.
+9. Steps 7 to 9 only later, each after asking the owner.
+
 ## How the system works
 
 | Part | Where | Notes |
@@ -65,7 +79,7 @@ Hostinger gets its files from `main`, so point the code at the new database befo
    - `public/account.js` line 3
    - `docs/setup.html`: its direct links to the Supabase dashboard
    - `.github/workflows/keep-awake.yml`: **add** a ping for the new project. Keep the old ping unless the owner confirms Iron Fist Academy pings it elsewhere, or that project can pause.
-4. A person adds the Edge Function secrets to the new project and deploys `cof-winner-email` and `cof-startgg` with **Verify JWT with legacy secret** off.
+4. A person adds the Edge Function secrets to the new project and deploys `cof-winner-email` and `cof-startgg` (code in `supabase/functions/`) with **Verify JWT with legacy secret** off. Supabase never shows saved secrets again, so if nobody has them: create a new Gmail app password, and copy or regenerate the client ID and secret in the start.gg OAuth app.
 5. A person pastes the start.gg token in Settings on the new setup. Test mode starts on.
 6. Data: the SQL file builds an empty database with the 6 original sponsors. The calendar refills from start.gg. Players, photos, added sponsors, past tournaments, chosen titles and uploaded card pictures don't come across. The 6 original portraits come back without titles, and everyone logs in with start.gg again. Ask the owner whether to start clean. If not, a person exports the `cof_` tables from the old project first.
 
@@ -165,5 +179,5 @@ After a few days of everything working, a person removes City of Fighters data f
 
 The PC app and phone app already use `cityoffighters.com`, so they don't change for this move.
 
-- The OBS browser source must use `https://cityoffighters.com/overlay.html?cams=1`. An older source on `city-of-fighters.github.io` stops working in step 7.
+- The OBS browser source must use the `cityoffighters.com` address (the OBS Manual, section 3). An older source on `city-of-fighters.github.io` stops working in step 7.
 - Keep the Stream tab open and connected to OBS during a tournament, with the **Game screen** chosen. Black-screen cards, Go live and End stream need it.

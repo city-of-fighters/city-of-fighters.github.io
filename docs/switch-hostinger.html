@@ -2,88 +2,112 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>City of Fighters: switch to Hostinger</title>
+<title>City of Fighters: transfer to Kevin</title>
 <!-- Source of City-of-Fighters-Switch-to-Hostinger.pdf -->
 
 <link rel="stylesheet" href="guide.css">
 </head>
 <body>
-<div class="kicker">What you do when moving · 6 November 2026</div>
-<h1>Switch to <span>Hostinger</span></h1>
-<p>What the owner of <b>cityoffighters.com</b> needs to do when the site moves from GitHub to Hostinger. Your partner’s Claude does the technical side from <code>DEPLOY-HOSTINGER.md</code> in the GitHub repo.</p>
-<p class="note">the address stays <b>cityoffighters.com</b>, so the OBS link and the installed apps keep working. Everyone has to log in again, because the database is new. Iron Fist Academy stays in the old Supabase project.</p>
+<div class="kicker">Moving the hosting · 8 November 2026</div>
+<h1>Transfer to <span>Kevin</span></h1>
+<p>The website moves to Kevin’s Hostinger account and the database to a new Supabase account. The address stays <b>cityoffighters.com</b>, so the OBS link and installed apps keep working. Iron Fist Academy stays in the old Supabase project.</p>
+<p class="warn">pick a day with no tournament or stream. The new database starts empty: everyone logs in again, and chosen titles and uploaded card pictures have to be set again. The 6 original portraits come back by themselves.</p>
+
+<h2>Who does what</h2>
+<table>
+  <tr><td>Gaber</td><td>Gives Kevin GitHub access. Changes the DNS at Porkbun. Sets up the streaming PC.</td></tr>
+  <tr><td>Kevin</td><td>Gives Claude the instructions below. Owns the Hostinger and new Supabase accounts. Pastes every password and key personally.</td></tr>
+  <tr><td>Kevin’s Claude</td><td>Does the technical work from <code>DEPLOY-HOSTINGER.md</code> and asks before each risky step.</td></tr>
+</table>
 
 <h2>Before you start</h2>
 <table class="check">
-  <tr><td>☐</td><td>Your partner has a Hostinger plan that supports Git deployment (web or cloud hosting, not agency hosting)</td></tr>
-  <tr><td>☐</td><td>Your partner has access to the GitHub repo</td></tr>
-  <tr><td>☐</td><td>You can log in to <a href="https://porkbun.com/account/domains">Porkbun</a></td></tr>
-  <tr><td>☐</td><td>No tournament or stream is running or coming up that day</td></tr>
+  <tr><td>☐</td><td><b>Gaber:</b> add Kevin’s GitHub account to <code>city-of-fighters/city-of-fighters.github.io</code> with Write access, and approve the Hostinger GitHub app when it asks</td></tr>
+  <tr><td>☐</td><td><b>Gaber:</b> make sure you can log in to <a href="https://porkbun.com/account/domains">Porkbun</a></td></tr>
+  <tr><td>☐</td><td><b>Kevin:</b> Hostinger plan with Git deployment (web or cloud hosting, not agency hosting)</td></tr>
+  <tr><td>☐</td><td><b>Kevin:</b> Claude Code installed and logged in to GitHub</td></tr>
+  <tr><td>☐</td><td><b>Both:</b> decide who has the new admin password, and agree how to share it in person or by phone, not in a chat</td></tr>
 </table>
-<p class="warn">don’t buy the domain again on Hostinger, and don’t change the Porkbun nameservers. You only change the records in Step 2.</p>
 
-<h2>First: the new database</h2>
+<h3>Passwords and keys Kevin will need</h3>
+<p>None of these go in a chat, in Claude or in a file. Kevin pastes each one where Claude says.</p>
+<table>
+  <tr><td>New admin password</td><td>Choose a new one.</td></tr>
+  <tr><td>Gmail address and app password</td><td>Supabase can’t show the old one. Make a new <a href="https://myaccount.google.com/apppasswords">Gmail app password</a> if nobody has it.</td></tr>
+  <tr><td>start.gg client ID and secret</td><td>From the OAuth app on start.gg: profile picture → <b>Developer Settings</b>.</td></tr>
+  <tr><td>start.gg API token</td><td>Same page, under <b>Personal Access Tokens</b>. Create a new one if nobody has it.</td></tr>
+</table>
+
+<h2>Exact instructions for Kevin’s Claude</h2>
+<p>Kevin pastes this whole box into Claude Code as the first message.</p>
+<pre style="white-space:pre-wrap;border:1px solid #888;padding:10px;font-size:10pt;line-height:1.35">I'm taking over the hosting of City of Fighters, a live website at https://cityoffighters.com. Clone https://github.com/city-of-fighters/city-of-fighters.github.io, read CLAUDE.md and all of DEPLOY-HOSTINGER.md, then guide me through the move one step at a time, following "Order of work" in that guide.
+
+The website moves to my Hostinger account and the database moves to a new Supabase project in a new account.
+
+Rules:
+- Never ask me to paste a password, token, app password or secret key into this chat, and never write one to a file, log or commit. Tell me exactly where to paste it myself.
+- Stop and wait for my OK before pushing to main, before anything that changes what the live site uses, before disabling GitHub Pages, and before anything that costs money.
+- Don't change the old Supabase project glqxyghdcindimggnwml in any way. Iron Fist Academy uses it.
+- Gaber controls the domain at Porkbun. When we reach the DNS step, give me the exact values to send Gaber, then wait until I confirm it's done.
+- Tell me when a step is one only a person can do, what to click, and what I should see when it worked.
+
+First check the guide against what really exists and tell me about anything that doesn't match. At the end, list what was done, what was tested, and what wasn't.</pre>
+
+<h2>Gaber: change the DNS when Kevin asks</h2>
 <ol>
-  <li>Create the new <a href="https://supabase.com">Supabase</a> account and a new project. Use an email someone reads.</li>
-  <li>Decide what to do with your data. The new database starts empty, with the 6 original sponsors. Test players, photos and past tournaments don’t come across. The calendar refills from start.gg.</li>
-  <li>In the new project, open the SQL Editor, paste all of <code>supabase/city-of-fighters.sql</code> and press <b>Run</b>. Then set the admin password with the line in <code>DEPLOY-HOSTINGER.md</code>.</li>
-  <li>In its <b>Edge Functions → Secrets</b>, add <code>GMAIL_USER</code>, <code>GMAIL_APP_PASSWORD</code>, <code>SGG_CLIENT_ID</code> and <code>SGG_CLIENT_SECRET</code>.</li>
-  <li>Deploy <code>cof-winner-email</code> and <code>cof-startgg</code>, each with <b>Verify JWT with legacy secret</b> off.</li>
-  <li>Give your partner the new project’s URL and <b>publishable</b> key. Never share the service or secret key.</li>
+  <li>Kevin sends you the <b>A record address</b> from Hostinger, a number like <code>123.45.67.89</code>. Use only that one.</li>
+  <li>Log in to <a href="https://porkbun.com/account/domains">Porkbun</a> and open <b>DNS</b> for <code>cityoffighters.com</code>.</li>
+  <li><b>Screenshot the current records.</b> You need them to undo this.</li>
+  <li>Delete these four A records: <code>185.199.108.153</code>, <code>185.199.109.153</code>, <code>185.199.110.153</code>, <code>185.199.111.153</code>.</li>
+  <li>Add one record: Type <code>A</code>, Host empty, Target the Hostinger address, TTL <code>600</code>.</li>
+  <li>Only if Kevin gives a different value for <code>www</code>, change that CNAME too. Don’t change the nameservers.</li>
+  <li>Tell Kevin it’s done. It usually takes minutes but can take up to 24 hours. Kevin then turns on SSL and <b>Force HTTPS</b>. A security warning for a short time is normal.</li>
 </ol>
-<p>After the switch, paste the start.gg token in Settings again. Test mode starts on.</p>
+<p class="warn">to undo: in Porkbun delete the Hostinger record and add the four GitHub records back. This only works while GitHub Pages is still on, so nobody turns it off until every check passes.</p>
 
-<h2>Step 1: your partner prepares Hostinger</h2>
-<p>He tells his Claude:</p>
-<p><code>Clone city-of-fighters/city-of-fighters.github.io, read DEPLOY-HOSTINGER.md, and follow it step by step. Ask me before anything it says to ask about.</code></p>
-<p>Wait until he confirms that the site works on Hostinger’s temporary address. <b>Your live site isn’t touched in this step.</b></p>
-
-<h2>Step 2: you change the DNS records</h2>
-<ol>
-  <li>Ask your partner for the <b>A record address</b> from Hostinger’s control panel (hPanel). It’s a number like <code>123.45.67.89</code>. Use the one he gives you, not one from a search.</li>
-  <li>Log in to <a href="https://porkbun.com/account/domains">Porkbun Domain Management</a>. Open <b>DNS</b> for <code>cityoffighters.com</code>.</li>
-  <li><b>Write down or screenshot the current records.</b> You’ll need them to undo this.</li>
-  <li>Delete these four A records:
-    <ul><li><code>185.199.108.153</code></li><li><code>185.199.109.153</code></li><li><code>185.199.110.153</code></li><li><code>185.199.111.153</code></li></ul></li>
-  <li>Add one new record: Type <code>A</code>, Host empty, Target the Hostinger address, TTL <code>600</code>. Click <b>Add</b>.</li>
-  <li>Only if your partner gives you a different value for <code>www</code>, change the <code>www</code> CNAME to it. Otherwise leave it.</li>
-</ol>
-
-<h2>Step 3: your partner finishes</h2>
-<ol>
-  <li>When the new records are visible, usually within minutes but sometimes up to 24 hours, he turns on SSL and <b>Force HTTPS</b> in hPanel.</li>
-  <li>The site can show a security warning until the certificate is ready. That’s normal for a short time.</li>
-</ol>
-
-<h2>Step 4: check it together</h2>
+<h2>Check it together</h2>
 <table class="check">
   <tr><td>☐</td><td><a href="https://cityoffighters.com">cityoffighters.com</a> and www.cityoffighters.com open with a padlock</td></tr>
-  <tr><td>☐</td><td>The Leaderboard shows your data</td></tr>
-  <tr><td>☐</td><td>The Control panel logs in; Players, Sponsors and Stream open</td></tr>
-  <tr><td>☐</td><td>OBS shows the overlay, and a new sponsor appears within 10 seconds</td></tr>
-  <tr><td>☐</td><td>The phone app opens and the Events tab shows your events</td></tr>
-  <tr><td>☐</td><td>The test winner email arrives</td></tr>
+  <tr><td>☐</td><td>The Control panel logs in with the new password; Players, Sponsors and Stream open</td></tr>
+  <tr><td>☐</td><td>The Events tab shows start.gg events, and Log in with start.gg works</td></tr>
+  <tr><td>☐</td><td>Settings → Test the winner email: the email arrives</td></tr>
+  <tr><td>☐</td><td>The phone app opens and Admin logs in</td></tr>
+  <tr><td>☐</td><td>A new sponsor appears on the OBS page within 10 seconds</td></tr>
 </table>
 
-<h2>If something goes wrong</h2>
-<p>In Porkbun, delete the Hostinger A record and add the four GitHub A records from Step 2 back. The site returns to GitHub. This only works while GitHub Pages is still on, so <b>don’t switch GitHub off until every check passes.</b></p>
-
-<h2>Step 5: after it’s been working for a few days</h2>
+<h2>Gaber: set up the streaming PC</h2>
+<p>Do this after the checks above, using the OBS Manual for the details.</p>
 <ol>
-  <li>Your partner’s Claude removes the domain from GitHub Pages and turns Pages off (it asks first).</li>
-  <li><b>Keep the GitHub repo.</b> It holds the code, and the job that stops Supabase from pausing. If you delete it, the database can pause and take the whole app down.</li>
-  <li>Your partner’s Claude lists what to remove from the old project: player emails, photos and the start.gg key. Approve it first. <b>Never delete the old project</b>, because Iron Fist Academy is in it.</li>
-  <li>Keep it public until the PC app downloads have been moved, or the download links stop working.</li>
+  <li>Install OBS and connect Twitch (Manual sections 1 and 5).</li>
+  <li>In OBS, turn on <b>Tools → WebSocket Server Settings → Enable WebSocket server</b>.</li>
+  <li>Add a Browser source with <span class="url">https://cityoffighters.com/overlay.html</span>, 1920 × 1080, above the game. Never use the old <code>github.io</code> address.</li>
+  <li>Add the game (capture card or screen).</li>
+  <li>Install the PC app from <b>Settings → Get the apps</b> at cityoffighters.com and log in with the new password.</li>
+  <li>Open the <b>Stream</b> tab (Ctrl + 3). It connects to OBS by itself. Choose the <b>Game screen</b> and build the Coming Up screen.</li>
+  <li>On a private or unlisted stream, test <b>Go live</b> and <b>End stream</b>.</li>
+  <li>During a Tekken loading screen, check that the Stream tab shows at least 98% dark.</li>
 </ol>
+<p>Keep the Stream tab open during every tournament. Black-screen cards, Go live and End stream need it.</p>
 
-<h2>What stays where</h2>
+<h2>Before the first real tournament</h2>
+<table class="check">
+  <tr><td>☐</td><td>Upload pictures and set titles for the players (Players tab → Edit)</td></tr>
+  <tr><td>☐</td><td>Turn test mode off in Settings → start.gg, after a private test. Press Start on the start.gg bracket too</td></tr>
+  <tr><td>☐</td><td>Add the Twitch channel to the tournament on start.gg</td></tr>
+  <tr><td>☐</td><td>Run the Test Checklist PDF</td></tr>
+</table>
+
+<h2>A few days later</h2>
+<p>When everything has worked, Kevin’s Claude can turn off GitHub Pages and list what to remove from the old database. It asks first. Keep the GitHub repo: it holds the code and the job that stops Supabase from pausing. <b>Never delete the old Supabase project.</b></p>
+
+<h2>What ends up where</h2>
 <table>
-  <tr><td>Domain</td><td>Porkbun. Keep auto-renew on. It renews on 6 November each year.</td></tr>
-  <tr><td>Website files</td><td>Hostinger, updated automatically from GitHub.</td></tr>
-  <tr><td>Code and backups of it</td><td>GitHub, and the CityOF APP files folder.</td></tr>
+  <tr><td>Domain</td><td>Porkbun, with Gaber. Keep auto-renew on. It renews on 6 November each year.</td></tr>
+  <tr><td>Website</td><td>Kevin’s Hostinger, updated automatically from GitHub.</td></tr>
   <tr><td>Database and server functions</td><td>The new Supabase account.</td></tr>
-  <tr><td>Email</td><td>The same Gmail, with its secrets in the new Supabase project.</td></tr>
-  <tr><td>Calendar and results</td><td>start.gg. Nothing changes.</td></tr>
+  <tr><td>Code and PC app downloads</td><td>GitHub.</td></tr>
+  <tr><td>Email</td><td>The same Gmail, with its details in the new Supabase project.</td></tr>
+  <tr><td>Calendar and brackets</td><td>start.gg. Nothing changes.</td></tr>
 </table>
 <footer>City of Fighters · Never send passwords, tokens or app passwords in a chat. Paste them only where a step says.</footer>
 </body>
