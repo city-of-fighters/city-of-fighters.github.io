@@ -33,6 +33,7 @@
   <div class="card" id="tourCard">
     <div class="row" style="justify-content:space-between"><h2 style="margin:0">Tournament</h2><button class="small" id="logoutBtn" type="button">Log out</button></div>
     <p id="tourStatus" style="font-size:18px;margin:8px 0 12px"></p>
+    <div id="sggToday"></div>
     <div id="tourEdit">
       <div class="grid" style="gap:0 14px">
         <div><label for="ename">Event name</label><input type="text" id="ename" maxlength="60"></div>
@@ -51,21 +52,8 @@
         <button data-act="end" data-confirm="End this tournament? The app will show 'No tournament in progress'. Players and results stay until you create a new tournament.">End tournament</button>
       </div>
     </div>
-    <details id="newTour" style="margin-top:14px">
-      <summary style="cursor:pointer"><b>＋ Create a new tournament</b></summary>
-      <div class="grid" style="gap:0 14px">
-        <div><label for="nName">Event name</label><input type="text" id="nName" maxlength="60" value="City of Fighters"></div>
-        <div><label for="nGame">Game</label><input type="text" id="nGame" maxlength="40" value="Tekken 8"></div>
-      </div>
-      <label for="nEventAt">📅 Tournament date and time</label><input type="datetime-local" id="nEventAt">
-      <label for="nFormat">Tournament type</label><select id="nFormat"></select>
-      <fieldset class="regbox" hidden><legend>Registration opens</legend>
-        <label class="row"><input type="radio" name="nRegMode" value="open" checked> Right away</label>
-        <label class="row"><input type="radio" name="nRegMode" value="at"> At a date and time: <input type="datetime-local" id="nRegAt"></label>
-      </fieldset>
-      <p class="dim" style="font-size:13px">Creating a new tournament removes all players and results of the current one (a finished one is kept under Past tournaments). Rules stay as they are.</p>
-      <button class="primary" id="createBtn" type="button">Create tournament</button>
-    </details>
+    <p style="margin:14px 0 0"><a href="https://www.start.gg/tournament/create" target="_blank" rel="noopener"><b>＋ Create a new tournament on start.gg</b></a></p>
+    <p class="dim" style="font-size:13px;margin:4px 0 0">It appears in the calendar by itself, and a Start button shows here on the day.</p>
   </div>
 
   <div class="card" id="resultsCard" hidden>
@@ -116,18 +104,10 @@ $('startBtn').onclick = () => confirm(`Start a ${B.FORMATS[$('format').value]} t
 const radio = name => document.querySelector(`input[name=${name}]:checked`)?.value;
 const toLocal = iso => iso ? new Date(new Date(iso) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
 const fromLocal = v => v ? new Date(v).toISOString() : null; // datetime-local is local time
-$('nFormat').innerHTML = $('format').innerHTML;
 $('saveSettings').onclick = () => {
   if (radio('regMode') === 'at' && !$('regAt').value) return toast('Pick the date and time registration opens');
   post('settings', { name: $('ename').value, game: $('egame').value, rules: $('rules').value,
     regMode: radio('regMode'), regAt: fromLocal($('regAt').value), regOpen: $('regOpen').checked, eventAt: fromLocal($('eventAt').value) });
-};
-$('createBtn').onclick = () => {
-  if (radio('nRegMode') === 'at' && !$('nRegAt').value) return toast('Pick the date and time registration opens');
-  if (S.players.length && !confirm(`Create a new tournament? The ${S.players.length} players and all results of the current one are removed.`)) return;
-  post('create', { name: $('nName').value, game: $('nGame').value, format: $('nFormat').value, rules: S.rules,
-    regMode: radio('nRegMode'), regAt: fromLocal($('nRegAt').value), eventAt: fromLocal($('nEventAt').value) });
-  $('newTour').open = false;
 };
 $('logoutBtn').onclick = logout;
 // Team names (shown on the stream HUD): saved when the field loses focus or Enter is pressed
@@ -140,7 +120,7 @@ $('players').addEventListener('change', async e => {
 $('mailBtn').onclick = () => confirm('Email the winner banner to the champion now?') && sendWinnerMail(true);
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 function tourStatus() {
-  if (S.status === 'none') return '⚪ No tournament in progress. Create one below.';
+  if (S.status === 'none') return '⚪ No tournament in progress.';
   const head = `<b>${esc(S.name)}</b> · ${esc(S.game)} · ${esc(B.FORMATS[S.format] ?? '')}${S.eventAt ? ` · 📅 ${esc(fmtDate(S.eventAt))}` : ''} · `;
   if (S.status === 'running') return head + '🟢 In progress';
   if (S.status === 'finished') return head + '🏆 Finished';
@@ -160,6 +140,7 @@ async function draw() {
   document.body.classList.remove('locked');
   const started = S.matches.length > 0;
   $('tourStatus').innerHTML = tourStatus();
+  sggTodayDraw();
   $('tourEdit').hidden = S.status === 'none';
   if (!$('tourCard').contains(document.activeElement)) { // don't overwrite what is being typed
     $('ename').value = S.name; $('egame').value = S.game; $('rules').value = S.rules;
