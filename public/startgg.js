@@ -57,7 +57,7 @@ async function sggConnect(link, key) {
   const ev = (await sgg('query($slug: String) { event(slug: $slug) { id name tournament { name } } }', { slug })).event;
   if (!ev) throw new Error('start.gg has no event at that link');
   const entrants = sggLinkByName(await sggEntrants(ev.id));
-  post('startgg', { set: { slug, eventId: String(ev.id), title: `${ev.tournament.name} · ${ev.name}`, auto: true }, entrants });
+  return post('startgg', { set: { slug, eventId: String(ev.id), title: `${ev.tournament.name} · ${ev.name}`, auto: true }, entrants });
 }
 // A tag team has several participants: its name is the entrant's name, not one player's gamer tag.
 const sggSolo = e => (e.participants?.length ?? 0) <= 1;
@@ -85,7 +85,7 @@ async function sggImport() {
   const seeded = list.map(e => Object.keys(entrants).find(p => entrants[p] === String(e.id))).filter(Boolean);
   const same = Object.entries(entrants).every(([p, e]) => S.startgg.entrants?.[p] === e)
     && (S.matches.length || seeded.every((id, i) => S.raw.order[i] === id));
-  if (!same) post('startgg', { entrants, ...(S.matches.length ? {} : { seed: seeded }) });
+  if (!same) await post('startgg', { entrants, ...(S.matches.length ? {} : { seed: seeded }) });
   return { added: Object.keys(entrants).length, skipped };
 }
 
@@ -135,7 +135,7 @@ function sggGames(m, ent) {
 // Events calendar: every upcoming session of the tournaments City of Fighters hosts on start.gg, never ones the account
 // only plays in: those the key's account created (start.gg's "tournaments by owner") plus those where it is an admin.
 // A tournament can run for weeks with one event per session, so each event gets its own calendar entry and date.
-const SGG_T = 'id name slug startAt endAt city isOnline events { id name startAt videogame { displayName } }';
+const SGG_T = 'id name slug startAt endAt city isOnline events { id slug name startAt videogame { displayName } }';
 async function sggCalendar() {
   if (!await sggGetKey()) return null;
   const me = (await sgg('query { currentUser { id } }')).currentUser;
@@ -148,7 +148,7 @@ async function sggCalendar() {
   }
   const admin = await sgg(`query { currentUser { tournaments(query: { perPage: 25, filter: { upcoming: true, tournamentView: "admin" } }) { nodes { ${SGG_T} } } } }`)
     .then(d => d.currentUser?.tournaments?.nodes ?? [], () => []); // if start.gg rejects this lookup, the created ones still show
-  const list = sggCalendarEntries([...owned, ...admin], Date.now() / 1000);
+  const list = sggEvents = sggCalendarEntries([...owned, ...admin], Date.now() / 1000);
   return rpc('cof_admin_events_sync', { p_token: token, p_events: list });
 }
 function sggCalendarEntries(tournaments, now) {
@@ -160,11 +160,52 @@ function sggCalendarEntries(tournaments, now) {
     for (const e of events) {
       const at = e.startAt ?? t.startAt;
       if (!(at > now - 86400)) continue; // today's sessions stay until tomorrow
-      out.push({ id: e.id ? `${t.id}:${e.id}` : String(t.id), name: `${t.name}${events.length > 1 && e.name ? ` · ${e.name}` : ''}`.slice(0, 80), at,
+      out.push({ id: e.id ? `${t.id}:${e.id}` : String(t.id), eventId: e.id ? String(e.id) : null, slug: e.slug ?? null, name: `${t.name}${events.length > 1 && e.name ? ` · ${e.name}` : ''}`.slice(0, 80), at,
         link: 'https://www.start.gg/' + t.slug, game: e.videogame?.displayName ?? null, place: t.isOnline ? 'Online' : t.city ?? null });
     }
   }
   return out.sort((x, y) => x.at - y.at).slice(0, 100);
+}
+
+// Control panel: an event on start.gg gets a Start button on its day. One click makes the tournament, links it, brings
+// in everyone signed up and builds the bracket with start.gg's bracket type. Only reads from start.gg.
+const SGG_FORMAT = { DOUBLE_ELIMINATION: 'double', SINGLE_ELIMINATION: 'single', ROUND_ROBIN: 'robin', SWISS: 'swiss' };
+let sggEvents = [], sggEventsAt = 0, sggStarting = false, sggTodayShown = '';
+function sggTodayDraw() {
+  const box = document.getElementById('sggToday');
+  if (!box) return;
+  if (Date.now() - sggEventsAt > 300000) { sggEventsAt = Date.now(); sggCalendar().catch(() => {}); } // new start.gg events show within 5 minutes
+  const day = new Date().toDateString(), due = e => e.at * 1000 <= Date.now() || new Date(e.at * 1000).toDateString() === day;
+  const open = sggEvents.filter(e => e.eventId && !(S.startgg?.eventId === e.eventId && S.status !== 'setup')); // already started here
+  const when = e => new Date(e.at * 1000).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const next = open.find(e => !due(e));
+  const html = open.filter(due).map(e => `<div class="row" style="justify-content:space-between;margin-bottom:8px"><span>📅 <b>${esc(e.name)}</b> <span class="dim">${esc(when(e))}</span></span>
+      ${S.status === 'running' ? '<span class="dim">Finish or end the current tournament first</span>' : `<button class="primary" type="button" data-sgg-start="${esc(e.id)}">Start tournament</button>`}</div>`).join('')
+    + (next ? `<p class="dim" style="margin:0 0 10px">Next on start.gg: <b>${esc(next.name)}</b> · ${esc(when(next))}. Its Start button appears here on the day.</p>` : '');
+  if (html !== sggTodayShown) box.innerHTML = sggTodayShown = html; // this page redraws every 1.5 s
+}
+document.addEventListener('click', e => {
+  const ev = sggEvents.find(x => x.id === e.target.closest('[data-sgg-start]')?.dataset.sggStart);
+  if (ev) sggStartEvent(ev);
+});
+async function sggStartEvent(e) {
+  if (sggStarting) return;
+  sggStarting = true;
+  try {
+    const [list, info] = await Promise.all([sggEntrants(e.eventId), sgg('query($id: ID!) { event(id: $id) { phases { bracketType } } }', { id: e.eventId })]);
+    if (list.length < 2) return toast(`${list.length} signed up on start.gg so far: at least 2 are needed`);
+    const format = SGG_FORMAT[info.event?.phases?.[0]?.bracketType] ?? 'double', linked = S.startgg?.eventId === e.eventId;
+    const lost = !linked && S.players.length && !S.finished ? `\n\nThe ${S.players.length} players and results of "${S.name}" are removed.` : '';
+    if (!confirm(`Start "${e.name}"?\n\n${list.length} players from start.gg · ${B.FORMATS[format]}\nRegistration closes.${lost}`)) return;
+    if (!linked) {
+      await post('create', { name: e.name, game: e.game || 'Tekken 8', format, rules: S.rules, regMode: 'open', eventAt: new Date(e.at * 1000).toISOString() });
+      if (S.status !== 'setup' || S.matches.length || S.startgg) return; // post() has already shown what went wrong
+      await sggConnect(e.slug);
+    }
+    const { skipped } = await sggImport();
+    await post('start', { format });
+    if (skipped.length) toast(`Skipped: ${skipped.join(', ')}`);
+  } catch (err) { toast(err.message); } finally { sggStarting = false; }
 }
 
 // Control panel card (admin.html)
@@ -216,7 +257,7 @@ async function sggTick() {
   const t = sggTicks++;
   if (!S || !token) return;
   await sggSync();
-  if (t % 18 === 0 && S.startgg?.eventId && !S.matches.length && S.status !== 'none') await sggImport().catch(e => (sggProblems = [`Getting players: ${e.message}`]));
+  if (t % 18 === 0 && S.startgg?.eventId && !S.matches.length && S.status !== 'none' && !sggStarting) await sggImport().catch(e => (sggProblems = [`Getting players: ${e.message}`]));
   if (t % 180 === 1) await sggCalendar().catch(() => {});
 }
 setInterval(() => navigator.locks ? navigator.locks.request('cof-startgg', { ifAvailable: true }, l => l && sggTick()) : sggTick(), 10000);
