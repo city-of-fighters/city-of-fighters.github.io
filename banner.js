@@ -4,8 +4,17 @@ const MAIL_URL = 'https://glqxyghdcindimggnwml.supabase.co/functions/v1/cof-winn
 const bannerLogo = new Image();
 bannerLogo.src = 'logo-clear.png';
 
+const champPhoto = async r => {
+  const src = r.id && await rpc('cof_photo', { p_id: r.id }).catch(() => null);
+  if (!src) return null;
+  const img = new Image();
+  img.src = src;
+  return img.decode().then(() => img, () => null);
+};
+
 async function drawBanner(canvas, s, champs) {
   await bannerLogo.decode().catch(() => {});
+  const photos = (await Promise.all(champs.map(champPhoto))).filter(Boolean);
   const c = canvas.getContext('2d'), W = 1200, H = 630, F = 'Arial Black, Impact, sans-serif', X = 830;
   c.fillStyle = '#0e0e10'; c.fillRect(0, 0, W, H);
   const glow = c.createRadialGradient(X, 300, 0, X, 300, 520);
@@ -14,7 +23,14 @@ async function drawBanner(canvas, s, champs) {
   c.save(); c.translate(X, 300); // light rays behind the name
   for (let i = 0; i < 24; i++) { c.rotate(Math.PI / 12); c.fillStyle = i % 2 ? '#ffd24a0d' : '#ff0a6c0a'; c.beginPath(); c.moveTo(0, 0); c.lineTo(900, -70); c.lineTo(900, 70); c.fill(); }
   c.restore();
-  if (bannerLogo.naturalWidth) { c.shadowColor = '#ff0a6c'; c.shadowBlur = 30; c.drawImage(bannerLogo, 30, 150, 470, 310); c.shadowBlur = 0; }
+  const logoBox = photos.length ? [180, 28, 170, 112] : [30, 150, 470, 310];
+  if (bannerLogo.naturalWidth) { c.shadowColor = '#ff0a6c'; c.shadowBlur = 30; c.drawImage(bannerLogo, ...logoBox); c.shadowBlur = 0; }
+  const size = Math.min(420, 450 / photos.length - 10); // tied champions share the space
+  photos.forEach((img, i) => {
+    const x = 265 - (photos.length * (size + 10) - 10) / 2 + i * (size + 10), y = 370 - size / 2, crop = Math.min(img.naturalWidth, img.naturalHeight);
+    c.drawImage(img, (img.naturalWidth - crop) / 2, 0, crop, crop, x, y, size, size); // from the top, so tall portraits keep the head
+    c.strokeStyle = '#ffd24a'; c.lineWidth = 5; c.strokeRect(x, y, size, size);
+  });
   c.strokeStyle = '#ffd24a'; c.lineWidth = 6; c.strokeRect(14, 14, W - 28, H - 28);
   const text = (t, y, font, color, blur = 0) => {
     c.font = font; c.fillStyle = color; c.textAlign = 'center'; c.shadowColor = color; c.shadowBlur = blur;
