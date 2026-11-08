@@ -17,7 +17,7 @@
   #editor { max-width: 640px; }
   #editor .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 0 14px; }
   .photoBox { display: flex; gap: 14px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-  .photoBox img { width: 120px; height: 120px; object-fit: cover; clip-path: var(--slant-sm); }
+  .photoBox img { width: 120px; height: 120px; object-fit: cover; object-position: top; clip-path: var(--slant-sm); }
   body.locked main > .card:not(#login), body.locked main > section, body:not(.locked) #login { display: none; }
   #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--pink); color: #fff; padding: 8px 16px; display: none; z-index: 50; }
 </style>
@@ -63,8 +63,6 @@
       <div><label for="cardFile" style="margin-top:0">Portrait <span class="dim">(a cut-out PNG with a see-through background looks best)</span></label>
         <input type="file" id="cardFile" accept="image/png,image/webp">
         <div class="row" style="margin-top:8px"><button type="button" id="cardRemove" hidden>Remove portrait</button></div></div></div>
-    <h3 style="margin-top:14px">Titles this player can use</h3>
-    <div id="cardAllowed"></div>
     <h3 style="margin-top:14px">Showing on the card <span class="dim">(up to 5; the player can change these)</span></h3>
     <div id="cardShown"></div>
     <p class="err" id="cardErr"></p>
@@ -73,7 +71,7 @@
 
   <section class="card">
     <h2>Logged-in players (<span id="accCount">0</span>)</h2>
-    <p class="dim" style="margin-top:0">Everyone who has logged in with start.gg. Press <b>Titles</b> to give them titles.</p>
+    <p class="dim" style="margin-top:0">Everyone who has logged in with start.gg. Press <b>Titles</b> to set their portrait and titles.</p>
     <div class="plist" id="acc"></div>
   </section>
 
@@ -93,7 +91,7 @@ async function shrink(file) {
   const img = await createImageBitmap(file);
   const side = Math.min(img.width, img.height), c = document.createElement('canvas');
   c.width = c.height = 400;
-  c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 400, 400);
+  c.getContext('2d').drawImage(img, (img.width - side) / 2, 0, side, side, 0, 0, 400, 400); // from the top, so tall photos keep the head
   return c.toDataURL('image/jpeg', 0.85);
 }
 
@@ -109,8 +107,7 @@ function startEdit(p) {
   if (p) $('editor').scrollIntoView({ behavior: 'smooth' });
 }
 // Player card: portrait and 5 titles, saved by gamer tag
-let cardAllowed = [], cardTitles = [];
-const drawShown = () => titlePicker($('cardShown'), cardTitles, { max: 5, only: cardAllowed });
+let cardTitles = [];
 const showPortrait = src => { $('cardImg').hidden = !src; if (src) $('cardImg').src = src; $('cardRemove').hidden = !src; };
 let cardFor = null; // { name }: a tournament player, or someone from the logged-in list
 async function showCard(p) {
@@ -120,21 +117,29 @@ async function showCard(p) {
   $('cardTitle').textContent = `${p.name}: player card`;
   const c = await rpc('cof_card', { p_tag: p.name }).catch(() => null);
   if (cardFor !== p) return; // moved on while it loaded
-  cardAllowed = [...(c?.allowed ?? [])]; cardTitles = [...(c?.titles ?? [])];
+  cardTitles = [...(c?.titles ?? [])];
   showPortrait(c?.portrait);
-  titlePicker($('cardAllowed'), cardAllowed, { onChange: () => { cardTitles = cardTitles.filter(id => cardAllowed.includes(id)); drawShown(); } });
-  drawShown();
+  titlePicker($('cardShown'), cardTitles, { max: 5 });
 }
 const cardFail = err => ($('cardErr').textContent = /not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message);
-$('cardSave').onclick = () => rpc('cof_admin_card_titles', { p_token: token, p_tag: cardFor.name, p_allowed: cardAllowed, p_titles: cardTitles }).then(() => { toast('Titles saved'); drawAccounts(); }, cardFail);
+$('cardSave').onclick = () => rpc('cof_admin_card_titles', { p_token: token, p_tag: cardFor.name, p_titles: cardTitles }).then(() => { toast('Titles saved'); drawAccounts(); }, cardFail);
 $('cardRemove').onclick = () => rpc('cof_admin_card_portrait', { p_token: token, p_tag: cardFor.name, p_portrait: null }).then(() => { showPortrait(null); toast('Portrait removed'); }, cardFail);
+// Cut-outs often come with wide empty margins: keep only the person, so the picture starts at the top of the head.
+function personBox(img) {
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  let l = c.width, r = -1, t = c.height, b = -1;
+  for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 127) { l = Math.min(l, x); r = Math.max(r, x); t = Math.min(t, y); b = Math.max(b, y); }
+  return r < 0 ? { x: 0, y: 0, w: c.width, h: c.height } : { x: l, y: t, w: r - l + 1, h: b - t + 1 };
+}
 $('cardFile').onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
   try { // keeps the see-through background
-    const img = await createImageBitmap(f), k = Math.min(1, 900 / img.height), c = document.createElement('canvas');
-    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const img = await createImageBitmap(f), b = personBox(img), k = Math.min(1, 900 / b.h), c = document.createElement('canvas');
+    c.width = Math.round(b.w * k); c.height = Math.round(b.h * k);
+    c.getContext('2d').drawImage(img, b.x, b.y, b.w, b.h, 0, 0, c.width, c.height);
     const data = c.toDataURL('image/webp', 0.85);
     await rpc('cof_admin_card_portrait', { p_token: token, p_tag: cardFor.name, p_portrait: data });
     showPortrait(data); toast('Portrait saved');
@@ -148,7 +153,7 @@ async function drawAccounts() {
   accountsAt = Date.now();
   const list = await rpc('cof_admin_accounts', { p_token: token }).catch(() => []);
   $('accCount').textContent = list.length;
-  $('acc').innerHTML = list.map(a => `<div class="prow"><div class="who"><b>${esc(a.name)}</b><div class="mail">${a.allowed} title${a.allowed === 1 ? '' : 's'} given</div></div>
+  $('acc').innerHTML = list.map(a => `<div class="prow"><div class="who"><b>${esc(a.name)}</b><div class="mail">${a.titles} of 5 titles chosen</div></div>
     <div class="acts"><button type="button" data-card="${esc(a.name)}">Titles</button></div></div>`).join('') || '<p class="dim">Nobody has logged in with start.gg yet.</p>';
 }
 $('acc').addEventListener('click', e => {

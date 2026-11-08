@@ -150,13 +150,13 @@ const COF_TITLES = [{"id":"7-golden-letters","name":"7 Golden Letters","desc":"O
 {"id":"young-man-s-reactions","name":"Young Man’s Reactions","desc":"Has lightning-fast reactions."}];
 const cofTitle = id => COF_TITLES.find(t => t.id === id);
 
-// Title chooser (Players tab and titles.html). Needs esc() from api.js. only = title ids that may be chosen (default all).
-function titlePicker(box, chosen, { max = Infinity, only = null, onChange = () => {} } = {}) {
+// Title chooser (Players tab and titles.html). Needs esc() from api.js.
+function titlePicker(box, chosen, { max = Infinity, onChange = () => {} } = {}) {
   let q = '';
   const card = (t, on) => `<button type="button" class="tp-t${on ? ' on' : ''}" data-t="${esc(t.id)}" ${!on && chosen.length >= max ? 'disabled' : ''}>
     <img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span></button>`;
   const draw = () => {
-    const hit = COF_TITLES.filter(t => !chosen.includes(t.id) && (!only || only.includes(t.id)) && (t.name + ' ' + t.desc).toLowerCase().includes(q));
+    const hit = COF_TITLES.filter(t => !chosen.includes(t.id) && (t.name + ' ' + t.desc).toLowerCase().includes(q));
     box.querySelector('.tp-chosen').innerHTML = chosen.map(id => cofTitle(id)).filter(Boolean).map(t => card(t, true)).join('') || '<p class="dim">None chosen yet.</p>';
     box.querySelector('.tp-count').textContent = max === Infinity ? `${chosen.length} chosen` : `${chosen.length} of ${max} chosen`;
     box.querySelector('.tp-all').innerHTML = hit.map(t => card(t, false)).join('');
