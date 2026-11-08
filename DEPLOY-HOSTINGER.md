@@ -25,7 +25,7 @@ Follow the steps in this order. Step 0.3 is what moves the live site to the new 
 3. Ask the person to confirm the day is clear: no tournament or stream. **From here the live site changes.**
 4. Step 0.3: change the addresses and push to `main`, after the person says OK. Wait for both GitHub Pages and Hostinger to deploy it. The live site now uses the new, empty database.
 5. Step 0.5: the person pastes the start.gg token in Settings. Step 0.6 if the owner kept any data.
-6. Step 4: DNS. The domain owner (Gaber) makes the Porkbun change; give them the exact values.
+6. Step 4: DNS. The person who controls the domain makes the Porkbun change; give Kevin the exact values to send them. The same person holds the Gmail account and pastes `GMAIL_USER` and `GMAIL_APP_PASSWORD` into the new project in step 0.4.
 7. Step 5: only what isn't already done. Steps 5.2 and 5.3 repeat 0.4, and the start.gg OAuth redirect URL doesn't change.
 8. Step 6: check everything together.
 9. Steps 7 to 9 only later, each after asking the owner.

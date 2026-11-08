@@ -15,7 +15,8 @@
 
 <h2>Who does what</h2>
 <table>
-  <tr><td>Gaber</td><td>Gives Kevin GitHub access. Changes the DNS at Porkbun. Sets up the streaming PC.</td></tr>
+  <tr><td>Gaber</td><td>Gives Kevin GitHub access. Sets up the streaming PC.</td></tr>
+  <tr><td>Domain and email person</td><td>Changes the DNS at Porkbun when Kevin asks. Creates the Gmail app password and pastes it into Supabase personally.</td></tr>
   <tr><td>Kevin</td><td>Gives Claude the instructions below. Owns the Hostinger and new Supabase accounts. Pastes every password and key personally.</td></tr>
   <tr><td>Kevin’s Claude</td><td>Does the technical work from <code>DEPLOY-HOSTINGER.md</code> and asks before each risky step.</td></tr>
 </table>
@@ -23,17 +24,17 @@
 <h2>Before you start</h2>
 <table class="check">
   <tr><td>☐</td><td><b>Gaber:</b> add Kevin’s GitHub account to <code>city-of-fighters/city-of-fighters.github.io</code> with Write access, and approve the Hostinger GitHub app when it asks</td></tr>
-  <tr><td>☐</td><td><b>Gaber:</b> make sure you can log in to <a href="https://porkbun.com/account/domains">Porkbun</a></td></tr>
+  <tr><td>☐</td><td><b>Domain and email person:</b> check you can log in to <a href="https://porkbun.com/account/domains">Porkbun</a> and the Gmail account</td></tr>
   <tr><td>☐</td><td><b>Kevin:</b> Hostinger plan with Git deployment (web or cloud hosting, not agency hosting)</td></tr>
   <tr><td>☐</td><td><b>Kevin:</b> Claude Code installed and logged in to GitHub</td></tr>
   <tr><td>☐</td><td><b>Both:</b> decide who has the new admin password, and agree how to share it in person or by phone, not in a chat</td></tr>
 </table>
 
 <h3>Passwords and keys Kevin will need</h3>
-<p>None of these go in a chat, in Claude or in a file. Kevin pastes each one where Claude says.</p>
+<p>None of these go in a chat, in Claude or in a file. Each is pasted where Claude says, by the person who has it.</p>
 <table>
   <tr><td>New admin password</td><td>Choose a new one.</td></tr>
-  <tr><td>Gmail address and app password</td><td>Supabase can’t show the old one. Make a new <a href="https://myaccount.google.com/apppasswords">Gmail app password</a> if nobody has it.</td></tr>
+  <tr><td>Gmail address and app password</td><td>The domain and email person makes a new <a href="https://myaccount.google.com/apppasswords">Gmail app password</a> and pastes it into the new Supabase project’s Edge Function Secrets, as <code>GMAIL_USER</code> and <code>GMAIL_APP_PASSWORD</code>. Kevin invites them to the project, or they do it together at Kevin’s computer. Keep the old app password until the move is finished.</td></tr>
   <tr><td>start.gg client ID and secret</td><td>From the OAuth app on start.gg: profile picture → <b>Developer Settings</b>.</td></tr>
   <tr><td>start.gg API token</td><td>Same page, under <b>Personal Access Tokens</b>. Create a new one if nobody has it.</td></tr>
 </table>
@@ -48,12 +49,12 @@ Rules:
 - Never ask me to paste a password, token, app password or secret key into this chat, and never write one to a file, log or commit. Tell me exactly where to paste it myself.
 - Stop and wait for my OK before pushing to main, before anything that changes what the live site uses, before disabling GitHub Pages, and before anything that costs money.
 - Don't change the old Supabase project glqxyghdcindimggnwml in any way. Iron Fist Academy uses it.
-- Gaber controls the domain at Porkbun. When we reach the DNS step, give me the exact values to send Gaber, then wait until I confirm it's done.
+- Someone else controls the domain at Porkbun and the Gmail account. When we reach those steps, tell me exactly what to send them, then wait until I confirm it's done.
 - Tell me when a step is one only a person can do, what to click, and what I should see when it worked.
 
 First check the guide against what really exists and tell me about anything that doesn't match. At the end, list what was done, what was tested, and what wasn't.</pre>
 
-<h2>Gaber: change the DNS when Kevin asks</h2>
+<h2>Domain and email person: change the DNS when Kevin asks</h2>
 <ol>
   <li>Kevin sends you the <b>A record address</b> from Hostinger, a number like <code>123.45.67.89</code>. Use only that one.</li>
   <li>Log in to <a href="https://porkbun.com/account/domains">Porkbun</a> and open <b>DNS</b> for <code>cityoffighters.com</code>.</li>
@@ -102,7 +103,7 @@ First check the guide against what really exists and tell me about anything that
 
 <h2>What ends up where</h2>
 <table>
-  <tr><td>Domain</td><td>Porkbun, with Gaber. Keep auto-renew on. It renews on 6 November each year.</td></tr>
+  <tr><td>Domain</td><td>Porkbun, with the domain and email person. Keep auto-renew on. It renews on 6 November each year.</td></tr>
   <tr><td>Website</td><td>Kevin’s Hostinger, updated automatically from GitHub.</td></tr>
   <tr><td>Database and server functions</td><td>The new Supabase account.</td></tr>
   <tr><td>Code and PC app downloads</td><td>GitHub.</td></tr>
