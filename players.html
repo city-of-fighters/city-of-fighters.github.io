@@ -72,6 +72,12 @@
   </section>
 
   <section class="card">
+    <h2>Logged-in players (<span id="accCount">0</span>)</h2>
+    <p class="dim" style="margin-top:0">Everyone who has logged in with start.gg. Press <b>Titles</b> to give them titles.</p>
+    <div class="plist" id="acc"></div>
+  </section>
+
+  <section class="card">
     <h2>All players (<span id="count">0</span>)</h2>
     <div class="plist" id="plist"></div>
   </section>
@@ -106,20 +112,22 @@ function startEdit(p) {
 let cardAllowed = [], cardTitles = [];
 const drawShown = () => titlePicker($('cardShown'), cardTitles, { max: 5, only: cardAllowed });
 const showPortrait = src => { $('cardImg').hidden = !src; if (src) $('cardImg').src = src; $('cardRemove').hidden = !src; };
+let cardFor = null; // { name }: a tournament player, or someone from the logged-in list
 async function showCard(p) {
+  cardFor = p;
   $('cardBox').hidden = !p; $('cardErr').textContent = '';
   if (!p) return;
   $('cardTitle').textContent = `${p.name}: player card`;
   const c = await rpc('cof_card', { p_tag: p.name }).catch(() => null);
-  if (editing !== p) return; // moved on while it loaded
+  if (cardFor !== p) return; // moved on while it loaded
   cardAllowed = [...(c?.allowed ?? [])]; cardTitles = [...(c?.titles ?? [])];
   showPortrait(c?.portrait);
   titlePicker($('cardAllowed'), cardAllowed, { onChange: () => { cardTitles = cardTitles.filter(id => cardAllowed.includes(id)); drawShown(); } });
   drawShown();
 }
 const cardFail = err => ($('cardErr').textContent = /not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message);
-$('cardSave').onclick = () => rpc('cof_admin_card_titles', { p_token: token, p_tag: editing.name, p_allowed: cardAllowed, p_titles: cardTitles }).then(() => toast('Titles saved'), cardFail);
-$('cardRemove').onclick = () => rpc('cof_admin_card_portrait', { p_token: token, p_tag: editing.name, p_portrait: null }).then(() => { showPortrait(null); toast('Portrait removed'); }, cardFail);
+$('cardSave').onclick = () => rpc('cof_admin_card_titles', { p_token: token, p_tag: cardFor.name, p_allowed: cardAllowed, p_titles: cardTitles }).then(() => { toast('Titles saved'); drawAccounts(); }, cardFail);
+$('cardRemove').onclick = () => rpc('cof_admin_card_portrait', { p_token: token, p_tag: cardFor.name, p_portrait: null }).then(() => { showPortrait(null); toast('Portrait removed'); }, cardFail);
 $('cardFile').onchange = async e => {
   const f = e.target.files[0];
   if (!f) return;
@@ -128,11 +136,25 @@ $('cardFile').onchange = async e => {
     c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
     const data = c.toDataURL('image/webp', 0.85);
-    await rpc('cof_admin_card_portrait', { p_token: token, p_tag: editing.name, p_portrait: data });
+    await rpc('cof_admin_card_portrait', { p_token: token, p_tag: cardFor.name, p_portrait: data });
     showPortrait(data); toast('Portrait saved');
   } catch (err) { cardFail(err); }
   e.target.value = '';
 };
+
+// Everyone who has logged in with start.gg
+let accountsAt = 0;
+async function drawAccounts() {
+  accountsAt = Date.now();
+  const list = await rpc('cof_admin_accounts', { p_token: token }).catch(() => []);
+  $('accCount').textContent = list.length;
+  $('acc').innerHTML = list.map(a => `<div class="prow"><div class="who"><b>${esc(a.name)}</b><div class="mail">${a.allowed} title${a.allowed === 1 ? '' : 's'} given</div></div>
+    <div class="acts"><button type="button" data-card="${esc(a.name)}">Titles</button></div></div>`).join('') || '<p class="dim">Nobody has logged in with start.gg yet.</p>';
+}
+$('acc').addEventListener('click', e => {
+  const name = e.target.closest('[data-card]')?.dataset.card;
+  if (name) { showCard({ name }); $('cardBox').scrollIntoView({ behavior: 'smooth' }); }
+});
 
 function showPhoto(src) { $('edPhoto').hidden = !src; if (src) $('edPhoto').src = src; $('edRemovePhoto').hidden = !src; }
 
@@ -164,6 +186,7 @@ $('plist').addEventListener('click', e => {
 async function draw() {
   S = view(await adminGet());
   document.body.classList.remove('locked');
+  if (Date.now() - accountsAt > 30000) drawAccounts(); // not on every 1.5 s redraw
   $('count').textContent = S.players.length;
   const started = S.matches.length > 0;
   $('plist').innerHTML = S.players.map(p => `<div class="prow">${photoImg(p, 'ph')}
