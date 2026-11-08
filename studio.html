@@ -48,7 +48,7 @@
       <li>Under <b>Sources</b> press <b>+</b> and choose <b>Browser</b>. Name it <i>City of Fighters</i> and press OK.</li>
       <li>In <b>URL</b> paste this link: <code id="obs"></code> <button class="small" id="copy" type="button">Copy link</button></li>
       <li>Set <b>Width 1920</b> and <b>Height 1080</b>. Leave <b>Custom CSS</b> as it is (it keeps the background see-through).</li>
-      <li>Tick <b>Refresh browser when scene becomes active</b>, then press OK.</li>
+      <li>Leave <b>Refresh browser when scene becomes active</b> unticked, then press OK.</li>
       <li>In the Sources list, drag <i>City of Fighters</i> <b>above</b> your game capture so it sits on top. If it does not fill the screen, right-click it → <b>Transform → Fit to screen</b>.</li>
       <li>Done. Everything you <b>Deploy</b> below appears on stream within 2 seconds. If OBS ever looks stuck, right-click the source → <b>Refresh</b>.</li>
     </ol>
@@ -174,6 +174,7 @@ $('obsForm').onsubmit = async e => {
     await obs.connect($('obsUrl').value.trim(), $('obsPw').value);
     try { if (canSave()) localStorage.setItem('cofObs', JSON.stringify({ url: $('obsUrl').value.trim(), pw: $('obsPw').value })); } catch {}
     $('obsBody').hidden = false;
+    await obs.keepOverlayRunning().catch(() => {});
     await obsRefresh();
     sendPreview();
   } catch (err) { $('obsBody').hidden = true; obsStatus(err.message); }

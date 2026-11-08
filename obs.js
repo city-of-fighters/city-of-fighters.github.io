@@ -57,6 +57,15 @@ class OBSRemote {
     });
   }
 
+  // A stream page that reloads when its scene comes back forgets the match just went on, and the 4-second cards never show.
+  async keepOverlayRunning() {
+    const { inputs } = await this.call('GetInputList');
+    for (const i of inputs.filter(i => i.inputKind === 'browser_source')) {
+      const { inputSettings: s } = await this.call('GetInputSettings', { inputName: i.inputName });
+      if (/overlay\.html/.test(s.url ?? '') && s.restart_when_active) await this.call('SetInputSettings', { inputName: i.inputName, inputSettings: { restart_when_active: false } });
+    }
+  }
+
   // --- cameras ---
   cameraKind() { return { windows: 'dshow_input', macos: 'av_capture_input_v2' }[this.platform] ?? 'v4l2_input'; }
   async mainScene() { return (await this.call('GetCurrentProgramScene')).currentProgramSceneName; }
