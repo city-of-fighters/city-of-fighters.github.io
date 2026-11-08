@@ -32,15 +32,37 @@
   #hlabel { position: absolute; top: 0; left: 738px; width: 442px; height: 21px; display: grid; place-items: center;
             font: 700 13px 'Rajdhani', sans-serif; letter-spacing: 4px; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px #6a0030; }
   /* Player cards screen */
-  #cards { position: absolute; inset: 0; background: #08080c; }
-  #cards .pframe { position: absolute; top: 50px; width: 660px; height: 830px; --a: #d000e0; --b: #3cc9d4;
-    background: linear-gradient(90deg, var(--a) 50%, var(--b) 50%) top / 100% 7px no-repeat, linear-gradient(var(--a), #808080) left / 7px 100% no-repeat,
-                linear-gradient(var(--b), #808080) right / 7px 100% no-repeat, linear-gradient(#808080, #808080) bottom / 100% 7px no-repeat; }
-  #cards .pframe.l { left: 262px; } #cards .pframe.r { right: 262px; --a: #3cc9d4; --b: #d000e0; }
-  #cards .pframe img { position: absolute; left: 7px; right: 7px; bottom: 7px; width: calc(100% - 14px); height: calc(100% - 90px); object-fit: contain; object-position: bottom; }
-  #cards .pname { position: absolute; top: 18px; left: 0; right: 0; text-align: center; font: 700 52px var(--hud-font); letter-spacing: 3px; color: #fff; overflow: hidden; white-space: nowrap; }
-  #cards .badge { position: absolute; width: 156px; height: 156px; object-fit: contain; }
-  #cards .cvs { position: absolute; top: 410px; left: 922px; width: 76px; text-align: center; font: 700 64px var(--hud-font); color: #ff0a6c; text-shadow: 0 0 18px #ff0a6c99; }
+  .cardset { position: absolute; inset: 0; overflow: hidden; perspective: 1800px; background: radial-gradient(900px 760px at 24% 42%, #d000e02e, transparent), radial-gradient(900px 760px at 76% 42%, #3cc9d42e, transparent), #08080c; }
+  #intro { animation: fade .25s both; }
+  .cardset .pframe { position: absolute; top: 44px; width: 660px; height: 830px; --a: #d000e0; --b: #3cc9d4; animation: cardInL .8s .05s both cubic-bezier(.2, 1, .4, 1); }
+  .cardset .pframe.l { left: 262px; } .cardset .pframe.r { right: 262px; --a: #3cc9d4; --b: #d000e0; animation-name: cardInR; animation-delay: .22s; }
+  .cardset .pcard { position: absolute; inset: 0; padding: 9px; border-radius: 30px; box-shadow: 0 30px 70px #000c, 0 0 42px #d000e055, 0 0 42px #3cc9d455;
+    background: linear-gradient(115deg, var(--a), var(--b) 35%, #fff 50%, var(--b) 65%, var(--a)) 0 0 / 300% 300%; animation: foil 3s linear infinite alternate, cardFloat 3.2s 1s ease-in-out infinite alternate; }
+  .cardset .pframe.r .pcard { animation-delay: 0s, 1.4s; }
+  .cardset .pface { position: relative; height: 100%; border-radius: 22px; overflow: hidden;
+    background: radial-gradient(circle at 50% 38%, var(--a) -35%, transparent 62%), repeating-linear-gradient(135deg, #ffffff07 0 2px, transparent 2px 26px), linear-gradient(#1b1226, #0a0a10); }
+  .cardset .pface::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: -40%; width: 180px; background: linear-gradient(100deg, transparent, #ffffff30, transparent); transform: skewX(-18deg); animation: cardSheen 2.6s 1.1s ease-in-out infinite; }
+  .cardset .wm { position: absolute; top: 34px; left: 50%; width: 500px; margin-left: -250px; opacity: .17; }
+  .cardset .port { position: absolute; left: 0; bottom: 0; width: 100%; height: calc(100% - 36px); object-fit: contain; object-position: bottom; filter: drop-shadow(0 0 26px #000c); animation: portIn .55s .6s both ease-out; }
+  .cardset .pplate { position: absolute; left: 0; right: 0; bottom: 0; padding: 70px 18px 18px; text-align: center; background: linear-gradient(transparent, #08080cf5 58%); animation: plateIn .45s .85s both cubic-bezier(.2, 1.3, .4, 1); }
+  .cardset .pname { font: 700 70px/1.05 var(--hud-font); letter-spacing: 3px; color: #fff; text-shadow: 0 0 22px var(--a); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .cardset .pteam { font: 700 24px var(--hud-font); letter-spacing: 7px; color: var(--b); min-height: 30px; }
+  .cardset .badge { position: absolute; width: 156px; height: 156px; object-fit: contain; animation: badgeIn .45s both cubic-bezier(.2, 1.5, .4, 1); }
+  .cardset .cvs { position: absolute; z-index: 2; top: 382px; left: 860px; width: 200px; text-align: center; font: 700 112px var(--hud-font); color: #ff0a6c; text-shadow: 0 0 26px #ff0a6c, 0 4px 0 #000; animation: slam .42s .75s both; }
+  .cardset .cvs.vs::before { content: ''; position: absolute; left: 30px; top: -18px; width: 140px; height: 140px; border: 6px solid #ff0a6c; border-radius: 50%; animation: ring .7s 1.05s both ease-out; }
+  .cardset.out .pframe.l { animation: cardOutL .4s both ease-in; } .cardset.out .pframe.r { animation: cardOutR .4s both ease-in; }
+  .cardset.out .badge, .cardset.out .cvs { animation: cardGone .25s 0s both !important; }
+  @keyframes cardInL { from { transform: translateX(-1200px) rotateY(-120deg) scale(.7); opacity: 0; } 68% { transform: translateX(26px) rotateY(10deg) scale(1.03); opacity: 1; } to { transform: none; opacity: 1; } }
+  @keyframes cardInR { from { transform: translateX(1200px) rotateY(120deg) scale(.7); opacity: 0; } 68% { transform: translateX(-26px) rotateY(-10deg) scale(1.03); opacity: 1; } to { transform: none; opacity: 1; } }
+  @keyframes cardOutL { to { transform: translateX(-1300px) rotateY(-60deg); opacity: 0; } }
+  @keyframes cardOutR { to { transform: translateX(1300px) rotateY(60deg); opacity: 0; } }
+  @keyframes cardGone { to { opacity: 0; } }
+  @keyframes foil { to { background-position: 100% 100%; } }
+  @keyframes cardFloat { to { transform: translateY(-12px); } }
+  @keyframes cardSheen { 0% { left: -40%; } 55%, 100% { left: 130%; } }
+  @keyframes portIn { from { transform: translateY(46px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes plateIn { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes badgeIn { from { transform: scale(0) rotate(-200deg); opacity: 0; } to { transform: none; opacity: 1; } }
   /* player cameras (?cams=1) in the bottom corners, above the logos and clear of the game's health bars:
      OBS puts the cameras behind these see-through outlined boxes */
   .hcam { position: absolute; top: 816px; width: 240px; height: 135px; box-sizing: border-box; border: 3px solid #ff0a6c; box-shadow: 0 0 12px #ff0a6caa; }
@@ -197,9 +219,10 @@
 <div class="screen" id="s-bracket"><div class="panel" id="bracketBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="bsub"></span></div><div id="b"></div></div></div>
 <div class="screen" id="s-standings"><div class="panel" id="standBox"><div class="ptop"><img src="hud/cof-logo.png" alt=""><span id="ssub"></span></div><div id="stand"></div></div></div>
 <div class="screen" id="s-podium"><div id="podium"></div></div>
-<div class="screen" id="s-cards"><div id="cards"></div></div>
+<div class="screen" id="s-cards"><div id="cards" class="cardset"></div></div>
 <div class="screen" id="s-comingup"><div class="cu" id="cuLive"></div></div>
 <div id="pop" aria-live="polite"></div>
+<div id="intro" class="cardset" hidden></div>
 <script src="bracket.js"></script><script src="api.js"></script><script src="titles.js"></script><script src="bracketview.js"></script>
 <script>
 const $ = id => document.getElementById(id);
@@ -295,7 +318,7 @@ checkSponsors(); setInterval(checkSponsors, 10000);
 
 // --- Scoreboard: live match, then winner for 6 s, then "waiting" until a new match goes on stream ---
 const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
-let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {}, sbPhase = 'none', sbSwapped = false;
+let sbMatch = null, sbLive = false, winUntil = 0, prevGames = {}, sbPhase = 'none', sbSwapped = false, sbDrawn = false;
 
 // --- Coming Up screen (between matches) ---
 // holes = true in OBS's "CoF Coming Up" scene: the windows stay see-through for the live screen and cameras that OBS
@@ -310,20 +333,48 @@ function nextMatch(s) {
 const seats = (s, m) => m && s.swapSides === m.id ? { ...m, swapped: true, a: m.b, b: m.a, aName: m.bName, bName: m.aName, aTeam: m.bTeam, bTeam: m.aTeam, aPlayer: m.bPlayer, bPlayer: m.aPlayer, ga: m.gb, gb: m.ga } : m;
 // Player cards: the two players of the next match, mirrored, each with their portrait and 5 titles in an L around the outer corner.
 const CARD_SPOTS = [[80, 568], [80, 728], [80, 896], [262, 896], [444, 896]]; // left card; the right card mirrors these
-let cardsKey = '', cardsAt = 0;
+let cardsKey = '', cardsAt = 0, cardsShown = '';
+async function cardsHTML(m) {
+  const P = [m.aPlayer, m.bPlayer];
+  const C = await Promise.all(P.map(p => p ? rpc('cof_card', { p_tag: p.name }).catch(() => null) : null));
+  const pics = await Promise.all(P.map((p, i) => C[i]?.portrait || photoOf(p) || (p?.photo ? rpc('cof_photo', { p_id: p.id }).catch(() => null) : null)));
+  const one = (p, c, src, side) => {
+    if (!p) return '';
+    const pos = side === 'r' ? 'right' : 'left';
+    const badges = (c?.titles ?? []).map(id => cofTitle(id)).filter(Boolean).map((t, i) => `<img class="badge" src="hud/titles/${esc(t.id)}.webp" alt="${esc(t.name)}" style="${pos}:${CARD_SPOTS[i][0]}px;top:${CARD_SPOTS[i][1]}px;animation-delay:${(0.95 + i * 0.09).toFixed(2)}s">`).join('');
+    return `<div class="pframe ${side}"><div class="pcard"><div class="pface"><img class="wm" src="logo-clear.png" alt="">${src ? `<img class="port" src="${esc(src)}" alt="">` : ''}
+      <div class="pplate"><div class="pname">${esc(p.name.toUpperCase())}</div><div class="pteam">${esc((p.team ?? '').toUpperCase())}</div></div></div></div></div>${badges}`;
+  };
+  return one(P[0], C[0], pics[0], 'l') + '<div class="cvs vs">VS</div>' + one(P[1], C[1], pics[1], 'r');
+}
 async function drawCards(s) {
-  const m = nextMatch(s), P = [m?.aPlayer, m?.bPlayer], names = JSON.stringify(P.map(p => p?.name));
+  const m = nextMatch(s), names = JSON.stringify([m?.aPlayer?.name, m?.bPlayer?.name]);
   if (names === cardsKey && Date.now() - cardsAt < 15000) return; // the portraits are large: check every 15 s
   cardsKey = names; cardsAt = Date.now();
-  const C = await Promise.all(P.map(p => p ? rpc('cof_card', { p_tag: p.name }).catch(() => null) : null));
-  const one = (p, c, side) => {
-    if (!p) return '';
-    const src = c?.portrait || photoOf(p), pos = side === 'r' ? 'right' : 'left';
-    const badges = (c?.titles ?? []).map(id => cofTitle(id)).filter(Boolean).map((t, i) => `<img class="badge" src="hud/titles/${esc(t.id)}.webp" alt="${esc(t.name)}" style="${pos}:${CARD_SPOTS[i][0]}px;top:${CARD_SPOTS[i][1]}px">`).join('');
-    return `<div class="pframe ${side}">${src ? `<img src="${esc(src)}" alt="">` : ''}<div class="pname">${esc(p.name.toUpperCase())}</div></div>${badges}`;
-  };
-  $('cards').innerHTML = m ? one(P[0], C[0], 'l') + '<div class="cvs">VS</div>' + one(P[1], C[1], 'r') : '<div class="cvs" style="width:auto;left:0;right:0">NEXT MATCH SOON</div>';
+  const html = m ? await cardsHTML(m) : '<div class="cvs" style="width:auto;left:0;right:0">NEXT MATCH SOON</div>';
+  if (html !== cardsShown) $('cards').innerHTML = cardsShown = html; // otherwise the animation would replay on every check
 }
+// Put on stream: when both players have a picture, their cards fill the screen for 4 s before the scoreboard comes in.
+const INTRO_MS = 4000, INTRO_OUT = 400;
+let introOn = false, introTimer = 0, introRun = 0;
+const introEnd = () => { clearTimeout(introTimer); introTimer = setTimeout(() => {
+  const run = introRun;
+  $('intro').classList.add('out');
+  introTimer = setTimeout(() => { if (run !== introRun) return; $('intro').hidden = true; $('intro').innerHTML = ''; introOn = false; $('hud').style.opacity = 1; restart($('hud'), 'enter'); }, INTRO_OUT);
+}, INTRO_MS - INTRO_OUT); };
+async function showIntro(m) {
+  const run = ++introRun, box = $('intro');
+  clearTimeout(introTimer);
+  introOn = true;
+  box.hidden = true; box.classList.remove('out');
+  box.innerHTML = await cardsHTML(m);
+  await Promise.race([Promise.all([...box.querySelectorAll('img')].map(i => i.decode().catch(() => {}))), new Promise(r => setTimeout(r, 2000))]); // never show half-loaded cards
+  if (run !== introRun) return;
+  box.hidden = false;
+  introEnd();
+}
+// OBS changes from the Coming Up scene a moment after this page sees the match: start again so viewers get all 4 s.
+addEventListener('obsSourceActiveChanged', e => { if (e.detail.active && introOn && !$('intro').hidden) { const b = $('intro'), html = b.innerHTML; b.classList.remove('out'); b.innerHTML = html; introEnd(); } });
 let cuKey = '';
 function comingUp(el, s, holes) {
   const m = nextMatch(s), P = [m?.aPlayer, m?.bPlayer];
@@ -359,7 +410,12 @@ function scoreboard(s, m) {
     winUntil = Date.now() + 6000; // the next draw after this switches to "waiting"
   }
   const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
-  if (live && (sbMatch !== m.id || !sbLive)) { restart($('hud'), 'enter'); prevGames = { a: m.ga, b: m.gb }; }
+  if (live && (sbMatch !== m.id || !sbLive)) {
+    // not on page load or a reopened match, and not in OBS's Coming Up scene (it has its own copy of this page)
+    if (sbDrawn && sbMatch !== m.id && (params.get('screen') || s.screen) === 'scoreboard' && m.aPlayer?.photo && m.bPlayer?.photo) showIntro(m);
+    else if (!introOn) restart($('hud'), 'enter');
+    prevGames = { a: m.ga, b: m.gb };
+  }
   if (!!m?.swapped !== sbSwapped) { sbSwapped = !!m?.swapped; if (m) prevGames = { a: m.ga, b: m.gb }; } // switching sides isn't a point scored
   if (live) {
     $('hlabel').textContent = m.label;
@@ -374,12 +430,12 @@ function scoreboard(s, m) {
     }
     prevGames = { a: m.ga, b: m.gb };
   }
-  $('hud').style.opacity = live ? 1 : 0;
+  $('hud').style.opacity = live && !introOn ? 1 : 0;
   $('winCard').classList.toggle('on', phase === 'winner');
   $('cuCard').classList.toggle('on', phase === 'waiting');
   if (phase === 'waiting') comingUp($('cuWait'), s, false);
   sbPhase = phase;
-  sbMatch = m?.id ?? null; sbLive = live;
+  sbMatch = m?.id ?? null; sbLive = live; sbDrawn = true;
 }
 
 let shown = null, lastBracket = null, bracketKey = '', podiumKey = '';
@@ -401,6 +457,7 @@ async function draw() {
   if (screen !== shown) {
     document.querySelectorAll('.screen').forEach(el => el.classList.toggle('on', el.id === 's-' + screen));
     if (screen === 'podium') podiumKey = ''; // replay the podium animation each time it is shown
+    if (screen === 'cards') cardsKey = cardsShown = ''; // and the cards
     shown = screen;
   }
 
