@@ -165,7 +165,8 @@ create or replace function public.cof_view(p_emails boolean) returns jsonb
 language sql security definer set search_path = public stable as $$
   select jsonb_build_object('data', s.data, 'players', coalesce((
     select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'team', p.team,
-                        'photo', (select extract(epoch from f.updated_at)::bigint from cof_photos f where f.player = p.id))  -- photo version, or null
+                        'photo', extract(epoch from coalesce((select f.updated_at from cof_photos f where f.player = p.id),
+                                 (select c.updated_at from cof_cards c where c.tag = lower(trim(p.name)) and c.portrait is not null)))::bigint)  -- photo version, or null
                      || case when p_emails then jsonb_build_object('email', p.email) else '{}'::jsonb end order by p.created_at)
     from cof_players p), '[]'::jsonb), 'now', now())
   from cof_state s where s.id = 1
@@ -212,9 +213,12 @@ begin
   update cof_state set data = jsonb_set(data, '{order}', data->'order' - p_id::text) where id = 1;
 end $$;
 
--- A player's photo for the app and stream (public, like the gamer tag).
+-- A player's photo for the app and stream (public, like the gamer tag): the one uploaded for them, else their card portrait.
 create or replace function public.cof_photo(p_id uuid) returns text
-language sql security definer set search_path = public stable as $$ select data from cof_photos where player = p_id $$;
+language sql security definer set search_path = public stable as $$
+  select coalesce((select data from cof_photos where player = p_id),
+                  (select c.portrait from cof_players p join cof_cards c on c.tag = lower(trim(p.name)) where p.id = p_id))
+$$;
 
 -- Players tab: add a player (p_id null) or edit one. Email is optional here.
 create or replace function public.cof_admin_player_save(p_token text, p_id uuid, p_name text, p_team text, p_email text) returns uuid

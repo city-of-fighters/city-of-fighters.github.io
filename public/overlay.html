@@ -27,7 +27,7 @@
            font: 700 25px 'Rajdhani', 'Arial Narrow', sans-serif; text-transform: uppercase; letter-spacing: 1px; color: #fff; }
   .hinfo .team { font-size: 17px; letter-spacing: 2px; color: #3cc9d4; flex: none; }
   .hinfo .pn { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-  .hinfo .ph { width: 34px; height: 34px; object-fit: cover; flex: none; border: 2px solid #3cc9d4; }
+  .hinfo .ph { width: 34px; height: 34px; object-fit: cover; object-position: top; flex: none; border: 2px solid #3cc9d4; }
   #ai { left: 312px; } #bi { left: 1215px; justify-content: flex-end; }
   #hlabel { position: absolute; top: 0; left: 738px; width: 442px; height: 21px; display: grid; place-items: center;
             font: 700 13px 'Rajdhani', sans-serif; letter-spacing: 4px; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px #6a0030; }
@@ -89,7 +89,7 @@
                    background: repeating-conic-gradient(#ffd24a1c 0 6deg, transparent 6deg 18deg); animation: spin 40s linear infinite;
                    -webkit-mask: radial-gradient(circle, #000 15%, transparent 55%); mask: radial-gradient(circle, #000 15%, transparent 55%); }
   #winCard img { width: 400px; filter: drop-shadow(0 0 24px #ff0a6caa); animation: logoIn .8s both cubic-bezier(.2, 1.4, .4, 1); }
-  #winCard img.wph { width: 220px; height: 220px; object-fit: cover; margin-top: 14px; border: 5px solid #ffd24a; box-shadow: 0 0 30px #ffd24a88; filter: none; animation: pop .6s .6s both cubic-bezier(.2, 1.4, .4, 1); }
+  #winCard img.wph { width: 220px; height: 220px; object-fit: cover; object-position: top; margin-top: 14px; border: 5px solid #ffd24a; box-shadow: 0 0 30px #ffd24a88; filter: none; animation: pop .6s .6s both cubic-bezier(.2, 1.4, .4, 1); }
   #winCard .wl { font-size: 30px; letter-spacing: 12px; color: #3cc9d4; margin-top: 16px; animation: fadeUp .6s .5s both; }
   #winCard .wn { font-size: 150px; line-height: 1.05; font-style: italic; text-transform: uppercase; color: #ffd24a; overflow: hidden; padding: 0 40px;
                  text-shadow: 0 0 40px #ffd24aaa; animation: slam .6s .8s both cubic-bezier(.2, 1.3, .4, 1), glowGold 1.6s 1.6s infinite alternate; }
@@ -107,7 +107,7 @@
   .cu .win { position: absolute; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
              background: radial-gradient(ellipse at 50% 40%, #2b1020, #08080a 70%); }
   .cu .win.big .logo { width: 360px; filter: drop-shadow(0 0 18px #ff0a6c77); }
-  .cu .win.cam .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cu .win.cam .pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
   .cu .win.cam .nm { position: relative; font: 700 46px var(--hud-font); text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 2px 8px #000; }
   .cu .win.cam .tm { position: relative; font: 700 22px var(--hud-font); letter-spacing: 4px; color: #3cc9d4; text-transform: uppercase; }
   .cu .tag { position: absolute; left: 1324px; width: 532px; height: 50px; display: flex; align-items: center; gap: 12px; padding: 0 16px;
@@ -154,9 +154,9 @@
   .stand.p2 .block { height: 270px; animation-delay: 1s; }   .stand.p2 .who { animation-delay: 1.8s; }
   .stand.p3 .block { height: 190px; animation-delay: .4s; }  .stand.p3 .who { animation-delay: 1.2s; }
   .stand.p1 .pname { color: #ffd24a; text-shadow: 0 0 24px #ffd24aaa; animation: glow 1.6s 3.2s infinite alternate; font-size: 58px; }
-  .stand .pph { display: inline-block; width: 150px; height: 150px; object-fit: cover; margin: 0 6px 10px; border: 4px solid var(--c); box-shadow: 0 0 24px var(--c); }
+  .stand .pph { display: inline-block; width: 190px; height: 190px; object-fit: cover; object-position: top; margin: 0 6px 10px; border: 4px solid var(--c); box-shadow: 0 0 24px var(--c); }
   .stand .pph[hidden] { display: none; }
-  .crown { font-size: 54px; animation: drop .7s 2.8s both cubic-bezier(.2, 1.3, .4, 1); }
+  .crown { font-size: 54px; position: relative; margin: -40px 0 -6px; animation: drop .7s 2.8s both cubic-bezier(.2, 1.3, .4, 1); }
   .confetti i { position: absolute; top: -30px; width: 12px; height: 20px; animation: fall linear infinite; opacity: .9; }
   @keyframes rise { from { transform: scaleY(0); } to { transform: none; } }
   @keyframes drop { from { transform: translateY(-60px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -258,7 +258,7 @@ addEventListener('cof-photo', () => document.querySelectorAll('img[data-pid][hid
 function podiumHTML(s) {
   const at = p => s.standings.filter(r => r.place === p);
   const stand = (p, rows) => !rows.length ? '<div class="stand"></div>' : `<div class="stand p${p}"><div class="who">
-      ${p === 1 ? '<div class="crown">👑</div>' : ''}${rows.map(r => lazyPhoto(s.players.find(x => x.id === r.id), 'pph')).join('') /* tied places: each photo side by side */}<div class="pname">${rows.map(r => esc(r.name)).join(' & ')}</div>
+      ${rows.map(r => lazyPhoto(s.players.find(x => x.id === r.id), 'pph')).join('') /* tied places: each photo side by side */}${p === 1 ? '<div class="crown">👑</div>' : ''}<div class="pname">${rows.map(r => esc(r.name)).join(' & ')}</div>
       <div class="rec">${esc(record(s, rows[0]))}</div></div><div class="block">${ord(p)}</div></div>`;
   const colors = ['#ff0a6c', '#3cc9d4', '#ffd24a', '#ffffff', '#1f8f99'];
   const confetti = Array.from({ length: 70 }, (_, i) => `<i style="left:${Math.random() * 100}%;background:${colors[i % 5]};animation-duration:${3 + Math.random() * 4}s;animation-delay:${2.6 + Math.random() * 4}s"></i>`).join('');

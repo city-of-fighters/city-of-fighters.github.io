@@ -8,7 +8,7 @@
 <style>
   .plist { display: grid; gap: 10px; }
   .prow { display: flex; align-items: center; gap: 14px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--teal); flex-wrap: wrap; }
-  .prow .ph { width: 64px; height: 64px; object-fit: cover; clip-path: var(--slant-sm); }
+  .prow .ph { width: 64px; height: 64px; object-fit: cover; object-position: top; clip-path: var(--slant-sm); }
   .prow .who { flex: 1 1 200px; min-width: 0; }
   .prow .who b { font: 700 22px var(--display); text-transform: uppercase; letter-spacing: 1px; }
   .prow .who .team { color: var(--teal); font: 700 14px var(--display); letter-spacing: 2px; text-transform: uppercase; margin-right: 8px; }
@@ -172,6 +172,7 @@ $('edForm').onsubmit = async e => {
   try {
     const id = await rpc('cof_admin_player_save', { p_token: token, p_id: editing?.id ?? null, p_name: $('edName').value, p_team: $('edTeam').value, p_email: $('edEmail').value });
     if (newPhoto !== undefined) await rpc('cof_admin_photo', { p_token: token, p_id: id, p_data: newPhoto });
+    if (newPhoto === null) await rpc('cof_admin_card_portrait', { p_token: token, p_tag: editing.name, p_portrait: null }); // or the card portrait would come straight back as their photo
     toast(editing ? 'Player saved' : 'Player added');
     startEdit(null);
     await draw();
