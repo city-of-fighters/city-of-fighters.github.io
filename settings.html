@@ -182,14 +182,7 @@ $('demoStart').onclick = async () => {
   } catch (err) { toast(err.message); }
   $('demoStart').disabled = false;
 };
-$('demoDelete').onclick = async () => {
-  if (!S.demo || !confirm('Delete the demo tournament, its players and its results?')) return;
-  const ids = S.players.map(p => p.id);
-  await post('resetBracket');
-  for (const id of ids) await post('removePlayer', { id });
-  await post('end');
-  toast('Demo tournament deleted');
-};
+$('demoDelete').onclick = deleteDemo;
 
 async function draw() {
   S = view(await adminGet());
