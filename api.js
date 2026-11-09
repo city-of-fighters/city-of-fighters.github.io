@@ -1,7 +1,7 @@
 // Talks to the Supabase database (see supabase/city-of-fighters.sql). The publishable key is meant to be public;
 // the tables are only reachable through functions, and admin ones need the control panel password.
-const API = 'https://glqxyghdcindimggnwml.supabase.co/rest/v1/rpc/';
-const KEY = 'sb_publishable_OatiT521MtUNk6gLQIa0yQ_67echjry';
+const API = 'https://mmdaxcjtnykbleupzuve.supabase.co/rest/v1/rpc/';
+const KEY = 'sb_publishable_nbS_m3UyNRmDQaa8jIOF0g_c07_xZ_o';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 

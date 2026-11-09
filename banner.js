@@ -1,6 +1,6 @@
 // Winner banner (1200×630) and the email that sends it to the champion when a tournament is decided.
 // The email itself goes out from the server (supabase/functions/cof-winner-email); emails never reach this page.
-const MAIL_URL = 'https://glqxyghdcindimggnwml.supabase.co/functions/v1/cof-winner-email';
+const MAIL_URL = 'https://mmdaxcjtnykbleupzuve.supabase.co/functions/v1/cof-winner-email';
 const bannerLogo = new Image();
 bannerLogo.src = 'logo-clear.png';
 

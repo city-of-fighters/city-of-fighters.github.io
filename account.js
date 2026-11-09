@@ -1,6 +1,6 @@
 // "Log in with start.gg" for players (events.html, index.html). The server side is the cof-startgg Edge Function.
 // The app session is kept on this device if the visitor allowed saving, otherwise until the tab is closed.
-const ACCOUNT_URL = 'https://glqxyghdcindimggnwml.supabase.co/functions/v1/cof-startgg';
+const ACCOUNT_URL = 'https://mmdaxcjtnykbleupzuve.supabase.co/functions/v1/cof-startgg';
 const acctStore = () => (canSave() ? localStorage : sessionStorage);
 const acctSession = () => { try { return localStorage.getItem('cofSession') || sessionStorage.getItem('cofSession'); } catch { return null; } };
 const acctForget = () => { try { localStorage.removeItem('cofSession'); sessionStorage.removeItem('cofSession'); } catch {} };
