@@ -27,7 +27,7 @@
 <p>Needed for player logins. Safe to run again: it keeps your players, tournament and password.</p>
 <ol>
   <li>Open the file: <a href="https://github.com/city-of-fighters/city-of-fighters.github.io/blob/main/supabase/city-of-fighters.sql">city-of-fighters.sql on GitHub</a>. Press the copy-file button.</li>
-  <li>Open the <a href="https://supabase.com/dashboard/project/glqxyghdcindimggnwml/sql/new">Supabase SQL Editor</a>, paste it and press <b>Run</b>. It should say “Success”.</li>
+  <li>Open the <a href="https://supabase.com/dashboard/project/mmdaxcjtnykbleupzuve/sql/new">Supabase SQL Editor</a>, paste it and press <b>Run</b>. It should say “Success”.</li>
 </ol>
 
 <h2>Part 1: start.gg token (fills the calendar, sends results)</h2>
@@ -44,8 +44,8 @@
   <li>On start.gg, open the <a href="https://developer.start.gg/docs/oauth/oauth-overview">developer portal</a> in Developer Settings and create an <b>OAuth application</b>.</li>
   <li>Set the redirect URL to exactly: <span class="url">https://cityoffighters.com/events.html</span></li>
   <li>Copy the <b>Client ID</b> and <b>Client Secret</b>.</li>
-  <li>Open <a href="https://supabase.com/dashboard/project/glqxyghdcindimggnwml/functions/secrets">Supabase Edge Function Secrets</a> and add <code>SGG_CLIENT_ID</code> and <code>SGG_CLIENT_SECRET</code> with those values.</li>
-  <li>Open <a href="https://supabase.com/dashboard/project/glqxyghdcindimggnwml/functions">Supabase Edge Functions</a> → <b>Deploy a new function</b> → <b>Via editor</b>. Name it exactly <code>cof-startgg</code>.</li>
+  <li>Open <a href="https://supabase.com/dashboard/project/mmdaxcjtnykbleupzuve/functions/secrets">Supabase Edge Function Secrets</a> and add <code>SGG_CLIENT_ID</code> and <code>SGG_CLIENT_SECRET</code> with those values.</li>
+  <li>Open <a href="https://supabase.com/dashboard/project/mmdaxcjtnykbleupzuve/functions">Supabase Edge Functions</a> → <b>Deploy a new function</b> → <b>Via editor</b>. Name it exactly <code>cof-startgg</code>.</li>
   <li>Paste the code from <a href="https://github.com/city-of-fighters/city-of-fighters.github.io/blob/main/supabase/functions/cof-startgg/index.ts">cof-startgg/index.ts</a> and deploy.</li>
   <li>In that function’s settings, turn <b>Verify JWT off</b>. Players don’t have Supabase logins, so it won’t work with this on.</li>
 </ol>
@@ -69,8 +69,8 @@
 <ol>
   <li>Pick the Gmail account to send from. Turn on <a href="https://myaccount.google.com/signinoptions/twosv">2-Step Verification</a>.</li>
   <li>Create an <a href="https://myaccount.google.com/apppasswords">App password</a> and copy the 16 letters.</li>
-  <li>In <a href="https://supabase.com/dashboard/project/glqxyghdcindimggnwml/functions/secrets">Supabase Edge Function Secrets</a> add <code>GMAIL_USER</code> (the Gmail address) and <code>GMAIL_APP_PASSWORD</code> (the 16 letters).</li>
-  <li>In <a href="https://supabase.com/dashboard/project/glqxyghdcindimggnwml/functions">Supabase Edge Functions</a> deploy a new function named exactly <code>cof-winner-email</code> with the code from <a href="https://github.com/city-of-fighters/city-of-fighters.github.io/blob/main/supabase/functions/cof-winner-email/index.ts">cof-winner-email/index.ts</a>.</li>
+  <li>In <a href="https://supabase.com/dashboard/project/mmdaxcjtnykbleupzuve/functions/secrets">Supabase Edge Function Secrets</a> add <code>GMAIL_USER</code> (the Gmail address) and <code>GMAIL_APP_PASSWORD</code> (the 16 letters).</li>
+  <li>In <a href="https://supabase.com/dashboard/project/mmdaxcjtnykbleupzuve/functions">Supabase Edge Functions</a> deploy a new function named exactly <code>cof-winner-email</code> with the code from <a href="https://github.com/city-of-fighters/city-of-fighters.github.io/blob/main/supabase/functions/cof-winner-email/index.ts">cof-winner-email/index.ts</a>.</li>
   <li>Turn <b>Verify JWT off</b> for it too.</li>
 </ol>
 <p class="warn">players who sign up on start.gg have no email in the app yet, so the banner can’t reach them. For now add the champion’s email in the Players tab, or ask for the app to copy emails from start.gg (start.gg shares them with tournament admins; this still has to be built).</p>

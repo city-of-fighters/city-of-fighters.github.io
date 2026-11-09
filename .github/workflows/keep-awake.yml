@@ -12,6 +12,10 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - run: |
+      - run: | # old project, shared with Iron Fist Academy
           curl -sf -m 30 -X POST https://glqxyghdcindimggnwml.supabase.co/rest/v1/rpc/cof_public \
             -H "apikey: sb_publishable_OatiT521MtUNk6gLQIa0yQ_67echjry" -H "Content-Type: application/json" -d '{}' > /dev/null
+      - if: always() # ping it even if the old one fails
+        run: | # new City of Fighters project (Kevin's account, since November 2026)
+          curl -sf -m 30 -X POST https://mmdaxcjtnykbleupzuve.supabase.co/rest/v1/rpc/cof_public \
+            -H "apikey: sb_publishable_nbS_m3UyNRmDQaa8jIOF0g_c07_xZ_o" -H "Content-Type: application/json" -d '{}' > /dev/null
