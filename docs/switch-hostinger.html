@@ -40,7 +40,7 @@
 </table>
 
 <h2>Exact instructions for Kevin’s Claude</h2>
-<p>Kevin pastes this whole box into Claude Code as the first message.</p>
+<p>Kevin pastes this whole box into Claude Code as the first message. The new database should start clean.</p>
 <pre style="white-space:pre-wrap;border:1px solid #888;padding:10px;font-size:10pt;line-height:1.35">I'm taking over the hosting of City of Fighters, a live website at https://cityoffighters.com. Clone https://github.com/city-of-fighters/city-of-fighters.github.io, read CLAUDE.md and all of DEPLOY-HOSTINGER.md, then guide me through the move one step at a time, following "Order of work" in that guide.
 
 The website moves to my Hostinger account and the database moves to a new Supabase project in a new account.
@@ -61,10 +61,10 @@ First check the guide against what really exists and tell me about anything that
   <li><b>Screenshot the current records.</b> You need them to undo this.</li>
   <li>Delete these four A records: <code>185.199.108.153</code>, <code>185.199.109.153</code>, <code>185.199.110.153</code>, <code>185.199.111.153</code>.</li>
   <li>Add one record: Type <code>A</code>, Host empty, Target the Hostinger address, TTL <code>600</code>.</li>
-  <li>Only if Kevin gives a different value for <code>www</code>, change that CNAME too. Don’t change the nameservers.</li>
+  <li>Change the <code>www</code> record to the value Kevin gives. It points at GitHub now and must not stay that way. Delete any AAAA records starting <code>2606:50c0:</code>. Don’t change the nameservers.</li>
   <li>Tell Kevin it’s done. It usually takes minutes but can take up to 24 hours. Kevin then turns on SSL and <b>Force HTTPS</b>. A security warning for a short time is normal.</li>
 </ol>
-<p class="warn">to undo: in Porkbun delete the Hostinger record and add the four GitHub records back. This only works while GitHub Pages is still on, so nobody turns it off until every check passes.</p>
+<p class="warn">to undo: in Porkbun delete the Hostinger record, add the four GitHub records back, and point <code>www</code> at <code>city-of-fighters.github.io</code> again. This only works while GitHub Pages is still on, so nobody turns it off until every check passes.</p>
 
 <h2>Check it together</h2>
 <table class="check">

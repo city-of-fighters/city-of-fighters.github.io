@@ -1,7 +1,7 @@
 # Move City of Fighters to Hostinger
 
 Instructions for the Claude (and the person) doing this move. Follow them in order.
-Written 6 November 2026, updated 8 November. The site runs on GitHub Pages at https://cityoffighters.com and must keep working until Hostinger is proven.
+Written 6 November 2026, updated 9 November. The site runs on GitHub Pages at https://cityoffighters.com and must keep working until Hostinger is proven.
 
 **Plan:** the website moves to Hostinger, and the City of Fighters database moves to a **new Supabase project in a new account**. Iron Fist Academy shares the old project and stays there.
 
@@ -14,7 +14,7 @@ Written 6 November 2026, updated 8 November. The site runs on GitHub Pages at ht
 3. **Don't run SQL that deletes data.** `supabase/city-of-fighters.sql` is safe to run again; a person runs it in the Supabase SQL Editor.
 4. **Ask the owner before** changing DNS, disabling GitHub Pages, making the repo private, or anything that costs money.
 5. **Don't do the switch during a tournament or stream.**
-6. Stage specific files only, and run `node test.js` before pushing to `main`.
+6. Stage specific files only, and run `node test.js` before pushing to `main`. If Claude can't push, it prepares the commit and the person pushes it from their PC.
 
 ## Order of work
 
@@ -50,7 +50,7 @@ Checked against the live system:
 - [x] Winner email deployed on the old project, Gmail secrets set and tested there
 - [x] Latest `supabase/city-of-fighters.sql` run on the old project; the new project still needs it
 - [x] `cof-startgg` function deployed on the old project; Log in with start.gg worked for real
-- [x] start.gg token: saved (Settings tab). Test mode is on, so nothing is sent to start.gg
+- [x] start.gg token: saved (Settings tab). Test mode is off on the old project since 9 November; it starts on in a new database
 - [x] Domain: `cityoffighters.com` registered at Porkbun, pointing at GitHub Pages with HTTPS on
 - [ ] Results, stream marks and the two-way link have not been tested against a real start.gg event
 
@@ -73,6 +73,7 @@ Hostinger gets its files from `main`, so point the code at the new database befo
 1. A person creates a new Supabase account and project, using an email someone reads. Warnings about pausing and billing go there.
 2. A person runs `supabase/city-of-fighters.sql` in the new SQL Editor, then sets the admin password:
    `update public.cof_admin set pass_hash = extensions.crypt('NEW-PASSWORD', extensions.gen_salt('bf')); delete from public.cof_sessions;`
+   The SQL Editor keeps a history in plain text, so delete that query from its list afterwards (the ⋯ menu → Delete).
 3. Replace the old project address and publishable key with the new project's:
    - `public/api.js` lines 3 and 4
    - `public/banner.js` line 3
@@ -95,7 +96,7 @@ The `hostinger` branch should already exist. If it doesn't, run the "Prepare Hos
 1. hPanel → the website → **Advanced** → **Git** → **Connect with GitHub**. Install the Hostinger app for this repo only.
 2. Repository: `city-of-fighters/city-of-fighters.github.io`
 3. Branch: **`hostinger`** (not `main`)
-4. Deploy directory: `public_html`. Back up anything already there first; it gets replaced.
+4. Deploy directory: leave the box **empty**. It's already inside `public_html`; typing that name there deploys to `public_html/public_html`. The folder must be empty, so back up anything there and delete Hostinger's default page first.
 5. Press **Deploy**. Later pushes to `main` update `hostinger`, and Hostinger deploys automatically.
 
 Menu names can change; check https://docs.hostinger.com/websites/git if they differ.
@@ -110,7 +111,7 @@ Menu names can change; check https://docs.hostinger.com/websites/git if they dif
 ## Step 4: Switch the domain (ask the owner first; not during a tournament or stream)
 
 1. Get the A record address (or addresses) for this website from hPanel. Look it up there; don't guess it.
-2. The owner opens Porkbun DNS for `cityoffighters.com` and replaces the four GitHub A records (`185.199.108.153` to `.111.153`) with Hostinger's. If hPanel gives a value for `www`, replace that CNAME too. Don't change the nameservers.
+2. The owner opens Porkbun DNS for `cityoffighters.com` and replaces the four GitHub A records (`185.199.108.153` to `.111.153`) with Hostinger's, and deletes any AAAA records starting `2606:50c0:`. `www` is a CNAME to `city-of-fighters.github.io` and **must change too**: use the value hPanel gives, or `cityoffighters.com` if it gives none. Don't change the nameservers.
 3. When DNS shows the new address, turn on the SSL certificate and **Force HTTPS** in hPanel. The site can show a certificate warning until then.
 4. Confirm https://cityoffighters.com and https://www.cityoffighters.com load from Hostinger.
 
@@ -155,9 +156,10 @@ Only when step 6 passes:
 
 Website files are always readable by visitors; this only hides the repo. Before making it private:
 
-1. **Move the PC installers.** Control panel download links (`public/settings.html`, lines 94 to 96) point at this repo's GitHub Releases, which stop working for the public. Publish them from a small public repo (for example `city-of-fighters/downloads`) and update the links. Don't put them in `public/` or on Hostinger's deploy folder.
-2. **Check the keep-awake job still runs.** GitHub can disable scheduled jobs after long inactivity. A paused Supabase project takes the whole app down; see the warning emails sent to the Supabase account.
-3. Confirm the Hostinger GitHub app can still read the repo, and press **Redeploy** once to prove it.
+1. **Replace the contact link.** `public/privacy.html` (lines 41 and 79) and `public/terms.html` (line 39) link to this repo's GitHub Issues, which the public can't open on a private repo.
+2. **Move the PC installers.** Control panel download links (`public/settings.html`, lines 94 to 96) point at this repo's GitHub Releases, which stop working for the public. Publish them from a small public repo (for example `city-of-fighters/downloads`) and update the links. Don't put them in `public/` or on Hostinger's deploy folder.
+3. **Check the keep-awake job still runs.** GitHub can disable scheduled jobs after long inactivity. A paused Supabase project takes the whole app down; see the warning emails sent to the Supabase account.
+4. Confirm the Hostinger GitHub app can still read the repo, and press **Redeploy** once to prove it.
 
 ## Step 9: Clean up the old project (ask the owner first)
 
