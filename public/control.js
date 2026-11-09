@@ -204,6 +204,16 @@ document.addEventListener('click', e => {
   post(b.dataset.act, b.dataset.body ? JSON.parse(b.dataset.body) : {});
 });
 
+// Demo tournament (Settings and the Control panel's results): removes it, its players and its results.
+async function deleteDemo() {
+  if (!S.demo || !confirm('Delete the demo tournament, its players and its results?')) return;
+  const ids = S.players.map(p => p.id);
+  await post('resetBracket');
+  for (const id of ids) await post('removePlayer', { id });
+  await post('end');
+  toast('Demo tournament deleted');
+}
+
 // Call at the end of the page script, after draw() exists.
 const boot = () => { if (token) draw().then(startPolling, () => {}); };
 
