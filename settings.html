@@ -81,6 +81,12 @@
     <div class="row"><input type="email" id="mailTo" placeholder="you@example.com" aria-label="Send the test to" style="flex:1;min-width:220px"><button type="button" id="mailTestBtn">Send test email</button></div>
   </details>
 
+  <details class="card" id="demoCard">
+    <summary style="cursor:pointer"><h2 style="display:inline">Demo tournament</h2></summary>
+    <p class="dim" style="margin-top:8px">A practice bracket with 4 players: ABZ and G3NC have pictures, Kevin and Luka don’t. It isn’t linked to start.gg, sends no emails and isn’t saved to Past tournaments. Viewers can see it in the app and on stream until you delete it.</p>
+    <div class="row"><button type="button" id="demoStart">Start demo tournament</button><button type="button" id="demoDelete" hidden>Delete demo tournament</button></div>
+  </details>
+
   <details class="card" id="pastCard">
     <summary style="cursor:pointer"><h2 style="display:inline">Past tournaments</h2></summary>
     <p class="dim" style="margin-top:8px">Every finished tournament is kept here and in the app (names and results only, never emails).</p>
@@ -159,10 +165,38 @@ $('pastRows').addEventListener('click', async e => {
   if (!b || !confirm(`Delete “${b.dataset.name}” from past tournaments? This can't be undone.`)) return;
   try { await rpc('cof_admin_archive_delete', { p_token: token, p_key: b.dataset.delpast }); toast('Deleted'); drawPast(); } catch (err) { toast(err.message); }
 });
+// Practice bracket. Cards keep any titles they already have.
+const DEMO_PLAYERS = ['ABZ', 'G3NC', 'Kevin', 'Luka'], DEMO_TITLES = ['energy', 'fossil', '7-golden-letters', 'albatross-move', 'alt-f4'];
+$('demoStart').onclick = async () => {
+  if (S.status !== 'none' && !S.finished) return toast('Finish or end the current tournament first');
+  if (!confirm('Start a demo tournament? It replaces the players and results set up now, and viewers can see it until you delete it.')) return;
+  $('demoStart').disabled = true;
+  try {
+    await post('create', { name: 'Demo tournament', game: 'Tekken 8', format: 'double', regMode: 'open', demo: true });
+    if (!S.demo || S.players.length) throw new Error('Could not start the demo');
+    for (const name of DEMO_PLAYERS) await rpc('cof_admin_player_save', { p_token: token, p_id: null, p_name: name, p_team: '', p_email: '' });
+    for (const name of DEMO_PLAYERS.slice(0, 2)) if (!(await rpc('cof_card', { p_tag: name }))?.titles?.length) await rpc('cof_admin_card_titles', { p_token: token, p_tag: name, p_titles: DEMO_TITLES });
+    await draw();
+    await post('start', { format: 'double' });
+    toast('Demo tournament started');
+  } catch (err) { toast(err.message); }
+  $('demoStart').disabled = false;
+};
+$('demoDelete').onclick = async () => {
+  if (!S.demo || !confirm('Delete the demo tournament, its players and its results?')) return;
+  const ids = S.players.map(p => p.id);
+  await post('resetBracket');
+  for (const id of ids) await post('removePlayer', { id });
+  await post('end');
+  toast('Demo tournament deleted');
+};
+
 async function draw() {
   S = view(await adminGet());
   document.body.classList.remove('locked');
   sggDraw();
+  const demo = !!S.demo && S.status !== 'none';
+  $('demoStart').hidden = demo; $('demoDelete').hidden = !demo;
 }
 boot();
 </script>
