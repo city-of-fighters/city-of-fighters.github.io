@@ -60,7 +60,7 @@
   <div class="card" id="resultsCard" hidden>
     <h2>Tournament finished · results image</h2>
     <canvas id="png" width="1920" height="1080" style="width:100%;border-radius:6px"></canvas>
-    <div class="row" style="margin-top:10px"><button class="primary" id="download">Download PNG</button><button type="button" id="demoDelete" hidden>Delete demo data</button></div>
+    <div class="row" style="margin-top:10px"><button class="primary" id="download">Download PNG</button><button type="button" id="demoDelete" hidden>Delete demo data</button><button type="button" id="playEnding" data-act="screen" data-body='{"screen":"ending"}' data-confirm="Play the stream ending animation on stream now?" hidden>🎬 Play stream ending</button></div>
     <h2 style="margin-top:18px">Winner banner email</h2>
     <p class="dim" style="margin-top:0">Sent to the champion automatically when the final result is entered. Use the button if it failed or to send it again.</p>
     <canvas id="bannerPrev" width="1200" height="630" style="width:100%;max-width:600px;border-radius:6px;display:block"></canvas>
@@ -186,6 +186,7 @@ async function draw() {
   const finished = S.finished;
   $('resultsCard').hidden = !finished;
   $('demoDelete').hidden = !S.demo;
+  $('playEnding').hidden = S.screen !== 'podium';
   if (finished) { drawResults(); drawBanner($('bannerPrev'), S, S.standings.filter(r => r.place === 1)); }
 }
 

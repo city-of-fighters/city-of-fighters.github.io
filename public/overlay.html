@@ -14,6 +14,7 @@
   body.preview::before { content: 'GAME FOOTAGE'; position: fixed; inset: 0; display: grid; place-items: center; color: #ffffff12; font: 900 140px system-ui; letter-spacing: 10px; }
   .screen { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; pointer-events: none; }
   .screen.on { opacity: 1; }
+  .anim { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; background: #000; z-index: 90; }
 
   /* HUD across the top (hud/hud-bar.webm, made from the CoF HuD animation in the asets pack).
      Scores sit in the blue boxes, player and team in the black panels, the round name in the pink strip. */
@@ -223,12 +224,17 @@
 <div class="screen" id="s-comingup"><div class="cu" id="cuLive"></div></div>
 <div id="pop" aria-live="polite"></div>
 <div id="intro" class="cardset" hidden></div>
+<video class="anim" id="startVid" src="hud/stream-starting.mp4" loop playsinline preload="auto" hidden></video>
+<video class="anim" id="endVid" src="hud/stream-ending.mp4" playsinline preload="auto" hidden></video>
 <script src="bracket.js"></script><script src="api.js"></script><script src="titles.js"></script><script src="bracketview.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 if (params.get('preview')) document.body.classList.add('preview');
 if (params.has('cams')) document.querySelectorAll('.hcam').forEach(el => el.hidden = false);
+if (params.get('preview')) document.querySelectorAll('.anim').forEach(v => v.muted = true); // the Stream tab's preview stays quiet
+// Stream starting loops from Start tournament until the first match goes on stream; Stream ending plays once and stays on its last picture.
+const animShow = (v, on) => { if (on === !v.hidden) return; v.hidden = !on; if (on) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause(); };
 const ord = n => n + ((n % 100 > 10 && n % 100 < 14) ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
 const record = (s, r) => s.format === 'robin' || s.format === 'swiss' ? `${r.pts} pts · games ${r.gw}–${r.gl}` : `${r.w}–${r.l} · games ${r.gw}–${r.gl}`;
 const fit = (box, maxScale) => { // grow small / shrink big panels to fill the screen
@@ -473,6 +479,8 @@ async function draw() {
     if (screen === 'cards') cardsKey = cardsShown = ''; // and the cards
     shown = screen;
   }
+  animShow($('startVid'), !params.get('screen') && s.status === 'running' && screen === 'scoreboard' && !s.streamMatch && !s.matches.some(x => x.winner && !x.auto));
+  animShow($('endVid'), screen === 'ending');
 
   scoreboard(s, seats(s, s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch)))); // ?match= previews another match
   if (screen === 'comingup') {
