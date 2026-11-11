@@ -120,7 +120,7 @@ function newTournament(b) {
     name: String(b.name || 'City of Fighters').slice(0, 60), game: String(b.game || 'Tekken 8').slice(0, 40),
     format: B.FORMATS[b.format] ? b.format : 'double', createdAt: new Date().toISOString(), ...(b.rules ? { rules: String(b.rules).slice(0, 5000) } : {}), ...(b.demo ? { demo: true } : {}) };
 }
-const SCREENS = { scoreboard: 'Scoreboard', bracket: 'Bracket', standings: 'Standings', podium: 'Podium', cards: 'Player cards' };
+const SCREENS = { scoreboard: 'Scoreboard', bracket: 'Bracket', standings: 'Standings', podium: 'Podium', cards: 'Player cards', ending: 'Stream ending' };
 // After a result: show the podium the moment the tournament is decided. The finished match stays on stream
 // (the OBS page shows the winner, then "waiting") until the coordinator puts the next one on.
 function played(d, fn) {

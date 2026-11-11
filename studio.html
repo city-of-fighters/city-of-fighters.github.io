@@ -113,7 +113,7 @@
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuHud" checked> Also show the player cameras in the bottom corners during a match</label>
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSplit"> One camera films both players: its left half goes in Player 1's window, its right half in Player 2's</label>
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSwap"> Swap the halves (left half → Player 2)</label>
-      <div class="row" style="margin-top:10px"><button class="primary" type="button" id="cuBuild">Set up Coming Up scene in OBS</button><button type="button" id="cuPreview">Preview Coming Up</button></div>
+      <div class="row" style="margin-top:10px"><button class="primary" type="button" id="cuBuild">Set up Coming Up scene in OBS</button><button type="button" id="cuFlip">⇄ Swap cameras</button><button type="button" id="cuPreview">Preview Coming Up</button></div>
     </div>
   </section>
 </main>
@@ -124,7 +124,7 @@ const base = location.href.replace(/studio\.html.*$/, '');
 $('obs').textContent = base + 'overlay.html';
 $('copy').onclick = () => navigator.clipboard.writeText(base + 'overlay.html').then(() => toast('Copied'), () => toast('Copy failed'));
 try { if (!localStorage.getItem('cofObsHelpSeen')) { $('obsHelp').open = true; if (canSave()) localStorage.setItem('cofObsHelpSeen', '1'); } } catch {} // open the first time
-const ICONS = { scoreboard: '🎮', bracket: '🏆', standings: '📊', podium: '🥇', cards: '🃏' };
+const ICONS = { scoreboard: '🎮', bracket: '🏆', standings: '📊', podium: '🥇', cards: '🃏', ending: '🎬' };
 let draft = null, dirty = false; // { screen, match } being previewed; follows what is live until you change it
 
 // Scale the 1920×1080 pages down to the boxes.
@@ -302,6 +302,12 @@ $('cuBuild').onclick = () => obsDo(async () => {
   if (main === OBS_COMING_UP) throw new Error('Switch OBS to your normal stream scene first, then press this again.');
   await obs.buildComingUp({ screen: $('cuScreen').value, cam1: $('cuCam1').value, cam2: $('cuCam2').value, split: $('cuSplit').checked, swap: $('cuSwap').checked, hudCams: $('cuHud').checked, overlayUrl: base + 'overlay.html', mainScene: main });
 }, 'Coming Up scene is ready in OBS');
+// Player 1's camera goes to Player 2's window and the other way round, in OBS straight away.
+$('cuFlip').onclick = () => {
+  if ($('cuSplit').checked) { $('cuSwap').checked = !$('cuSwap').checked; cuSync(); }
+  else [$('cuCam1').value, $('cuCam2').value] = [$('cuCam2').value, $('cuCam1').value];
+  $('cuBuild').click();
+};
 $('cuPreview').onclick = () => {
   const split = $('cuSplit').checked && $('cuCam1').value;
   const has = [$('cuScreen').value && 'screen', $('cuCam1').value && 'cam1', (split || $('cuCam2').value) && 'cam2'].filter(Boolean).join(',');
