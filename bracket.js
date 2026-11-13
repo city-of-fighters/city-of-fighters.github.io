@@ -180,10 +180,10 @@ function reopen(matches, id) {
     Object.assign(x, { winner: null, loser: null, auto: false });
   };
   undo(m);
-  if (m.ga >= FT_GAMES || m.gb >= FT_GAMES) Object.assign(m, { ga: 0, gb: 0, ra: 0, rb: 0 });
+  if (!m.open && (m.ga >= FT_GAMES || m.gb >= FT_GAMES)) Object.assign(m, { ga: 0, gb: 0, ra: 0, rb: 0 });
 }
 
-// kind 'round' or 'game', delta +1/-1. Hitting FT_ROUNDS wins a game, FT_GAMES wins the match.
+// kind 'round' or 'game', delta +1/-1. Hitting FT_ROUNDS wins a game, FT_GAMES wins the match (an open match only ends with End match).
 function score(matches, id, side, kind, delta) {
   const m = byId(matches, id);
   if (!m || !isReady(m)) throw new Error('Match is not ready');
@@ -193,7 +193,7 @@ function score(matches, id, side, kind, delta) {
   else if (kind === 'game') m[g] = Math.max(0, m[g] + delta);
   else throw new Error('Bad kind');
   if (m[r] >= FT_ROUNDS) { m[g]++; m.ra = m.rb = 0; }
-  if (m[g] >= FT_GAMES) report(matches, id, side);
+  if (m[g] >= FT_GAMES && !m.open) report(matches, id, side);
 }
 
 const isDouble = matches => matches.some(m => m.side === 'GF');
@@ -201,6 +201,7 @@ const isPoints = matches => matches.some(m => m.side === 'R');
 const lastRound = (matches, side) => Math.max(...matches.filter(x => x.side === side).map(x => x.round));
 
 function label(matches, m) {
+  if (m.title) return m.title;
   if (m.id === 'GF1') return 'Grand Final';
   if (m.id === 'GF2') return 'Grand Final Reset';
   if (m.side === 'R') return m.of ? `Round ${m.round} of ${m.of}` : `Round ${m.round}`;
