@@ -85,16 +85,18 @@ class OBSRemote {
     }
     return { scene, cameras: out };
   }
-  async addCamera() { // a new camera in the main scene, on the first device OBS finds (bottom-right corner, small)
+  async addCamera() { // a new camera in the main scene, on the first device OBS finds that no other source uses (bottom-right corner, small)
     const scene = await this.mainScene();
     const { inputs } = await this.call('GetInputList');
+    const used = new Set();
+    for (const i of inputs.filter(i => OBS_CAMERA_KINDS.includes(i.inputKind))) used.add((await this.call('GetInputSettings', { inputName: i.inputName })).inputSettings[OBS_CAMERA_DEVICE_PROP[i.inputKind]]);
     let n = 1; while (inputs.some(i => i.inputName === `CoF Camera ${n}`)) n++;
     const name = `CoF Camera ${n}`, kind = this.cameraKind();
     const { sceneItemId } = await this.call('CreateInput', { sceneName: scene, inputName: name, inputKind: kind, inputSettings: {}, sceneItemEnabled: true });
     const prop = OBS_CAMERA_DEVICE_PROP[kind];
     const devices = await this.call('GetInputPropertiesListPropertyItems', { inputName: name, propertyName: prop }).then(r => r.propertyItems.filter(d => d.itemEnabled !== false), () => []);
     // laptops often list an infrared sensor first, which gives no picture: keep the first device that does
-    for (const d of devices) {
+    for (const d of [...devices.filter(d => !used.has(d.itemValue)), ...devices.filter(d => used.has(d.itemValue))]) {
       await this.call('SetInputSettings', { inputName: name, inputSettings: { [prop]: d.itemValue } });
       let w = 0;
       for (let i = 0; i < 15 && !w; i++) { await new Promise(r => setTimeout(r, 200)); w = (await this.call('GetSceneItemTransform', { sceneName: scene, sceneItemId })).sceneItemTransform.sourceWidth; }
@@ -113,6 +115,26 @@ class OBSRemote {
     let { sceneItemId } = await this.call('GetSceneItemId', { sceneName: scene, sourceName: name }).catch(() => ({}));
     if (sceneItemId == null) { if (!on) return; ({ sceneItemId } = await this.call('CreateSceneItem', { sceneName: scene, sourceName: name })); }
     await this.call('SetSceneItemEnabled', { sceneName: scene, sceneItemId, sceneItemEnabled: on });
+  }
+  // Two sources on one camera: only one can open it and the other stays black. The kept source takes the other's place
+  // (position, size, crop, order, shown or hidden) in every scene, then the other is deleted.
+  async mergeCamera(keep, drop) {
+    const KEYS = ['positionX', 'positionY', 'rotation', 'scaleX', 'scaleY', 'alignment', 'boundsType', 'boundsAlignment', 'boundsWidth', 'boundsHeight', 'cropLeft', 'cropRight', 'cropTop', 'cropBottom', 'cropToBounds'];
+    const { scenes } = await this.call('GetSceneList');
+    for (const { sceneName } of scenes) {
+      const { sceneItems } = await this.call('GetSceneItemList', { sceneName });
+      const kept = sceneItems.filter(s => s.sourceName === keep);
+      for (const it of sceneItems.filter(s => s.sourceName === drop)) {
+        if (kept.length && (!it.sceneItemEnabled || kept.some(s => s.sceneItemEnabled))) continue; // the kept one already shows here
+        const { sceneItemTransform: t } = await this.call('GetSceneItemTransform', { sceneName, sceneItemId: it.sceneItemId });
+        const sceneItemId = kept[0]?.sceneItemId ?? (await this.call('CreateSceneItem', { sceneName, sourceName: keep, sceneItemEnabled: it.sceneItemEnabled })).sceneItemId;
+        if (kept.length) await this.call('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled: true }); // it was hidden where the other one showed
+        await this.call('SetSceneItemTransform', { sceneName, sceneItemId, sceneItemTransform: Object.fromEntries(KEYS.filter(k => k in t).map(k => [k, t[k]])) });
+        await this.call('SetSceneItemIndex', { sceneName, sceneItemId, sceneItemIndex: it.sceneItemIndex });
+        kept.push({ sceneItemId, sceneItemEnabled: true });
+      }
+    }
+    await this.removeCamera(drop);
   }
   async removeCamera(name) { // OBS removes sources in the background: wait until it's gone
     await this.call('RemoveInput', { inputName: name });

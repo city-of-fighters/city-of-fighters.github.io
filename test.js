@@ -81,4 +81,30 @@ assert.strictEqual(pictureDarkShare(rgba(100, 18)), 1, 'a capture card\'s near-b
 assert.strictEqual(pictureDarkShare(rgba(100, 200)), 0);
 const logo = rgba(100, 0); logo.fill(255, 0, 8);
 assert.strictEqual(pictureDarkShare(logo), 0.98, 'share of dark pixels');
-console.log('all bracket tests passed');
+// Same camera in two OBS sources: Keep puts the kept one in the other's place in every scene, then deletes the other.
+(async () => {
+  const { OBSRemote } = require('./public/obs');
+  const scenes = { Main: [{ sourceName: 'Commentator Camera', sceneItemId: 1, sceneItemIndex: 0, sceneItemEnabled: false }, { sourceName: 'Brio_Playercam', sceneItemId: 2, sceneItemIndex: 1, sceneItemEnabled: true }],
+    HUD: [{ sourceName: 'Brio_Playercam', sceneItemId: 1, sceneItemIndex: 0, sceneItemEnabled: true }] };
+  const inputs = ['Commentator Camera', 'Brio_Playercam'], tf = {};
+  const o = new OBSRemote();
+  o.call = async (type, d) => {
+    if (type === 'GetSceneList') return { scenes: Object.keys(scenes).map(sceneName => ({ sceneName })) };
+    if (type === 'GetSceneItemList') return { sceneItems: scenes[d.sceneName].map(x => ({ ...x })) };
+    if (type === 'GetSceneItemTransform') return { sceneItemTransform: { positionX: 20, cropLeft: 960, sourceWidth: 1920 } };
+    if (type === 'CreateSceneItem') { const id = 100 + scenes[d.sceneName].length; scenes[d.sceneName].push({ sourceName: d.sourceName, sceneItemId: id, sceneItemIndex: scenes[d.sceneName].length, sceneItemEnabled: d.sceneItemEnabled }); return { sceneItemId: id }; }
+    if (type === 'SetSceneItemTransform') { tf[d.sceneName] = d.sceneItemTransform; return {}; }
+    if (type === 'SetSceneItemIndex') return {};
+    if (type === 'SetSceneItemEnabled') { scenes[d.sceneName].find(x => x.sceneItemId === d.sceneItemId).sceneItemEnabled = d.sceneItemEnabled; return {}; }
+    if (type === 'RemoveInput') { inputs.splice(inputs.indexOf(d.inputName), 1); for (const s of Object.values(scenes)) s.splice(0, s.length, ...s.filter(x => x.sourceName !== d.inputName)); return {}; }
+    if (type === 'GetInputList') return { inputs: inputs.map(inputName => ({ inputName })) };
+    throw new Error('unexpected ' + type);
+  };
+  await o.mergeCamera('Commentator Camera', 'Brio_Playercam');
+  assert.deepStrictEqual(inputs, ['Commentator Camera']);
+  assert.deepStrictEqual(scenes.Main.map(x => [x.sourceName, x.sceneItemEnabled]), [['Commentator Camera', true]], 'hidden in Main where the other showed: now shown in its place');
+  assert.deepStrictEqual(tf.Main, { positionX: 20, cropLeft: 960 });
+  assert.deepStrictEqual(scenes.HUD.map(x => [x.sourceName, x.sceneItemEnabled]), [['Commentator Camera', true]]);
+  assert.deepStrictEqual(tf.HUD, { positionX: 20, cropLeft: 960 }, 'same place and crop, read-only fields left out');
+  console.log('all bracket tests passed');
+})().catch(e => { console.error(e); process.exit(1); });

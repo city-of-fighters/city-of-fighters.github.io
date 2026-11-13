@@ -258,7 +258,13 @@ async function obsRefresh() {
   camState = await obs.cameras();
   const { scene, cameras } = camState;
   obsStatus(`Connected to OBS · main scene “${scene}” · ${cameras.length ? cameras.length + ' camera' + (cameras.length > 1 ? 's' : '') : 'no cameras yet'}`, true);
-  $('camList').innerHTML = cameras.map(c => `<div class="cam" data-cam="${esc(c.name)}"><b>${esc(c.name)}</b>
+  // the same camera in two sources: one of them is always black
+  const byDevice = new Map(); for (const c of cameras.filter(c => c.device)) byDevice.set(c.kind + c.device, [...(byDevice.get(c.kind + c.device) ?? []), c]);
+  const shared = [...byDevice.values()].filter(g => g.length > 1);
+  $('camList').innerHTML = shared.map(g => `<div class="err" style="margin:0 0 10px" data-shared='${esc(JSON.stringify(g.map(c => c.name)))}'>⚠ <b>${g.map(c => esc(c.name)).join(' and ')}</b> use the same camera
+      (${esc(g[0].devices.find(d => d.itemValue === g[0].device)?.itemName ?? 'one device')}). Only one of them can show it; the other stays black. Keep the one that shows a picture:
+      <div class="row" style="margin-top:6px">${g.map(c => `<button type="button" class="small" data-keep="${esc(c.name)}">Keep ${esc(c.name)}</button>`).join('')}</div></div>`).join('')
+    + cameras.map(c => `<div class="cam" data-cam="${esc(c.name)}"><b>${esc(c.name)}</b>
       ${c.devices.length ? `<select data-dev aria-label="Camera device">${c.devices.map(d => `<option value="${esc(d.itemValue)}"${d.itemValue === c.device ? ' selected' : ''}>${esc(d.itemName)}</option>`).join('')}</select>`
         : '<span class="err" style="margin:0">No camera connected to this computer</span>'}
       <button type="button" data-show class="${c.enabled ? 'on' : ''}">${c.enabled ? '● In the stream' : 'Hidden'}</button>
@@ -278,6 +284,16 @@ $('camList').addEventListener('change', e => {
   if (c && e.target.matches('[data-dev]')) obsDo(() => obs.setCameraDevice(c.name, c.prop, e.target.value), 'Camera changed');
 });
 $('camList').addEventListener('click', e => {
+  const keep = e.target.closest('[data-keep]')?.dataset.keep;
+  if (keep) {
+    const drop = JSON.parse(e.target.closest('[data-shared]').dataset.shared).filter(n => n !== keep);
+    if (!confirm(`Keep ${keep}? It takes the place of ${drop.join(' and ')} in every OBS scene, and ${drop.length > 1 ? 'those are' : 'that one is'} deleted.`)) return;
+    return obsDo(async () => {
+      for (const d of drop) await obs.mergeCamera(keep, d);
+      CU_PICKS.forEach(id => { if (drop.includes($(id).value)) { $(id).add(new Option(keep, keep)); $(id).value = keep; } }); // the Coming Up choices follow
+      cuSync();
+    }, `${keep} is now the only source for that camera`);
+  }
   const row = e.target.closest('[data-cam]'), c = camState?.cameras.find(x => x.name === row?.dataset.cam);
   if (!c) return;
   if (e.target.closest('[data-show]')) obsDo(() => obs.showCamera(c.name, !c.enabled), c.enabled ? 'Camera hidden from the stream' : 'Camera is in the stream');
