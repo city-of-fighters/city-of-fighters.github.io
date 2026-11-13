@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>City of Fighters Contact</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  main { max-width: 640px; }
+  .hero { text-align: center; padding-top: 6px; }
+  .hero img { width: 180px; max-width: 60%; filter: drop-shadow(0 0 16px #ff0a6c66); }
+  .mail { font: 700 18px var(--display); letter-spacing: 1px; overflow-wrap: anywhere; color: var(--teal); }
+  form button { margin-top: 12px; width: 100%; }
+</style>
+</head>
+<body class="app">
+<main>
+  <div class="hero"><img src="logo-clear.png" alt="City of Fighters"></div>
+  <h1 style="text-align:center;font-size:26px">✉️ Contact <span>us</span></h1>
+  <form class="card" id="msg">
+    <p class="dim" style="margin-top:0">Questions, ideas or problems? Write your message and press Send. Your email app opens with it ready to send to us.</p>
+    <label for="subject">Subject</label><input type="text" id="subject" maxlength="120" required>
+    <label for="body">Message</label><textarea id="body" maxlength="4000" required></textarea>
+    <button class="primary" type="submit">Send</button>
+  </form>
+  <div class="card" style="text-align:center">
+    <p class="dim" style="margin-top:0">Or email us directly:</p>
+    <a class="mail" href="mailto:maltacityoffighters@gmail.com">maltacityoffighters@gmail.com</a>
+    <div><button type="button" id="copy" style="margin-top:10px">Copy address</button></div>
+  </div>
+  <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
+</main>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a class="on" href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<script src="consent.js"></script>
+<script>
+// Contact: the message opens in the visitor's own email app, so nothing is sent or stored by this site.
+const TO = 'maltacityoffighters@gmail.com', $ = id => document.getElementById(id);
+$('msg').onsubmit = e => {
+  e.preventDefault();
+  location.href = `mailto:${TO}?subject=${encodeURIComponent($('subject').value.trim())}&body=${encodeURIComponent($('body').value.trim())}`;
+};
+$('copy').onclick = () => navigator.clipboard.writeText(TO).then(() => ($('copy').textContent = '✓ Copied'), () => ($('copy').textContent = TO));
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
