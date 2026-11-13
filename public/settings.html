@@ -87,6 +87,18 @@
     <div class="row"><button type="button" id="demoStart">Start demo tournament</button><button type="button" id="demoDelete" hidden>Delete demo tournament</button></div>
   </details>
 
+  <details class="card" id="customCard">
+    <summary style="cursor:pointer"><h2 style="display:inline">Custom match</h2></summary>
+    <p class="dim" style="margin-top:8px">One match between two players you type in, for a show match or a first to 10. It has no game limit: it only ends when you press <b>🏁 End match</b> in the Control panel or on the phone, and the player with more games wins. It goes on stream straight away, isn’t sent to start.gg, sends no emails and isn’t saved to Past tournaments. It replaces the players and results set up now.</p>
+    <p class="dim">Pictures come from each player’s card, matched by gamer tag. To add one, use <b>Players → Edit</b>.</p>
+    <div class="row"><input type="text" id="cmTitle" maxlength="60" placeholder="Match name, e.g. First to 10" aria-label="Match name" style="flex:1;min-width:220px"></div>
+    <div class="row">
+      <span id="cmPicA" style="width:40px"></span><input type="text" id="cmA" maxlength="40" placeholder="Player 1 gamer tag" aria-label="Player 1" style="flex:1;min-width:160px">
+      <span id="cmPicB" style="width:40px"></span><input type="text" id="cmB" maxlength="40" placeholder="Player 2 gamer tag" aria-label="Player 2" style="flex:1;min-width:160px">
+    </div>
+    <div class="row"><button type="button" class="primary" id="cmStart">Start custom match</button><button type="button" id="cmDelete" hidden>Delete custom match</button></div>
+  </details>
+
   <details class="card" id="pastCard">
     <summary style="cursor:pointer"><h2 style="display:inline">Past tournaments</h2></summary>
     <p class="dim" style="margin-top:8px">Every finished tournament is kept here and in the app (names and results only, never emails).</p>
@@ -184,12 +196,38 @@ $('demoStart').onclick = async () => {
 };
 $('demoDelete').onclick = deleteDemo;
 
+// Custom match: shows each player's card picture as their tag is typed.
+const cmPic = async (input, box) => {
+  const c = input.value.trim() ? await rpc('cof_card', { p_tag: input.value }).catch(() => null) : null;
+  $(box).innerHTML = c?.portrait ? `<img src="${esc(c.portrait)}" alt="" title="Has a picture" style="width:40px;height:40px;object-fit:cover;object-position:top;border:2px solid var(--pink);border-radius:50%">`
+    : input.value.trim() ? '<span class="dim" title="No picture">👤</span>' : '';
+};
+$('cmA').onchange = () => cmPic($('cmA'), 'cmPicA'); $('cmB').onchange = () => cmPic($('cmB'), 'cmPicB');
+$('cmStart').onclick = async () => {
+  const a = $('cmA').value.trim(), b = $('cmB').value.trim(), name = $('cmTitle').value.trim() || 'Custom match';
+  if (!a || !b || a.toLowerCase() === b.toLowerCase()) return toast('Type two different gamer tags');
+  if (S.status !== 'none' && !S.finished && !S.demo && !S.custom) return toast('Finish or end the current tournament first');
+  if (!confirm(`Start “${name}”: ${a} vs ${b}? It goes on stream straight away.`)) return;
+  $('cmStart').disabled = true;
+  try {
+    await post('create', { name, game: 'Tekken 8', format: 'single', regMode: 'open', custom: true });
+    if (!S.custom || S.players.length) throw new Error('Could not start the custom match');
+    for (const p of [a, b]) await rpc('cof_admin_player_save', { p_token: token, p_id: null, p_name: p, p_team: '', p_email: '' });
+    await draw();
+    await post('customMatch');
+    if (S.matches[0]?.open) toast('Custom match started and on stream');
+  } catch (err) { toast(err.message); }
+  $('cmStart').disabled = false;
+};
+$('cmDelete').onclick = deleteDemo;
+
 async function draw() {
   S = view(await adminGet());
   document.body.classList.remove('locked');
   sggDraw();
   const demo = !!S.demo && S.status !== 'none';
   $('demoStart').hidden = demo; $('demoDelete').hidden = !demo;
+  $('cmDelete').hidden = !(S.custom && S.status !== 'none');
 }
 boot();
 </script>

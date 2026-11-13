@@ -65,6 +65,16 @@ for (let n = 2; n <= 20; n++) for (let t = 0; t < 10; t++) {
   }
   assert.strictEqual(B.standings(players, sw).reduce((a, r) => a + r.w, 0), sw.length, 'swiss: one win per match (byes too)');
 }
+// Custom match (open): no game limit, ends only on report, keeps its score through a reopen.
+{
+  const cm = [{ id: 'C1', side: 'W', round: 1, a: 'x', b: 'y', winner: null, loser: null, ga: 0, gb: 0, ra: 0, rb: 0, winTo: null, loseTo: null, auto: false, skipped: false, open: true, title: 'FT10' }];
+  for (let i = 0; i < 10 * B.FT_ROUNDS; i++) B.score(cm, 'C1', 'a', 'round', 1);
+  B.score(cm, 'C1', 'b', 'game', 1);
+  assert.deepStrictEqual([cm[0].ga, cm[0].gb, cm[0].winner, B.finished(cm)], [10, 1, null, false]);
+  assert.strictEqual(B.label(cm, cm[0]), 'FT10');
+  B.report(cm, 'C1', 'a'); assert.strictEqual(B.finished(cm), true);
+  B.reopen(cm, 'C1'); assert.deepStrictEqual([cm[0].ga, cm[0].winner], [10, null]);
+}
 const { pictureDarkShare } = require('./public/obs');
 const rgba = (n, v) => new Uint8ClampedArray(n * 4).fill(v);
 assert.strictEqual(pictureDarkShare(rgba(100, 18)), 1, 'a capture card\'s near-black counts as dark');

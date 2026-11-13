@@ -5,6 +5,8 @@
 if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { top.location = location.href; } catch {} }
 const $ = id => document.getElementById(id);
 const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
+// Custom match: ends only when the organizer says so, and the player with more games wins.
+const endBtn = (m, cls) => `<button class="${cls}" data-act="endMatch" data-body='${esc(JSON.stringify({ id: m.id }))}' data-confirm="${esc(`End the match ${m.ga}–${m.gb}? ${m.ga === m.gb ? '' : (m.ga > m.gb ? m.aName : m.bName) + ' wins.'}`)}">🏁 End match</button>`;
 let S, token = '';
 try { token = localStorage.getItem('cofToken') || ''; } catch {}
 // Kept on the device only if the visitor allowed saving; otherwise the login lasts until the page is closed.
@@ -70,6 +72,19 @@ const actions = {
     d.matches = B.build(d.order, d.format);
     Object.assign(d, { regOpen: false, screen: 'scoreboard', status: 'running' });
   },
+  customMatch: d => { // Settings → Custom match: one match, any number of games, never linked to start.gg
+    notStarted(d);
+    if (!d.custom || d.order.length !== 2) throw new Error('A custom match needs exactly 2 players');
+    d.matches = [{ id: 'C1', side: 'W', round: 1, a: d.order[0], b: d.order[1], winner: null, loser: null, ga: 0, gb: 0, ra: 0, rb: 0,
+      winTo: null, loseTo: null, auto: false, skipped: false, open: true, title: d.name }];
+    Object.assign(d, { format: 'single', regOpen: false, status: 'running', streamMatch: 'C1', screen: 'scoreboard' });
+  },
+  endMatch: (d, b) => played(d, () => {
+    const m = d.matches.find(x => x.id === b.id);
+    if (!m?.open || !B.isReady(m)) throw new Error('No open match to end');
+    if (m.ga === m.gb) throw new Error('The games are tied: add a game for the winner first');
+    B.report(d.matches, m.id, m.ga > m.gb ? 'a' : 'b');
+  }),
   resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard', status: 'setup' }); },
   report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
   reopen: (d, b) => played(d, () => B.reopen(d.matches, b.id)),
@@ -99,6 +114,7 @@ const actions = {
   screen: (d, b) => { if (SCREENS[b.screen]) d.screen = b.screen; }, // what the OBS page shows
   startgg: (d, b) => { // start.gg link (startgg.js): settings, linked players, sets already reported
     if (b.off) { delete d.startgg; return; }
+    if (d.custom) throw new Error('A custom match is never sent to start.gg');
     const g = d.startgg ??= { entrants: {}, sent: {} };
     for (const k of ['slug', 'eventId', 'title', 'auto']) if (b.set && k in b.set) g[k] = b.set[k];
     Object.assign(g.entrants ??= {}, b.entrants);
@@ -118,7 +134,7 @@ function newTournament(b) {
   const eventAt = b.eventAt && !isNaN(new Date(b.eventAt)) ? new Date(b.eventAt).toISOString() : null;
   return { status: 'setup', regOpen: true, regMode: at ? 'at' : 'open', regAt: at, eventAt,
     name: String(b.name || 'City of Fighters').slice(0, 60), game: String(b.game || 'Tekken 8').slice(0, 40),
-    format: B.FORMATS[b.format] ? b.format : 'double', createdAt: new Date().toISOString(), ...(b.rules ? { rules: String(b.rules).slice(0, 5000) } : {}), ...(b.demo ? { demo: true } : {}) };
+    format: B.FORMATS[b.format] ? b.format : 'double', createdAt: new Date().toISOString(), ...(b.rules ? { rules: String(b.rules).slice(0, 5000) } : {}), ...(b.demo ? { demo: true } : {}), ...(b.custom ? { custom: true } : {}) };
 }
 const SCREENS = { scoreboard: 'Scoreboard', bracket: 'Bracket', standings: 'Standings', podium: 'Podium', cards: 'Player cards', ending: 'Stream ending' };
 // After a result: show the podium the moment the tournament is decided. The finished match stays on stream
@@ -142,7 +158,7 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
     if (act === 'removePlayer') await rpc('cof_admin_remove', { p_token: token, p_id: body.id });
     else if (act === 'streamCmd') { await rpc('cof_admin_stream_cmd', { p_token: token, p_cmd: body.cmd }); drawLiveBox(); }
     else if (act === 'create') {
-      if (S?.finished && !S.demo) await saveArchive(S); // keep the finished one before it's cleared
+      if (S?.finished && !S.demo && !S.custom) await saveArchive(S); // keep the finished one before it's cleared
       await rpc('cof_admin_reset', { p_token: token, p_data: newTournament(body) });
     }
     else {
@@ -163,7 +179,7 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
       }
     }
     await draw();
-    if (decided && !S.demo) { sendWinnerMail(); saveArchive(S).catch(e => toast('Past tournaments: ' + e.message)); } // champion decided: email the banner, keep the results
+    if (decided && !S.demo && !S.custom) { sendWinnerMail(); saveArchive(S).catch(e => toast('Past tournaments: ' + e.message)); } // champion decided: email the banner, keep the results
   } catch (e) { toast(e.message); }
 }));
 
@@ -204,14 +220,15 @@ document.addEventListener('click', e => {
   post(b.dataset.act, b.dataset.body ? JSON.parse(b.dataset.body) : {});
 });
 
-// Demo tournament (Settings and the Control panel's results): removes it, its players and its results.
+// Demo tournament or custom match (Settings and the Control panel's results): removes it, its players and its results.
 async function deleteDemo() {
-  if (!S.demo || !confirm('Delete the demo tournament, its players and its results?')) return;
+  const what = S.custom ? 'custom match' : 'demo tournament';
+  if (!(S.demo || S.custom) || !confirm(`Delete the ${what}, its players and its results?`)) return;
   const ids = S.players.map(p => p.id);
   await post('resetBracket');
   for (const id of ids) await post('removePlayer', { id });
   await post('end');
-  toast('Demo tournament deleted');
+  toast(`Deleted the ${what}`);
 }
 
 // Call at the end of the page script, after draw() exists.

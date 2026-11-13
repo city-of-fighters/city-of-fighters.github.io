@@ -163,10 +163,10 @@ async function draw() {
 
   const m = S.matches.find(x => x.id === S.streamMatch);
   $('streamBody').innerHTML = !m ? 'No match on stream. Pick one below with “Put on stream”.' : `
-    <div class="dim" style="text-align:center;margin-bottom:8px">${esc(m.label)} · first to ${S.ftGames} games, ${S.ftRounds} rounds per game
+    <div class="dim" style="text-align:center;margin-bottom:8px">${esc(m.label)} · ${m.open ? 'no game limit, ends with End match' : `first to ${S.ftGames} games`}, ${S.ftRounds} rounds per game
       ${m.winner ? ` · <b class="ok">${esc(m.winner === m.a ? m.aName : m.bName)} wins!</b>` : ''}</div>
     ${m.ready ? `<div class="score">${side(m, 'a')}<div class="big">vs</div>${side(m, 'b')}</div>` : ''}
-    <div class="row" style="justify-content:center;margin-top:12px">${btn('Take off stream', 'stream', { id: null })}</div>`;
+    <div class="row" style="justify-content:center;margin-top:12px">${m.open && m.ready ? endBtn(m, 'primary') : ''}${btn('Take off stream', 'stream', { id: null })}</div>`;
 
   const ready = S.matches.filter(x => x.ready);
   $('ready').innerHTML = !started ? 'Bracket not started.' : !ready.length ? 'No matches waiting.' : '<table>' + ready.map(x => `<tr>
@@ -185,7 +185,7 @@ async function draw() {
 
   const finished = S.finished;
   $('resultsCard').hidden = !finished;
-  $('demoDelete').hidden = !S.demo;
+  $('demoDelete').hidden = !(S.demo || S.custom);
   $('playEnding').hidden = S.screen !== 'podium';
   if (finished) { drawResults(); drawBanner($('bannerPrev'), S, S.standings.filter(r => r.place === 1)); }
 }

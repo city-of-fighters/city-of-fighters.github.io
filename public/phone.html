@@ -126,7 +126,7 @@ function render() {
     : !m ? '<p class="dim">Nothing to score. Pick a match under 📋 Matches.</p>'
     : `<div class="where"><b>${esc(m.label)}</b>${live ? '<span class="tag on">● ON STREAM</span>' : '<span class="tag off">OFF STREAM</span>'}</div>`
       + (m.winner ? `<div class="win">${winText(m)}</div>` + (live ? '<p class="dim" style="text-align:center">OBS shows the winner, then “waiting”. Pick the next match under 📋 Matches.</p>' : '')
-        : m.ready ? pad(m, 'a') + fix(m, 'a') + pad(m, 'b') + fix(m, 'b')
+        : m.ready ? pad(m, 'a') + fix(m, 'a') + pad(m, 'b') + fix(m, 'b') + (m.open ? `<div class="row">${endBtn(m, 'primary')}</div>` : '')
           + (live ? '' : `<div class="row">${btn('📺 Put this match on stream', 'stream', { id: m.id }, 'primary')}</div><p class="dim" style="font-size:13px">Viewers don't see this score; when it ends, a short result popup shows on stream.</p>`)
         : '<p class="dim">Waiting for players.</p>');
 
@@ -136,8 +136,8 @@ function render() {
     : ready.map(x => `<div class="next"><div><div class="dim" style="font-size:13px">${esc(x.label)}${x.id === S.streamMatch ? ' · <b style="color:var(--pink)">ON STREAM</b>' : ''}</div>
         <b>${esc(x.aName)}</b> vs <b>${esc(x.bName)}</b>${x.ga || x.gb ? `<span class="sc">${x.ga}–${x.gb}</span>` : ''}</div>
       <div class="acts"><button type="button" data-score="${esc(x.id)}">🎮 Score</button>${x.id === S.streamMatch ? '' : btn('📺 On stream', 'stream', { id: x.id }, '')}</div>
-      <div class="res" style="flex-basis:100%">${['a', 'b'].map(k => `<span>${esc(k === 'a' ? x.aName : x.bName)} won</span>
-        ${[0, 1].map(l => btn(`${S.ftGames}–${l}`, 'result', k === 'a' ? { id: x.id, ga: S.ftGames, gb: l } : { id: x.id, ga: l, gb: S.ftGames }, '')).join('')}`).join('')}</div></div>`).join('')
+      ${x.open ? '' : `<div class="res" style="flex-basis:100%">${['a', 'b'].map(k => `<span>${esc(k === 'a' ? x.aName : x.bName)} won</span>
+        ${[0, 1].map(l => btn(`${S.ftGames}–${l}`, 'result', k === 'a' ? { id: x.id, ga: S.ftGames, gb: l } : { id: x.id, ga: l, gb: S.ftGames }, '')).join('')}`).join('')}</div>`}</div>`).join('')
       || (S.matches.length ? 'No matches ready right now.' : 'No tournament running yet.');
 
   $('bracketWrap').innerHTML = S.matches.length ? mobileBracketHTML(S, round) : '<p class="dim">No tournament running yet.</p>';
