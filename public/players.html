@@ -201,7 +201,8 @@ async function drawAccounts() {
   accountsAt = Date.now();
   const list = await rpc('cof_admin_accounts', { p_token: token }).catch(() => []);
   $('accCount').textContent = list.length;
-  $('acc').innerHTML = list.map(a => `<div class="prow"><div class="who"><b>${esc(a.name)}</b><div class="mail">${a.titles} of 5 titles chosen</div></div>
+  const pics = await Promise.all(list.map(a => rpc('cof_card', { p_tag: a.name }).then(c => c?.portrait, () => null))); // the card picture, by gamer tag
+  $('acc').innerHTML = list.map((a, i) => `<div class="prow">${pics[i] ? `<img class="ph" src="${esc(pics[i])}" alt="">` : ''}<div class="who"><b>${esc(a.name)}</b><div class="mail">${pics[i] ? '' : 'No picture yet · '}${a.titles} of 5 titles chosen</div></div>
     <div class="acts"><button type="button" data-card="${esc(a.name)}">Titles</button></div></div>`).join('') || '<p class="dim">Nobody has logged in with start.gg yet.</p>';
 }
 $('acc').addEventListener('click', e => {
