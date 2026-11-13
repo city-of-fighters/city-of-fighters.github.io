@@ -4,6 +4,13 @@ AddType video/webm .webm
 AddType application/vnd.android.package-archive .apk
 Options -Indexes
 
+# www.cityoffighters.com → cityoffighters.com: one address, so "Log in with start.gg" comes back to the page that started it
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^www\.cityoffighters\.com$ [NC]
+  RewriteRule ^ https://cityoffighters.com%{REQUEST_URI} [R=301,L]
+</IfModule>
+
 <IfModule mod_headers.c>
   # Pages and scripts are checked for updates on every visit, so the app and OBS get new versions at once
   <FilesMatch "\.(html|js|css|webmanifest)$">
