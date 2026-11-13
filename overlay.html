@@ -14,7 +14,8 @@
   body.preview::before { content: 'GAME FOOTAGE'; position: fixed; inset: 0; display: grid; place-items: center; color: #ffffff12; font: 900 140px system-ui; letter-spacing: 10px; }
   .screen { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; pointer-events: none; }
   .screen.on { opacity: 1; }
-  .anim { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; background: #000; z-index: 90; }
+  .anim { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; background: #000; z-index: 90;
+          transform: scale(1.13); transform-origin: 30% 30%; } /* zoomed so the video maker's watermark in the bottom-right corner is off screen */
 
   /* HUD across the top (hud/hud-bar.webm, made from the CoF HuD animation in the asets pack).
      Scores sit in the blue boxes, player and team in the black panels, the round name in the pink strip. */
