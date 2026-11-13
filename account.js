@@ -17,15 +17,17 @@ const acctConfig = () => acctCall({ action: 'config' }).catch(() => null);
 
 async function acctLogin(cfg) {
   const state = crypto.randomUUID();
-  sessionStorage.setItem('cofLoginState', state); // proves the answer from start.gg belongs to this login
+  // proves the answer from start.gg belongs to this login. Also in localStorage, because the installed app opens start.gg
+  // in a separate tab and comes back in that one; it's deleted as soon as the login returns.
+  for (const s of [sessionStorage, localStorage]) try { s.setItem('cofLoginState', state); } catch {}
   location.href = 'https://start.gg/oauth/authorize?' + new URLSearchParams({ response_type: 'code', client_id: cfg.clientId, scope: cfg.scope, redirect_uri: cfg.redirect, state });
 }
 // Back from start.gg with ?code=…: finish the login and clean the address bar.
 async function acctFinishLogin() {
   const q = new URLSearchParams(location.search), code = q.get('code');
   if (!code && !q.has('error')) return;
-  const expected = sessionStorage.getItem('cofLoginState');
-  sessionStorage.removeItem('cofLoginState');
+  let expected = null;
+  for (const s of [sessionStorage, localStorage]) try { expected ??= s.getItem('cofLoginState'); s.removeItem('cofLoginState'); } catch {}
   history.replaceState(null, '', location.pathname);
   if (!code) throw new Error('Login with start.gg was cancelled');
   if (!expected || q.get('state') !== expected) throw new Error('That login link is not valid. Please try again.');
