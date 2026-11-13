@@ -51,6 +51,7 @@ function drawAccount() {
   $('acct').hidden = !cfg;
   if (cfg) $('acct').innerHTML = me ? `<span>Logged in as <b>${esc(me.name)}</b></span><button type="button" id="out">Log out</button>`
     : `<span>Join events with your start.gg account.</span><button type="button" class="btnlink join" id="in">Log in with start.gg</button>`;
+  if (cfg && me) acctPic(me.name, 30).then(h => { const s = $('acct').querySelector('span'); if (h && s && !s.querySelector('img')) s.insertAdjacentHTML('afterbegin', h + ' '); });
 }
 async function draw() {
   let list;

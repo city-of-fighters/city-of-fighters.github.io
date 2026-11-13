@@ -38,6 +38,11 @@ async function acctMe() {
   try { return await rpc('cof_me', { p_session: s }); }
   catch (e) { if (/log in/i.test(e.message)) acctForget(); return null; }
 }
+// The player's card picture, to show who is logged in. Empty when they have none yet.
+async function acctPic(name, size) {
+  const c = await rpc('cof_card', { p_tag: name }).catch(() => null);
+  return c?.portrait ? `<img src="${esc(c.portrait)}" alt="" style="width:${size}px;height:${size}px;object-fit:cover;object-position:top;border:2px solid var(--pink);border-radius:50%;flex:none;vertical-align:middle">` : '';
+}
 async function acctLogout() {
   await rpc('cof_account_logout', { p_session: acctSession() }).catch(() => {});
   acctForget();
