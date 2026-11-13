@@ -479,7 +479,8 @@ async function draw() {
     if (screen === 'cards') cardsKey = cardsShown = ''; // and the cards
     shown = screen;
   }
-  animShow($('startVid'), !params.get('screen') && s.status === 'running' && screen === 'scoreboard' && !s.streamMatch && !s.matches.some(x => x.winner && !x.auto));
+  const notStarted = s.status === 'none' || s.status === 'setup'; // no tournament, or registration still open
+  animShow($('startVid'), !params.get('screen') && screen !== 'ending' && (notStarted || s.status === 'running' && screen === 'scoreboard' && !s.streamMatch && !s.matches.some(x => x.winner && !x.auto)));
   animShow($('endVid'), screen === 'ending');
 
   scoreboard(s, seats(s, s.matches.find(x => x.id === (params.has('match') ? params.get('match') : s.streamMatch)))); // ?match= previews another match
