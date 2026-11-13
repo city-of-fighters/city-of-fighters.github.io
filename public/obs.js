@@ -5,8 +5,8 @@ const OBS_SPLIT_CAM = 'CoF Players camera'; // helper scene: one camera filming 
 const OBS_CAMERA_KINDS = ['v4l2_input', 'dshow_input', 'av_capture_input_v2', 'av_capture_input', 'macos-avcapture'];
 const OBS_CAMERA_DEVICE_PROP = { v4l2_input: 'device_id', dshow_input: 'video_device_id', av_capture_input_v2: 'device', av_capture_input: 'device', 'macos-avcapture': 'device' };
 // The Coming Up asset's windows, in 1920×1080 pixels (measured from Cof_Coming_Up_Screen_P1.png)
-const HUD_CAMS = 'CoF HUD cameras'; // scene inside the main scene: player cameras in the bottom corners during a match
-const HUD_CAM_WINDOWS = { cam1: { x: 28, y: 816, w: 240, h: 135 }, cam2: { x: 1652, y: 816, w: 240, h: 135 } }; // same boxes as in overlay.html
+const HUD_CAMS = 'CoF HUD cameras'; // scene inside the main scene: player cameras in the top corners during a match
+const HUD_CAM_WINDOWS = { cam1: { x: 20, y: 150, w: 220, h: 220 }, cam2: { x: 1680, y: 150, w: 220, h: 220 } }; // same boxes as in overlay.html
 const COMING_UP_WINDOWS = { screen: { x: 64, y: 206, w: 1192, h: 668 }, cam1: { x: 1324, y: 207, w: 532, h: 294 }, cam2: { x: 1324, y: 579, w: 532, h: 294 } };
 
 class OBSRemote {
@@ -149,10 +149,10 @@ class OBSRemote {
     const { sceneItems } = await this.call('GetSceneItemList', { sceneName: OBS_COMING_UP });
     // the frame stays: OBS deletes a source that is in no scene any more
     for (const it of sceneItems) if (it.sourceName !== frameName) await this.call('RemoveSceneItem', { sceneName: OBS_COMING_UP, sceneItemId: it.sceneItemId });
-    const place = async (source, r, half, sceneName = OBS_COMING_UP) => {
+    const place = async (source, r, half, sceneName = OBS_COMING_UP, fill = false) => { // fill = crop to the box instead of fitting inside it
       const { sceneItemId } = await this.call('CreateSceneItem', { sceneName, sourceName: source });
       await this.call('SetSceneItemTransform', { sceneName, sceneItemId, sceneItemTransform:
-        { boundsType: half ? 'OBS_BOUNDS_SCALE_OUTER' : 'OBS_BOUNDS_SCALE_INNER', cropToBounds: !!half, cropLeft: half === 'right' ? 960 : 0, cropRight: half === 'left' ? 960 : 0,
+        { boundsType: half || fill ? 'OBS_BOUNDS_SCALE_OUTER' : 'OBS_BOUNDS_SCALE_INNER', cropToBounds: !!(half || fill), cropLeft: half === 'right' ? 960 : 0, cropRight: half === 'left' ? 960 : 0,
           boundsWidth: r.w, boundsHeight: r.h, boundsAlignment: 0, positionX: r.x + r.w / 2, positionY: r.y + r.h / 2, alignment: 0 } });
     };
     if (screen) await place(screen, COMING_UP_WINDOWS.screen);
@@ -163,8 +163,8 @@ class OBSRemote {
     const { sceneItems: hudOld } = await this.call('GetSceneItemList', { sceneName: HUD_CAMS });
     for (const it of hudOld) await this.call('RemoveSceneItem', { sceneName: HUD_CAMS, sceneItemId: it.sceneItemId });
     const showHud = !!(hudCams && (cam1 || cam2));
-    if (showHud && cam1) await place(cam1, HUD_CAM_WINDOWS.cam1, h1, HUD_CAMS);
-    if (showHud && cam2) await place(cam2, HUD_CAM_WINDOWS.cam2, h2, HUD_CAMS);
+    if (showHud && cam1) await place(cam1, HUD_CAM_WINDOWS.cam1, h1, HUD_CAMS, true); // square boxes: the camera fills them
+    if (showHud && cam2) await place(cam2, HUD_CAM_WINDOWS.cam2, h2, HUD_CAMS, true);
     const { sceneItems: mainItems } = await this.call('GetSceneItemList', { sceneName: mainScene });
     const overlayItem = mainItems.find(it => it.inputKind === 'browser_source');
     if (!mainItems.some(it => it.sourceName === HUD_CAMS)) { // just under the stream page, so its outlines sit on top of the cameras

@@ -43,7 +43,7 @@ and admin functions need the login token. Player emails, the start.gg key and th
 - **Coming Up scene** (`CoF Coming Up`): the game in the big window, player cameras in the small ones. OBS switches to it
   between matches and back when a match goes on stream (the overlay's browser source needs page permission "Advanced", set automatically).
 - **One camera for both players**: tick it to cut one camera in halves (left → Player 1, or swapped). Uses the helper scene `CoF Players camera`.
-- **Cameras in the HUD**: the same cameras in outlined boxes in the bottom corners during a match (`CoF HUD cameras` scene, overlay `?cams=1`).
+- **Cameras in the HUD**: the same cameras in square outlined boxes in the top corners during a match (`CoF HUD cameras` scene, overlay `?cams=1`).
 - **Go live / End stream**: Stream tab, Control panel and phone OBS tab, admin login only. They use OBS's own start and stop; the Control panel and phone send the command through the database to the Stream tab, which must be open and connected to OBS.
 - **Stream starting / ending**: `hud/stream-starting.mp4` loops on the stream page from Start tournament until the first match goes on stream; `hud/stream-ending.mp4` plays once on the `ending` screen (Control panel button after the podium). Both are the original files, unedited.
 - **Phone live view**: while connected, the Stream tab sends a small picture of OBS once a second when a phone's Admin → Score or OBS tab is open.
