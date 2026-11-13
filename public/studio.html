@@ -265,7 +265,7 @@ async function obsRefresh() {
       <button type="button" data-remove>Remove</button></div>`).join('') || '<p class="dim">No cameras in OBS yet. Press “Add camera” to add the one connected to this computer.</p>';
   const opts = (list, none) => `<option value="">${none}</option>` + list.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
   const keep = id => $(id).value;
-  const prev = [keep('cuScreen'), keep('cuCam1'), keep('cuCam2')];
+  const prev = CU_PICKS.map(id => keep(id) || cuSaved[id]); // what was picked, or what was saved on this computer
   $('cuScreen').innerHTML = opts(await obs.videoSources(), '— no game source in OBS yet —');
   $('cuCam1').innerHTML = opts(cameras.map(c => c.name), '— none (show the player instead) —');
   $('cuCam2').innerHTML = $('cuCam1').innerHTML;
@@ -288,14 +288,16 @@ $('camAdd').onclick = () => obsDo(async () => {
   if (!devices.length) toast('Camera added, but no camera is connected to this computer. Plug one in and pick it from the list.');
 }, 'Camera added to the stream');
 // the camera choices are remembered on this computer
-const CU_BOXES = ['cuHud', 'cuSplit', 'cuSwap'];
-try { const c = JSON.parse(localStorage.getItem('cofCu') || '{}'); CU_BOXES.forEach(id => { if (id in c) $(id).checked = c[id]; }); } catch {}
+const CU_BOXES = ['cuHud', 'cuSplit', 'cuSwap'], CU_PICKS = ['cuScreen', 'cuCam1', 'cuCam2'];
+let cuSaved = {};
+try { cuSaved = JSON.parse(localStorage.getItem('cofCu') || '{}'); CU_BOXES.forEach(id => { if (id in cuSaved) $(id).checked = cuSaved[id]; }); } catch {}
 const cuSync = () => {
   $('cuCam2').disabled = $('cuSplit').checked;
   $('cuSwap').disabled = !$('cuSplit').checked;
-  try { if (canSave()) localStorage.setItem('cofCu', JSON.stringify(Object.fromEntries(CU_BOXES.map(id => [id, $(id).checked])))); } catch {}
+  if ($('cuCam1').options.length) cuSaved = { ...Object.fromEntries(CU_BOXES.map(id => [id, $(id).checked])), ...Object.fromEntries(CU_PICKS.map(id => [id, $(id).value])) }; // not before OBS has filled the lists
+  try { if (canSave()) localStorage.setItem('cofCu', JSON.stringify(cuSaved)); } catch {}
 };
-CU_BOXES.forEach(id => $(id).addEventListener('change', cuSync));
+[...CU_BOXES, ...CU_PICKS].forEach(id => $(id).addEventListener('change', cuSync));
 cuSync();
 $('cuBuild').onclick = () => obsDo(async () => {
   let main = await obs.mainScene();
@@ -304,8 +306,10 @@ $('cuBuild').onclick = () => obsDo(async () => {
 }, 'Coming Up scene is ready in OBS');
 // Player 1's camera goes to Player 2's window and the other way round, in OBS straight away.
 $('cuFlip').onclick = () => {
-  if ($('cuSplit').checked) { $('cuSwap').checked = !$('cuSwap').checked; cuSync(); }
+  if (!$('cuCam1').value && ($('cuSplit').checked || !$('cuCam2').value)) return toast('Choose the player cameras under Coming Up screen first'); // or the rebuild would take every camera off the stream
+  if ($('cuSplit').checked) $('cuSwap').checked = !$('cuSwap').checked;
   else [$('cuCam1').value, $('cuCam2').value] = [$('cuCam2').value, $('cuCam1').value];
+  cuSync();
   $('cuBuild').click();
 };
 $('cuPreview').onclick = () => {
