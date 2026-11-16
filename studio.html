@@ -114,6 +114,9 @@
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSplit"> One camera films both players: its left half goes in Player 1's window, its right half in Player 2's</label>
       <label class="row" style="color:var(--text)"><input type="checkbox" id="cuSwap"> Swap the halves (left half → Player 2)</label>
       <div class="row" style="margin-top:10px"><button class="primary" type="button" id="cuBuild">Set up Coming Up scene in OBS</button><button type="button" id="cuFlip">⇄ Swap cameras</button><button type="button" id="cuPreview">Preview Coming Up</button></div>
+      <h3>Sponsors on a camera scene</h3>
+      <p class="dim" style="margin-top:0">Puts the rolling sponsor logos (and the City of Fighters logos) on top of another OBS scene, for example a full-screen player camera.</p>
+      <div class="row"><select id="logoScene" aria-label="OBS scene"></select><button type="button" id="logoAdd">Add sponsors to this scene</button></div>
     </div>
   </section>
 </main>
@@ -277,6 +280,10 @@ async function obsRefresh() {
   $('cuCam2').innerHTML = $('cuCam1').innerHTML;
   ['cuScreen', 'cuCam1', 'cuCam2'].forEach((id, i) => { if ([...$(id).options].some(o => o.value === prev[i])) $(id).value = prev[i]; });
   if (!prev[0] && $('cuScreen').options.length > 1) $('cuScreen').selectedIndex = 1; // the game source by default
+  // the scenes that can get the sponsors: not the main one (it has them) nor the ones the Coming Up setup makes
+  const { scenes } = await obs.call('GetSceneList'), keepScene = $('logoScene').value;
+  $('logoScene').innerHTML = scenes.map(s => s.sceneName).filter(n => ![scene, OBS_COMING_UP, HUD_CAMS, OBS_SPLIT_CAM].includes(n)).map(n => `<option>${esc(n)}</option>`).join('') || '<option value="">— no other scenes in OBS —</option>';
+  if (keepScene) $('logoScene').value = keepScene;
 }
 const obsDo = async (fn, done) => { try { await fn(); await obsRefresh(); if (done) toast(done); } catch (err) { toast(err.message); } };
 $('camList').addEventListener('change', e => {
@@ -328,6 +335,9 @@ $('cuFlip').onclick = () => {
   cuSync();
   $('cuBuild').click();
 };
+// Sponsors on another scene (e.g. a full-screen player camera): the overlay page with only the logos, on top
+$('logoAdd').onclick = () => { const sc = $('logoScene').value; if (sc) obsDo(() => obs.addSponsors(sc, base + 'overlay.html?screen=logos'), `Sponsors added to “${sc}”`); };
+
 $('cuPreview').onclick = () => {
   const split = $('cuSplit').checked && $('cuCam1').value;
   const has = [$('cuScreen').value && 'screen', $('cuCam1').value && 'cam1', (split || $('cuCam2').value) && 'cam2'].filter(Boolean).join(',');

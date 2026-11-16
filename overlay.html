@@ -94,6 +94,9 @@
   #sponsors img { position: absolute; right: 0; top: 50%; transform: translateY(-50%); max-width: 300px; height: 44px; width: auto; opacity: 0; transition: opacity .8s; }
   #sponsors img.tall { height: 72px; }
   #sponsors img.on { opacity: 1; }
+  /* ?screen=logos: only the bottom logos and sponsors, for putting on top of another OBS scene (Stream tab → Sponsors on a camera scene) */
+  body.logos #s-scoreboard { opacity: 1; }
+  body.logos #s-scoreboard > :not(.plate), body.logos #pop { display: none; }
 
   @keyframes fromL { from { transform: translateX(-120%); opacity: 0; } to { transform: none; opacity: 1; } }
   @keyframes fromR { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -126,6 +129,8 @@
   .cu .bg { position: absolute; inset: 0; width: 1920px; height: 1080px; }
   .cu .title { position: absolute; left: 400px; top: 150px; height: 52px; display: flex; align-items: center; gap: 14px; max-width: 860px;
                font: 700 34px var(--hud-font); text-transform: uppercase; letter-spacing: 2px; color: #fff; text-shadow: 0 2px 8px #000, 0 0 2px #000; white-space: nowrap; }
+  .cu .title span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .cu .title.long { font-size: 26px; letter-spacing: 1px; } /* long match names */
   .cu .title i { font-style: normal; color: #3cc9d4; font-size: 26px; }
   .cu .title small { font-size: 20px; color: #ff4f95; letter-spacing: 3px; }
   .cu .win { position: absolute; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
@@ -233,6 +238,7 @@ const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 if (params.get('preview')) document.body.classList.add('preview');
 if (params.has('cams')) document.querySelectorAll('.hcam').forEach(el => el.hidden = false);
+if (params.get('screen') === 'logos') document.body.classList.add('logos');
 if (params.get('preview')) document.querySelectorAll('.anim').forEach(v => v.muted = true); // the Stream tab's preview stays quiet
 // Stream starting loops from Start tournament until the first match goes on stream; Stream ending plays once and stays on its last picture.
 const animShow = (v, on) => { if (on === !v.hidden) return; v.hidden = !on; if (on) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause(); };
@@ -334,7 +340,8 @@ const has = new Set((params.get('has') || '').split(',').filter(Boolean));
 function nextMatch(s) {
   const cur = s.matches.find(x => x.id === s.streamMatch);
   if (cur && !cur.winner) return seats(s, cur);
-  return seats(s, s.matches.find(x => x.ready && x.id !== s.streamMatch) ?? null);
+  const marked = s.startgg?.queue?.map(id => s.matches.find(x => x.id === id && x.ready && x.id !== s.streamMatch)).find(Boolean); // marked for the stream on start.gg
+  return seats(s, marked ?? s.matches.find(x => x.ready && x.id !== s.streamMatch) ?? null);
 }
 // "Switch sides": the match as drawn on stream when its players sit the other way round. The bracket itself isn't touched.
 const seats = (s, m) => m && s.swapSides === m.id ? { ...m, swapped: true, a: m.b, b: m.a, aName: m.bName, bName: m.aName, aTeam: m.bTeam, bTeam: m.aTeam, aPlayer: m.bPlayer, bPlayer: m.aPlayer, ga: m.gb, gb: m.ga } : m;
@@ -396,11 +403,13 @@ function comingUp(el, s, holes) {
   const key = JSON.stringify([holes, m?.id, P.map(p => [p?.name, p?.team, p && photoOf(p)?.length]), s.finished]);
   if (el.dataset.key === key) return;
   el.dataset.key = key;
-  // the camera windows are labelled by seat (PLAYER 1 / PLAYER 2), not by name
-  const camFill = (p, slot, n) => holes && has.has(slot) ? '' : `<div class="win cam" style="${rect(slot)}">${photoOf(p) ? `<img class="pic" src="${photoOf(p)}" alt="">` : `<div class="nm">PLAYER ${n}</div>`}</div>`;
-  const tag = (n, cls) => `<div class="tag ${cls}"><span>PLAYER ${n}</span></div>`;
+  // the camera windows are labelled with the players' names (PLAYER 1 / PLAYER 2 until they are known)
+  const who = n => esc((n === 1 ? m?.aName : m?.bName) || `PLAYER ${n}`);
+  const camFill = (p, slot, n) => holes && has.has(slot) ? '' : `<div class="win cam" style="${rect(slot)}">${photoOf(p) ? `<img class="pic" src="${photoOf(p)}" alt="">` : `<div class="nm">${who(n)}</div>`}</div>`;
+  const tag = (n, cls) => `<div class="tag ${cls}"><span>${who(n)}</span></div>`;
+  const title = m?.label || (s.finished ? 'Thanks for watching' : 'Next match soon');
   el.innerHTML = `<img class="bg" src="hud/${holes ? 'coming-up-frame' : 'coming-up'}.png" alt="">`
-    + (m ? `<div class="title">${esc(m.label.toUpperCase())}</div>` : `<div class="title">${s.finished ? 'THANKS FOR WATCHING' : 'NEXT MATCH SOON'}</div>`)
+    + `<div class="title${title.length > 28 ? ' long' : ''}"><span>${esc(title.toUpperCase())}</span></div>`
     + (holes && has.has('screen') ? '' : `<div class="win big" style="${rect('screen')}"><img class="logo" src="hud/cof-logo.png" alt=""></div>`) // the game goes here; just the logo until there is one
     + (m ? camFill(P[0], 'cam1', 1) + camFill(P[1], 'cam2', 2) + tag(1, 't1') + tag(2, 't2') : '');
 }

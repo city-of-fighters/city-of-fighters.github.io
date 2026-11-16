@@ -85,6 +85,7 @@ const actions = {
     if (m.ga === m.gb) throw new Error('The games are tied: add a game for the winner first');
     B.report(d.matches, m.id, m.ga > m.gb ? 'a' : 'b');
   }),
+  reopenReg: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard', status: 'setup', regOpen: true, regMode: 'open' }); }, // back to sign-ups until Start tournament
   resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard', status: 'setup' }); },
   report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
   reopen: (d, b) => played(d, () => B.reopen(d.matches, b.id)),
@@ -116,7 +117,7 @@ const actions = {
     if (b.off) { delete d.startgg; return; }
     if (d.custom) throw new Error('A custom match is never sent to start.gg');
     const g = d.startgg ??= { entrants: {}, sent: {} };
-    for (const k of ['slug', 'eventId', 'title', 'auto']) if (b.set && k in b.set) g[k] = b.set[k];
+    for (const k of ['slug', 'eventId', 'title', 'auto', 'queue']) if (b.set && k in b.set) g[k] = b.set[k]; // queue: matches marked for the stream on start.gg, for Coming Up
     Object.assign(g.entrants ??= {}, b.entrants);
     Object.assign(g.sent ??= {}, b.sent);
     for (const id of b.unsent ?? []) delete g.sent[id];
