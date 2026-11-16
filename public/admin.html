@@ -48,6 +48,7 @@
       </fieldset>
       <div class="row" style="margin-top:10px">
         <button class="primary" id="saveSettings" type="button">Save settings</button>
+        <button data-act="reopenReg" id="reopenReg" data-confirm="Reopen registration? New players can sign up again. The bracket comes down and any results are deleted (also on start.gg); players stay. Press Start tournament again when everyone is in.">Reopen registration</button>
         <button data-act="resetBracket" data-confirm="Delete the bracket and all results? Players stay and registration can reopen.">Reset bracket</button>
         <button data-act="end" data-confirm="End this tournament? The app will show 'No tournament in progress'. Players and results stay until you create a new tournament.">End tournament</button>
       </div>
@@ -143,6 +144,7 @@ async function draw() {
   $('tourStatus').innerHTML = tourStatus();
   sggTodayDraw();
   $('tourEdit').hidden = S.status === 'none';
+  $('reopenReg').hidden = S.status === 'setup' && S.regOpen; // already open
   if (!$('tourCard').contains(document.activeElement)) { // don't overwrite what is being typed
     $('ename').value = S.name; $('egame').value = S.game; $('rules').value = S.rules;
     $('regOpen').checked = S.regOpen;

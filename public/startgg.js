@@ -133,6 +133,9 @@ async function sggPull() {
       post('sggResult', { id: m.id, set: String(set.id), slot: String(set.winnerId) === ent[m.a] ? 'a' : 'b', ga: score(set, ent[m.a]), gb: score(set, ent[m.b]) });
     }
     if (done.length) return; // the next check sees the new bracket
+    // Coming Up shows the first match marked for the stream on start.gg, not just the next one in bracket order
+    const queue = ready.filter(m => setOf(m)?.stream && setOf(m).state !== 3 && m.id !== S.streamMatch).map(m => m.id);
+    if (JSON.stringify(queue) !== JSON.stringify(st.queue ?? [])) post('startgg', { set: { queue } });
     const cur = S.matches.find(x => x.id === S.streamMatch);
     if (cur && !cur.winner) { sggFreeAt = 0; return; }
     if (cur) { sggFreeAt ||= Date.now(); if (Date.now() - sggFreeAt < 8000) return; } // the winner screen plays first

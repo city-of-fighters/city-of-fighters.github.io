@@ -146,9 +146,22 @@ class OBSRemote {
   }
 
   // --- sources for the Coming Up screen ---
-  async videoSources() { // what can be the shared screen: every input except cameras, audio and browser pages
+  async videoSources() { // what can be the shared screen: every input except audio and browser pages. Capture cards count as cameras
+    const { inputs } = await this.call('GetInputList'); // in OBS (same kind of source), so cameras are in the list too, after the rest
+    const video = inputs.filter(i => !/browser_source|wasapi|pulse|alsa|jack|coreaudio|text_|color_source/.test(i.inputKind));
+    return [...video.filter(i => !OBS_CAMERA_KINDS.includes(i.inputKind)), ...video.filter(i => OBS_CAMERA_KINDS.includes(i.inputKind))].map(i => i.inputName);
+  }
+  // The rolling sponsor logos (and the City of Fighters logos) on top of another scene, e.g. a full-screen player camera.
+  async addSponsors(sceneName, url) {
+    const name = 'CoF Sponsors', inputSettings = { url, width: 1920, height: 1080, reroute_audio: false, shutdown: false, restart_when_active: false };
     const { inputs } = await this.call('GetInputList');
-    return inputs.filter(i => !OBS_CAMERA_KINDS.includes(i.inputKind) && !/browser_source|wasapi|pulse|alsa|jack|coreaudio|text_|color_source/.test(i.inputKind)).map(i => i.inputName);
+    let sceneItemId;
+    if (inputs.some(i => i.inputName === name)) { // one source, shared by every scene that has it
+      await this.call('SetInputSettings', { inputName: name, inputSettings });
+      ({ sceneItemId } = await this.call('GetSceneItemId', { sceneName, sourceName: name }).catch(() => this.call('CreateSceneItem', { sceneName, sourceName: name })));
+    } else ({ sceneItemId } = await this.call('CreateInput', { sceneName, inputName: name, inputKind: 'browser_source', inputSettings, sceneItemEnabled: true }));
+    const { sceneItems } = await this.call('GetSceneItemList', { sceneName });
+    await this.call('SetSceneItemIndex', { sceneName, sceneItemId, sceneItemIndex: sceneItems.length - 1 }); // on top of the camera
   }
 
   // Builds (or rebuilds) the "CoF Coming Up" scene: the shared screen in the big window, player cameras in the small ones,
