@@ -84,6 +84,9 @@ update public.cof_sponsors s set link = v.link from (values
   ('New Madras', 'https://www.newmadras.com.mt/'), ('B Resin Malta', 'https://www.facebook.com/BResinMalta/'),
   ('Agius Bros Co Ltd.', 'https://www.facebook.com/AgiusBros/'), ('Rodleen Cakes and Cupcakes', 'https://www.facebook.com/p/Rodleen-Cakes-and-Cupcakes-100070147805127/')
 ) as v(name, link) where s.name = v.name and s.link is null;
+-- Gaming Malta first in the sponsor list (the app and the stream show them in this order)
+update public.cof_sponsors set created_at = (select min(created_at) from public.cof_sponsors) - interval '1 second'
+  where name = 'Gaming Malta' and created_at > (select min(created_at) from public.cof_sponsors);
 -- Past tournaments: a snapshot of each finished one (names, standings, match results; never emails). Public to read.
 create table if not exists public.cof_archive (key text primary key check (char_length(key) <= 100), at timestamptz not null default now(),
   data jsonb not null check (pg_column_size(data) < 600000));
