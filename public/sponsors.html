@@ -7,10 +7,11 @@
 <link rel="stylesheet" href="style.css">
 <style>
   .slist { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
-  .srow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--teal); }
+  .srow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-left: 4px solid var(--teal); }
   .srow .logo { flex: none; width: 110px; height: 64px; padding: 4px; background: #0a0a0c; }
   .srow .logo img, #preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
   .srow b { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .srow .site { flex: 1 1 100%; display: flex; gap: 6px; } .srow .site input { flex: 1; min-width: 0; padding: 5px 8px; }
   #add { max-width: 640px; }
   #preview { width: 220px; height: 100px; background: #0a0a0c; margin-top: 10px; padding: 8px; }
   body.locked main > .card:not(#login), body.locked main > section, body:not(.locked) #login { display: none; }
@@ -32,11 +33,12 @@
 
   <section class="card" id="add">
     <h2>Add a sponsor</h2>
-    <p class="dim" style="margin-top:0">Shows on stream within about 10 seconds, bottom right, one logo at a time. A PNG with a see-through background looks best.</p>
+    <p class="dim" style="margin-top:0">Shows on stream within about 10 seconds, bottom right, one logo at a time, and at the top of the app. A PNG with a see-through background looks best.</p>
     <form id="addForm">
       <label for="sName">Sponsor name</label><input type="text" id="sName" maxlength="60" required>
       <label for="sFile">Logo</label><input type="file" id="sFile" accept="image/png,image/jpeg,image/webp" required>
       <div id="preview" hidden></div>
+      <label for="sLink">Website <span class="dim">(optional; tapping the logo in the app opens it)</span></label><input type="url" id="sLink" maxlength="300" placeholder="https://…">
       <p class="err" id="sErr" role="alert"></p>
       <button class="primary" type="submit">Add sponsor</button>
     </form>
@@ -76,12 +78,19 @@ $('addForm').onsubmit = async e => {
   $('sErr').textContent = '';
   if (!logo) return ($('sErr').textContent = 'Choose a logo first.');
   try {
-    await rpc('cof_admin_sponsor_add', { p_token: token, p_name: $('sName').value, p_logo: logo, p_tall: tall });
+    const id = await rpc('cof_admin_sponsor_add', { p_token: token, p_name: $('sName').value, p_logo: logo, p_tall: tall });
+    if ($('sLink').value.trim()) await rpc('cof_admin_sponsor_link', { p_token: token, p_id: id, p_link: $('sLink').value });
     toast('Sponsor added'); e.target.reset(); logo = null; $('preview').hidden = true;
     await draw();
   } catch (err) { $('sErr').textContent = /not set up/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message; }
 };
 $('slist').addEventListener('click', async e => {
+  const l = e.target.closest('[data-link]');
+  if (l) {
+    try { await rpc('cof_admin_sponsor_link', { p_token: token, p_id: l.dataset.link, p_link: l.previousElementSibling.value }); toast('Website saved'); shown = null; await draw(); }
+    catch (err) { toast(/not set up|does not exist|Could not find/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message); }
+    return;
+  }
   const b = e.target.closest('[data-del]');
   if (!b || !confirm(`Delete ${b.dataset.name} from the sponsors? It disappears from the stream.`)) return;
   try { await rpc('cof_admin_sponsor_delete', { p_token: token, p_id: b.dataset.del }); toast('Sponsor deleted'); await draw(); } catch (err) { toast(err.message); }
@@ -95,7 +104,8 @@ async function draw() {
   list = await rpc('cof_sponsors_list').catch(() => []);
   $('count').textContent = list.length;
   $('slist').innerHTML = list.map(s => `<div class="srow"><div class="logo"><img src="${esc(s.logo)}" alt=""></div><b>${esc(s.name)}</b>
-      <button type="button" class="small" data-del="${esc(s.id)}" data-name="${esc(s.name)}">Delete</button></div>`).join('')
+      <button type="button" class="small" data-del="${esc(s.id)}" data-name="${esc(s.name)}">Delete</button>
+      <div class="site"><input type="url" maxlength="300" placeholder="Website, e.g. https://…" value="${esc(s.link ?? '')}" aria-label="Website of ${esc(s.name)}"><button type="button" class="small" data-link="${esc(s.id)}">Save</button></div></div>`).join('')
     || '<p class="dim">No sponsors yet. If you expected some, run the updated database file in Supabase.</p>';
 }
 boot();

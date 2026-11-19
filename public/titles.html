@@ -9,6 +9,7 @@
 </head>
 <body class="app">
 <main>
+  <div id="sponsorBar" hidden></div>
   <h1 style="text-align:center;font-size:26px">🏅 Player <span>titles</span></h1>
   <p class="dim" id="intro" style="text-align:center">Terms from our scene and stories from the last 2 years.</p>
   <div class="card" id="mine" hidden><div id="picker"></div><p class="err" id="err" role="alert"></p><button class="primary" type="button" id="save">Save my 5 titles</button></div>
@@ -16,7 +17,7 @@
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="account.js"></script><script src="titles.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script><script src="account.js"></script><script src="titles.js"></script>
 <script>
 // Everyone can read the titles. A logged-in player picks up to 5 of them.
 const $ = id => document.getElementById(id);

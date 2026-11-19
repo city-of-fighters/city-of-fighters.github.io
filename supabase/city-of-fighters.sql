@@ -62,6 +62,8 @@ insert into public.cof_cards (tag, portrait) values ('abz', 'hud/players/abz.web
 create table if not exists public.cof_sponsors (id uuid primary key default gen_random_uuid(), name text not null check (char_length(name) between 1 and 60),
   logo text not null check (char_length(logo) <= 300000 and logo ~ '^(hud/sponsors/[a-z0-9-]+\.png|data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$'),
   tall boolean not null default false, created_at timestamptz not null default now());
+-- Website a sponsor's logo opens in the app (optional)
+alter table public.cof_sponsors add column if not exists link text check (link is null or (char_length(link) <= 300 and link ~ '^https?://[^\s<>"'']+$'));
 create table if not exists public.cof_sponsors_seeded (done boolean primary key);
 alter table public.cof_sponsors enable row level security;
 alter table public.cof_sponsors_seeded enable row level security;
@@ -75,6 +77,13 @@ do $$ begin
     insert into public.cof_sponsors_seeded values (true);
   end if;
 end $$;
+-- Sponsor websites sent by the organizers (19 November 2026). Only fills empty ones, so a website changed in the Sponsors tab stays.
+update public.cof_sponsors s set link = v.link from (values
+  ('Rupture', 'https://rupture.mt/'), ('Gamebreaker', 'https://gamebreakermalta.com/'), ('Immerse VR Gaming Arena', 'https://immerse.mt/'),
+  ('Level Academy', 'https://levelacademy.com.mt/src/pages/home.php'), ('Malta Esports Association', 'https://esports.org.mt/'),
+  ('New Madras', 'https://www.newmadras.com.mt/'), ('B Resin Malta', 'https://www.facebook.com/BResinMalta/'),
+  ('Agius Bros Co Ltd.', 'https://www.facebook.com/AgiusBros/'), ('Rodleen Cakes and Cupcakes', 'https://www.facebook.com/p/Rodleen-Cakes-and-Cupcakes-100070147805127/')
+) as v(name, link) where s.name = v.name and s.link is null;
 -- Past tournaments: a snapshot of each finished one (names, standings, match results; never emails). Public to read.
 create table if not exists public.cof_archive (key text primary key check (char_length(key) <= 100), at timestamptz not null default now(),
   data jsonb not null check (pg_column_size(data) < 600000));
@@ -375,7 +384,7 @@ $$;
 -- Sponsors: anyone can read (they're on the stream); the overlay checks the short version often and loads the logos only when it changes.
 create or replace function public.cof_sponsors_list() returns jsonb
 language sql security definer set search_path = public stable as $$
-  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'name', name, 'logo', logo, 'tall', tall) order by created_at), '[]'::jsonb) from cof_sponsors
+  select coalesce(jsonb_agg(jsonb_build_object('id', id, 'name', name, 'logo', logo, 'tall', tall, 'link', link) order by created_at), '[]'::jsonb) from cof_sponsors
 $$;
 create or replace function public.cof_sponsors_version() returns text
 language sql security definer set search_path = public stable as $$
@@ -393,6 +402,16 @@ begin
   insert into cof_sponsors (name, logo, tall) values (p_name, p_logo, coalesce(p_tall, false)) returning id into sid;
   return sid;
 end $$;
+create or replace function public.cof_admin_sponsor_link(p_token text, p_id uuid, p_link text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  p_link := nullif(trim(coalesce(p_link, '')), '');
+  if p_link ~ '^[A-Za-z][A-Za-z0-9+.-]*:' and p_link !~* '^https?://' then raise exception 'The website must start with https://'; end if;
+  if p_link is not null and p_link !~* '^https?://' then p_link := 'https://' || p_link; end if; -- "rupture.com" works too
+  if p_link is not null and (char_length(p_link) > 300 or p_link !~ '^https?://[^\s<>"'']+$') then raise exception 'That website address doesn''t look right'; end if;
+  update cof_sponsors set link = p_link where id = p_id;
+end $$;
 create or replace function public.cof_admin_sponsor_delete(p_token text, p_id uuid) returns void
 language plpgsql security definer set search_path = public as $$
 begin perform cof_auth(p_token); delete from cof_sponsors where id = p_id; end $$;
@@ -404,7 +423,6 @@ create or replace function public.cof_titles_check(p jsonb, p_max int) returns v
 begin
   if jsonb_typeof(p) <> 'array' or jsonb_array_length(p) > p_max then raise exception 'Choose at most % titles', p_max; end if;
   if exists (select 1 from jsonb_array_elements(p) t where jsonb_typeof(t) <> 'string' or t #>> '{}' !~ '^[a-z0-9-]{1,40}$') then raise exception 'Unknown title'; end if;
-  if (select count(distinct t) from jsonb_array_elements_text(p) t) <> jsonb_array_length(p) then raise exception 'Each title can only be chosen once'; end if;
 end $$;
 drop function if exists public.cof_titles_check(jsonb);
 create or replace function public.cof_card(p_tag text) returns jsonb
@@ -581,7 +599,7 @@ grant execute on function public.cof_public(), public.cof_admin_team(text, uuid,
   public.cof_photo(uuid), public.cof_admin_player_save(text, uuid, text, text, text), public.cof_admin_photo(text, uuid, text), public.cof_admin_preview_put(text, text), public.cof_admin_preview_get(text), public.cof_admin_stream_cmd(text, text), public.cof_admin_stream_get(text), public.cof_admin_stream_sync(text, boolean, text), public.cof_admin_startgg_set(text, text), public.cof_admin_startgg_get(text), public.cof_admin_startgg_live(text), public.cof_admin_startgg_live_set(text, boolean),
   public.cof_me(text), public.cof_account_logout(text),
   public.cof_card(text), public.cof_admin_card_titles(text, text, jsonb), public.cof_admin_accounts(text), public.cof_admin_card_portrait(text, text, text), public.cof_admin_card_photo(text, text, text), public.cof_card_save_mine(text, jsonb),
-  public.cof_sponsors_list(), public.cof_sponsors_version(), public.cof_admin_sponsor_add(text, text, text, boolean), public.cof_admin_sponsor_delete(text, uuid),
+  public.cof_sponsors_list(), public.cof_sponsors_version(), public.cof_admin_sponsor_add(text, text, text, boolean), public.cof_admin_sponsor_link(text, uuid, text), public.cof_admin_sponsor_delete(text, uuid),
   public.cof_events_list(), public.cof_admin_event_save(text, uuid, text, timestamptz, text, text, text), public.cof_admin_event_delete(text, uuid), public.cof_admin_events_sync(text, jsonb),
   public.cof_admin_archive_save(text, text, jsonb), public.cof_admin_archive_delete(text, text), public.cof_archive_list(), public.cof_archive_get(text), public.cof_login(text), public.cof_logout(text),
   public.cof_admin_get(text), public.cof_admin_save(text, jsonb), public.cof_admin_remove(text, uuid), public.cof_admin_reset(text, jsonb) to anon;

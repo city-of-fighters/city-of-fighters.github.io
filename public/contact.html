@@ -16,6 +16,7 @@
 <body class="app">
 <main>
   <div class="hero"><img src="logo-clear.png" alt="City of Fighters"></div>
+  <div id="sponsorBar" hidden></div>
   <h1 style="text-align:center;font-size:26px">✉️ Contact <span>us</span></h1>
   <form class="card" id="msg">
     <p class="dim" style="margin-top:0">Questions, ideas or problems? Write your message and press Send. Your email app opens with it ready to send to us.</p>
@@ -31,7 +32,7 @@
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a class="on" href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script>
 <script>
 // Contact: the message opens in the visitor's own email app, so nothing is sent or stored by this site.
 const TO = 'maltacityoffighters@gmail.com', $ = id => document.getElementById(id);

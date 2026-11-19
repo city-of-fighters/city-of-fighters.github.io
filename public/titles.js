@@ -153,21 +153,23 @@ const cofTitle = id => COF_TITLES.find(t => t.id === id);
 // Title chooser (Players tab and titles.html). Needs esc() from api.js.
 function titlePicker(box, chosen, { max = Infinity, onChange = () => {} } = {}) {
   let q = '';
-  const card = (t, on) => `<button type="button" class="tp-t${on ? ' on' : ''}" data-t="${esc(t.id)}" ${!on && chosen.length >= max ? 'disabled' : ''}>
+  // chosen titles remove by their place in the list (the same title may be chosen more than once); the full list adds
+  const card = (t, i) => `<button type="button" class="tp-t${i >= 0 ? ' on' : ''}" ${i >= 0 ? `data-i="${i}" aria-label="Remove ${esc(t.name)}"` : `data-t="${esc(t.id)}"`} ${i < 0 && chosen.length >= max ? 'disabled' : ''}>
     <img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span></button>`;
   const draw = () => {
-    const hit = COF_TITLES.filter(t => !chosen.includes(t.id) && (t.name + ' ' + t.desc).toLowerCase().includes(q));
-    box.querySelector('.tp-chosen').innerHTML = chosen.map(id => cofTitle(id)).filter(Boolean).map(t => card(t, true)).join('') || '<p class="dim">None chosen yet.</p>';
-    box.querySelector('.tp-count').textContent = max === Infinity ? `${chosen.length} chosen` : `${chosen.length} of ${max} chosen`;
-    box.querySelector('.tp-all').innerHTML = hit.map(t => card(t, false)).join('');
+    const hit = COF_TITLES.filter(t => (t.name + ' ' + t.desc).toLowerCase().includes(q));
+    box.querySelector('.tp-chosen').innerHTML = chosen.map((id, i) => [cofTitle(id), i]).filter(([t]) => t).map(([t, i]) => card(t, i)).join('') || '<p class="dim">None chosen yet.</p>';
+    box.querySelector('.tp-count').textContent = (max === Infinity ? `${chosen.length} chosen` : `${chosen.length} of ${max} chosen`) + (chosen.length ? ' · tap a chosen title to remove it' : '');
+    box.querySelector('.tp-all').innerHTML = hit.map(t => card(t, -1)).join('');
   };
   box.innerHTML = '<p class="tp-count"></p><div class="tp-chosen"></div><input type="text" class="tp-q" placeholder="Search titles" aria-label="Search titles"><div class="tp-all"></div>';
   box.querySelector('.tp-q').oninput = e => { q = e.target.value.trim().toLowerCase(); draw(); };
   box.onclick = e => {
-    const id = e.target.closest('[data-t]')?.dataset.t;
-    if (!id) return;
-    const i = chosen.indexOf(id);
-    if (i >= 0) chosen.splice(i, 1); else chosen.push(id);
+    const b = e.target.closest('[data-i],[data-t]');
+    if (!b) return;
+    if (b.dataset.i) chosen.splice(Number(b.dataset.i), 1);
+    else if (chosen.length < max) chosen.push(b.dataset.t);
+    else return;
     draw(); onChange(chosen);
   };
   draw();
