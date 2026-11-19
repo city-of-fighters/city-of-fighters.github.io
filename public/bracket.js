@@ -180,7 +180,8 @@ function reopen(matches, id) {
     Object.assign(x, { winner: null, loser: null, auto: false });
   };
   undo(m);
-  if (!m.open && (m.ga >= FT_GAMES || m.gb >= FT_GAMES)) Object.assign(m, { ga: 0, gb: 0, ra: 0, rb: 0 });
+  if (m.duo) Object.assign(m, { duo: null, ga: 0, gb: 0, ra: 0, rb: 0 }); // 2v2: the match starts over, players chosen again
+  else if (!m.open && (m.ga >= FT_GAMES || m.gb >= FT_GAMES)) Object.assign(m, { ga: 0, gb: 0, ra: 0, rb: 0 });
 }
 
 // kind 'round' or 'game', delta +1/-1. Hitting FT_ROUNDS wins a game, FT_GAMES wins the match (an open match only ends with End match).
@@ -188,12 +189,48 @@ function score(matches, id, side, kind, delta) {
   const m = byId(matches, id);
   if (!m || !isReady(m)) throw new Error('Match is not ready');
   if (!['a', 'b'].includes(side)) throw new Error('Bad side');
+  if (m.duo && (m.duo.a.on == null || m.duo.b.on == null)) throw new Error('Choose who is playing for each team first');
   const g = 'g' + side, r = 'r' + side;
   if (kind === 'round') m[r] = Math.max(0, m[r] + delta);
   else if (kind === 'game') m[g] = Math.max(0, m[g] + delta);
   else throw new Error('Bad kind');
   if (m[r] >= FT_ROUNDS) { m[g]++; m.ra = m.rb = 0; }
-  if (m[g] >= FT_GAMES && !m.open) report(matches, id, side);
+  if (m[g] >= FT_GAMES && m.duo) duoSetWon(matches, m, side);
+  else if (m[g] >= FT_GAMES && !m.open) report(matches, id, side);
+}
+
+// 2v2 (teams on start.gg), "winner stays on": m.duo = { a: { n, on, out }, b: … } with players by their place in the team.
+// Games count inside the current first-to-2 set; its loser is out and their team's next player comes on (picked by itself
+// when only one is left); a team with nobody left loses the match, which is then reported with the sets won (2–0, 2–1).
+const duoNew = (na, nb) => ({ a: { n: na, on: null, out: [] }, b: { n: nb, on: null, out: [] } });
+const duoLeft = t => [...Array(t.n).keys()].filter(i => !t.out.includes(i));
+function duoPick(m, side, i) {
+  const t = m.duo?.[side];
+  if (!t || !Number.isInteger(i) || i < 0 || i >= t.n) throw new Error('Bad player');
+  if (t.out.includes(i)) throw new Error('That player is already out');
+  t.on = i;
+}
+function duoOut(t) { t.out.push(t.on); const left = duoLeft(t); t.on = left.length === 1 ? left[0] : null; }
+function duoEnd(matches, m) {
+  const la = duoLeft(m.duo.a).length, lb = duoLeft(m.duo.b).length;
+  if (la && lb) return;
+  Object.assign(m, { ga: m.duo.b.out.length, gb: m.duo.a.out.length, ra: 0, rb: 0 });
+  report(matches, m.id, la ? 'a' : 'b');
+}
+function duoSetWon(matches, m, side) {
+  duoOut(m.duo[side === 'a' ? 'b' : 'a']);
+  Object.assign(m, { ga: 0, gb: 0, ra: 0, rb: 0 });
+  duoEnd(matches, m);
+}
+// Double KO: both players are out; if that would leave neither team with anyone, the set is played again instead.
+function duoDoubleKo(matches, id) {
+  const m = byId(matches, id);
+  if (!m?.duo || !isReady(m) || m.duo.a.on == null || m.duo.b.on == null) throw new Error('Choose who is playing for each team first');
+  Object.assign(m, { ga: 0, gb: 0, ra: 0, rb: 0 });
+  if (duoLeft(m.duo.a).length === 1 && duoLeft(m.duo.b).length === 1) return 'replay';
+  duoOut(m.duo.a); duoOut(m.duo.b);
+  duoEnd(matches, m);
+  return 'out';
 }
 
 const isDouble = matches => matches.some(m => m.side === 'GF');
@@ -253,5 +290,5 @@ function standings(players, matches) {
   return list.sort((x, y) => (x.place ?? 0) - (y.place ?? 0) || y.w - x.w || (y.gw - y.gl) - (x.gw - x.gl));
 }
 
-const B = { build, report, reopen, score, label, standings, finished, isReady, FT_ROUNDS, FT_GAMES, FORMATS };
+const B = { build, report, reopen, score, label, standings, finished, isReady, duoNew, duoPick, duoDoubleKo, duoLeft, FT_ROUNDS, FT_GAMES, FORMATS };
 if (typeof module === 'object') module.exports = B; // Node (tests); in the browser B is a global

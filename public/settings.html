@@ -84,7 +84,8 @@
   <details class="card" id="demoCard">
     <summary style="cursor:pointer"><h2 style="display:inline">Demo tournament</h2></summary>
     <p class="dim" style="margin-top:8px">A practice bracket with 4 players: ABZ and G3NC have pictures, Kevin and Luka don’t. It isn’t linked to start.gg, sends no emails and isn’t saved to Past tournaments. Viewers can see it in the app and on stream until you delete it.</p>
-    <div class="row"><button type="button" id="demoStart">Start demo tournament</button><button type="button" id="demoDelete" hidden>Delete demo tournament</button></div>
+    <div class="row"><button type="button" id="demoStart">Start demo tournament</button><button type="button" id="demoDuo">Start 2v2 demo</button><button type="button" id="demoDelete" hidden>Delete demo tournament</button></div>
+    <p class="dim" style="margin-bottom:0">The 2v2 demo has 4 teams of 2 (winner stays on), like a start.gg team event.</p>
   </details>
 
   <details class="card" id="customCard">
@@ -195,6 +196,23 @@ $('demoStart').onclick = async () => {
   $('demoStart').disabled = false;
 };
 $('demoDelete').onclick = deleteDemo;
+// 2v2 practice: 4 teams of 2, like PLAYCON's teams on start.gg (in a real event the teams come from start.gg by themselves)
+const DUO_TEAMS = { 'Project Eversio': ['Kaneo', 'Lyonidas'], 'Bastards': ['Bahhar', 'AbsoluteZero'], 'Cracked & Insane': ['ABZ', 'NP7'], 'Chocolate Fundamentals': ['Addicttekken', 'REAPZ'] };
+$('demoDuo').onclick = async () => {
+  if (S.status !== 'none' && !S.finished && !S.demo) return toast('Finish or end the current tournament first');
+  if (!confirm('Start a 2v2 demo with 4 teams? It replaces the players and results set up now, and viewers can see it until you delete it.')) return;
+  $('demoDuo').disabled = true;
+  try {
+    await post('create', { name: '2v2 demo', game: 'Tekken 8', format: 'robin', regMode: 'open', demo: true });
+    if (!S.demo || S.players.length) throw new Error('Could not start the demo');
+    const members = {};
+    for (const [team, names] of Object.entries(DUO_TEAMS)) members[await rpc('cof_admin_player_save', { p_token: token, p_id: null, p_name: team, p_team: '', p_email: '' })] = names;
+    await post('members', { members });
+    await post('start', { format: 'robin' });
+    toast('2v2 demo started');
+  } catch (err) { toast(err.message); }
+  $('demoDuo').disabled = false;
+};
 
 // Custom match: shows each player's card picture as their tag is typed.
 const cmPic = async (input, box) => {
@@ -226,7 +244,7 @@ async function draw() {
   document.body.classList.remove('locked');
   sggDraw();
   const demo = !!S.demo && S.status !== 'none';
-  $('demoStart').hidden = demo; $('demoDelete').hidden = !demo;
+  $('demoStart').hidden = $('demoDuo').hidden = demo; $('demoDelete').hidden = !demo;
   $('cmDelete').hidden = !(S.custom && S.status !== 'none');
 }
 boot();

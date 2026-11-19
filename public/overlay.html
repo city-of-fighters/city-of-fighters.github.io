@@ -94,6 +94,21 @@
   #sponsors img { position: absolute; right: 0; top: 50%; transform: translateY(-50%); max-width: 300px; height: 44px; width: auto; opacity: 0; transition: opacity .8s; }
   #sponsors img.tall { height: 72px; }
   #sponsors img.on { opacity: 1; }
+  /* 2v2: both teammates under the team's name; the one playing now is lit, players who are out are crossed off */
+  .duo { position: absolute; top: 50px; display: flex; gap: 8px; }
+  .duo.l { left: 120px; } .duo.r { right: 120px; flex-direction: row-reverse; }
+  .duo .m { display: flex; align-items: center; gap: 8px; padding: 3px 12px 3px 3px; background: #0d0d12e6; border: 2px solid #ffffff22; color: #9d9daa;
+            font: 700 20px var(--hud-font); text-transform: uppercase; letter-spacing: 1px; clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+  .duo.r .m { flex-direction: row-reverse; padding: 3px 3px 3px 12px; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%); }
+  .duo .m img, .duo .m i { width: 36px; height: 36px; object-fit: cover; object-position: top; background: #2b1020; flex: none; }
+  .duo .m.on { color: #fff; border-color: #ff0a6c; background: linear-gradient(90deg, #ff0a6c55, #0d0d12e6); box-shadow: 0 0 14px #ff0a6c88; }
+  .duo .m.on::after { content: '▶ PLAYING'; font-size: 13px; letter-spacing: 3px; color: #3cc9d4; }
+  .duo .m.out { opacity: .45; text-decoration: line-through; }
+  .cu .pair { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; }
+  .cu .pair div { position: relative; overflow: hidden; } .cu .pair img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .cu .pair span { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; font: 700 26px var(--hud-font); color: #fff; text-shadow: 0 2px 6px #000; text-transform: uppercase; }
+  .cardset .duoFace { position: absolute; left: 0; bottom: 0; width: 100%; height: calc(100% - 36px); display: grid; grid-template-columns: 1fr 1fr; animation: portIn .55s .6s both ease-out; }
+  .cardset .duoFace img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 0 26px #000c); }
   /* ?screen=logos: only the bottom logos and sponsors, for putting on top of another OBS scene (Stream tab → Sponsors on a camera scene) */
   body.logos #s-scoreboard { opacity: 1; }
   body.logos #s-scoreboard > :not(.plate), body.logos #pop { display: none; }
@@ -217,6 +232,7 @@
     <div class="hinfo" id="bi"><span class="pn"></span><span class="team"></span><img class="ph" alt="" hidden></div>
     <div class="hscore" id="bg"><span>0</span></div>
     <div class="hcam" id="ac" hidden></div><div class="hcam" id="bc" hidden></div>
+    <div class="duo l" id="ad"></div><div class="duo r" id="bd"></div>
   </div>
   <div class="full" id="winCard"></div>
   <div class="full" id="cuCard"><div class="cu" id="cuWait"></div></div>
@@ -344,7 +360,7 @@ function nextMatch(s) {
   return seats(s, marked ?? s.matches.find(x => x.ready && x.id !== s.streamMatch) ?? null);
 }
 // "Switch sides": the match as drawn on stream when its players sit the other way round. The bracket itself isn't touched.
-const seats = (s, m) => m && s.swapSides === m.id ? { ...m, swapped: true, a: m.b, b: m.a, aName: m.bName, bName: m.aName, aTeam: m.bTeam, bTeam: m.aTeam, aPlayer: m.bPlayer, bPlayer: m.aPlayer, ga: m.gb, gb: m.ga } : m;
+const seats = (s, m) => m && s.swapSides === m.id ? { ...m, swapped: true, a: m.b, b: m.a, aName: m.bName, bName: m.aName, aTeam: m.bTeam, bTeam: m.aTeam, aPlayer: m.bPlayer, bPlayer: m.aPlayer, ga: m.gb, gb: m.ga, aMembers: m.bMembers, bMembers: m.aMembers, duo: m.duo && { a: m.duo.b, b: m.duo.a } } : m;
 // Player cards: the two players of the next match, mirrored, each with their portrait and 5 titles in an L around the outer corner.
 const CARD_SPOTS = [[80, 568], [80, 728], [80, 896], [262, 896], [444, 896]]; // left card; the right card mirrors these
 let cardsKey = '', cardsAt = 0, cardsShown = '';
@@ -352,6 +368,7 @@ async function cardsHTML(m) {
   const P = [m.aPlayer, m.bPlayer];
   const C = await Promise.all(P.map(p => p ? rpc('cof_card', { p_tag: p.name }).catch(() => null) : null));
   const pics = await Promise.all(P.map((p, i) => C[i]?.portrait || photoOf(p) || (p?.photo ? rpc('cof_photo', { p_id: p.id }).catch(() => null) : null)));
+  if (m.aMembers || m.bMembers) return duoCardsHTML(m);
   const one = (p, c, src, side) => {
     if (!p) return '';
     const pos = side === 'r' ? 'right' : 'left';
@@ -360,6 +377,15 @@ async function cardsHTML(m) {
       <div class="pplate"><div class="pname">${esc(p.name.toUpperCase())}</div><div class="pteam">${esc((p.team ?? '').toUpperCase())}</div></div></div></div></div>${badges}`;
   };
   return one(P[0], C[0], pics[0], 'l') + '<div class="cvs vs">VS</div>' + one(P[1], C[1], pics[1], 'r');
+}
+// 2v2: each team's card shows both teammates' portraits, the team name and the two gamer tags
+async function duoCardsHTML(m) {
+  const one = async (names, team, side) => {
+    const pics = await Promise.all((names ?? []).map(n => rpc('cof_card', { p_tag: n }).then(c => c?.portrait, () => null)));
+    return `<div class="pframe ${side}"><div class="pcard"><div class="pface"><img class="wm" src="logo-clear.png" alt=""><div class="duoFace">${pics.map(src => `<div>${src ? `<img src="${esc(src)}" alt="">` : ''}</div>`).join('')}</div>
+      <div class="pplate"><div class="pname"${(team ?? '').length > 13 ? ` style="font-size:${(team ?? '').length > 18 ? 40 : 50}px"` : ''}>${esc((team ?? '').toUpperCase())}</div><div class="pteam">${esc((names ?? []).join(' & ').toUpperCase())}</div></div></div></div></div>`;
+  };
+  return await one(m.aMembers, m.aName, 'l') + '<div class="cvs vs">VS</div>' + await one(m.bMembers, m.bName, 'r');
 }
 async function drawCards(s) {
   const m = nextMatch(s), names = JSON.stringify([m?.aPlayer?.name, m?.bPlayer?.name]);
@@ -398,14 +424,20 @@ addEventListener('cofPicture', e => {
 // OBS changes from the Coming Up scene a moment after this page sees the match: start again so viewers get all 4 s.
 addEventListener('obsSourceActiveChanged', e => { if (e.detail.active && introOn && !$('intro').hidden) { const b = $('intro'), html = b.innerHTML; b.classList.remove('out'); b.innerHTML = html; introEnd(); } });
 let cuKey = '';
+// 2v2: each teammate's card picture, by gamer tag (loaded once; drawn on the next redraw)
+const memberPics = new Map();
+const memberPic = n => { if (!memberPics.has(n)) { memberPics.set(n, ''); rpc('cof_card', { p_tag: n }).then(c => memberPics.set(n, c?.portrait ?? ''), () => {}); } return memberPics.get(n); };
+const memberChips = (m, k) => (m[k + 'Members'] ?? []).map((n, i) => { const t = m.duo?.[k], src = memberPic(n);
+  return `<div class="m${t?.on === i ? ' on' : ''}${t?.out.includes(i) ? ' out' : ''}">${src ? `<img src="${esc(src)}" alt="">` : '<i></i>'}<span>${esc(n)}</span></div>`; }).join('');
 function comingUp(el, s, holes) {
   const m = nextMatch(s), P = [m?.aPlayer, m?.bPlayer];
-  const key = JSON.stringify([holes, m?.id, P.map(p => [p?.name, p?.team, p && photoOf(p)?.length]), s.finished]);
+  const key = JSON.stringify([holes, m?.id, P.map(p => [p?.name, p?.team, p && photoOf(p)?.length]), s.finished, [...(m?.aMembers ?? []), ...(m?.bMembers ?? [])].map(n => !!memberPic(n))]);
   if (el.dataset.key === key) return;
   el.dataset.key = key;
   // the camera windows are labelled with the players' names (PLAYER 1 / PLAYER 2 until they are known)
   const who = n => esc((n === 1 ? m?.aName : m?.bName) || `PLAYER ${n}`);
-  const camFill = (p, slot, n) => holes && has.has(slot) ? '' : `<div class="win cam" style="${rect(slot)}">${photoOf(p) ? `<img class="pic" src="${photoOf(p)}" alt="">` : `<div class="nm">${who(n)}</div>`}</div>`;
+  const pair = names => names && `<div class="pair">${names.map(x => `<div>${memberPic(x) ? `<img src="${esc(memberPic(x))}" alt="">` : ''}<span>${esc(x)}</span></div>`).join('')}</div>`; // 2v2: both teammates
+  const camFill = (p, slot, n) => holes && has.has(slot) ? '' : `<div class="win cam" style="${rect(slot)}">${pair(m?.[n === 1 ? 'aMembers' : 'bMembers']) || (photoOf(p) ? `<img class="pic" src="${photoOf(p)}" alt="">` : `<div class="nm">${who(n)}</div>`)}</div>`;
   const tag = (n, cls) => `<div class="tag ${cls}"><span>${who(n)}</span></div>`;
   const title = m?.label || (s.finished ? 'Thanks for watching' : 'Next match soon');
   el.innerHTML = `<img class="bg" src="hud/${holes ? 'coming-up-frame' : 'coming-up'}.png" alt="">`
@@ -436,7 +468,7 @@ function scoreboard(s, m) {
   const phase = live ? 'live' : m?.winner ? (Date.now() < winUntil ? 'winner' : 'waiting') : 'none';
   if (live && (sbMatch !== m.id || !sbLive)) {
     // not on page load or a reopened match, and not in OBS's Coming Up scene or a preview (they force a ?screen=)
-    const cards = sbDrawn && sbMatch !== m.id && !params.get('screen') && m.aPlayer?.photo && m.bPlayer?.photo, wait = cards && Date.now() - watchedAt < 6000;
+    const cards = sbDrawn && sbMatch !== m.id && !params.get('screen') && (m.aMembers && m.bMembers || m.aPlayer?.photo && m.bPlayer?.photo), wait = cards && Date.now() - watchedAt < 6000;
     cardsWait = wait ? m : null;
     if (cards && !wait) showIntro(m);
     else if (!introOn) restart($('hud'), 'enter');
@@ -453,6 +485,8 @@ function scoreboard(s, m) {
       ph.hidden = !src; if (src && ph.src !== src) ph.src = src; // no photo: no image and no empty space
       if (m['g' + k] > (prevGames[k] ?? 0)) restart($(k + 'g'), 'bump');
       $(k + 'g').firstChild.textContent = m['g' + k];
+      const chips = memberChips(m, k); // 2v2
+      if ($(k + 'd').dataset.html !== chips) $(k + 'd').innerHTML = $(k + 'd').dataset.html = chips;
     }
     prevGames = { a: m.ga, b: m.gb };
   }

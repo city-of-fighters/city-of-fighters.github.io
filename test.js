@@ -75,6 +75,29 @@ for (let n = 2; n <= 20; n++) for (let t = 0; t < 10; t++) {
   B.report(cm, 'C1', 'a'); assert.strictEqual(B.finished(cm), true);
   B.reopen(cm, 'C1'); assert.deepStrictEqual([cm[0].ga, cm[0].winner], [10, null]);
 }
+// 2v2, winner stays on: each set is first to 2 games, the loser is out, a team with nobody left loses.
+{
+  const game = (ms, side) => { for (let i = 0; i < B.FT_ROUNDS; i++) B.score(ms, ms[0].id, side, 'round', 1); };
+  const set = (ms, side) => { game(ms, side); game(ms, side); };
+  const fresh = () => { const ms = B.build(['x', 'y'], 'single'); const m = ms.find(B.isReady); ms.splice(0, ms.length, m); m.duo = B.duoNew(2, 2); return ms; };
+  let ms = fresh(), m = ms[0];
+  assert.throws(() => B.score(ms, m.id, 'a', 'round', 1), /Choose who/, 'players must be chosen first');
+  B.duoPick(m, 'a', 1); B.duoPick(m, 'b', 0);
+  set(ms, 'a'); // a's 2nd player beats b's 1st: b's 2nd comes on by itself
+  assert.deepStrictEqual([m.duo.b.out, m.duo.b.on, m.duo.a.on, m.ga, m.gb, m.winner], [[0], 1, 1, 0, 0, null]);
+  set(ms, 'b'); // b's last player beats a's 2nd: a's 1st comes on
+  assert.deepStrictEqual([m.duo.a.out, m.duo.a.on], [[1], 0]);
+  assert.throws(() => B.duoPick(m, 'a', 1), /already out/);
+  set(ms, 'a'); // a wins the deciding set: team a wins 2–1
+  assert.deepStrictEqual([m.winner, m.ga, m.gb], ['x', 2, 1]);
+  B.reopen(ms, m.id); assert.deepStrictEqual([m.duo, m.ga, m.winner], [null, 0, null], 'a reopened 2v2 starts over');
+  // double KO: both out; with one player left each, the set is played again
+  ms = fresh(); m = ms[0]; B.duoPick(m, 'a', 0); B.duoPick(m, 'b', 0);
+  assert.strictEqual(B.duoDoubleKo(ms, m.id), 'out'); assert.deepStrictEqual([m.duo.a.on, m.duo.b.on, m.winner], [1, 1, null]);
+  game(ms, 'a'); assert.strictEqual(B.duoDoubleKo(ms, m.id), 'replay'); assert.deepStrictEqual([m.ga, m.duo.a.out.length, m.winner], [0, 1, null]);
+  ms = fresh(); m = ms[0]; B.duoPick(m, 'a', 0); B.duoPick(m, 'b', 0); set(ms, 'a'); // b down to its last player
+  assert.strictEqual(B.duoDoubleKo(ms, m.id), 'out'); assert.deepStrictEqual([m.winner, m.ga, m.gb], ['x', 2, 1], 'b has nobody left: a wins');
+}
 const { pictureDarkShare } = require('./public/obs');
 const rgba = (n, v) => new Uint8ClampedArray(n * 4).fill(v);
 assert.strictEqual(pictureDarkShare(rgba(100, 18)), 1, 'a capture card\'s near-black counts as dark');
