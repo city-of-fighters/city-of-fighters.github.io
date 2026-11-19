@@ -85,7 +85,7 @@ async function draw() {
         `<button type="button" role="tab" data-view="${k}" class="${tab === k ? 'on' : ''}" aria-selected="${tab === k}">${t}</button>`).join('')}</div>`
     + (tab === 'standings'
       ? `<div class="card"><table class="lb">${s.standings.map(r => `<tr><td class="pl">${r.place ? ord(r.place) : '–'}</td>
-          <td><b>${esc(r.name)}</b></td><td class="r">${pts ? `${r.pts} pts` : `${r.w}–${r.l}`} · games ${r.gw}–${r.gl}</td></tr>`).join('')}</table>
+          <td><b>${esc(r.name)}</b>${s.members?.[r.id] ? `<div class="dim" style="font-size:13px;color:var(--teal)">${s.members[r.id].map(esc).join(' & ')}</div>` : ''}</td><td class="r">${pts ? `${r.pts} pts` : `${r.w}–${r.l}`} · games ${r.gw}–${r.gl}</td></tr>`).join('')}</table>
           ${pts ? '' : '<p class="dim" style="font-size:13px;margin-bottom:0">Placings fill in as players are knocked out.</p>'}</div>`
       : `<div class="card">${mobileBracketHTML(s, round)}</div>`);
 }

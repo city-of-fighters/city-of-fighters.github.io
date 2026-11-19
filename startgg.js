@@ -72,7 +72,7 @@ function sggLinkByName(list) { // {playerId: entrantId} for our players whose ga
 async function sggImport() {
   if (!await sggGetKey()) throw new Error('No start.gg API key saved: connect again');
   const list = (await sggEntrants(S.startgg.eventId)).sort((a, b) => (a.initialSeedNum ?? 1e9) - (b.initialSeedNum ?? 1e9));
-  const have = new Map(S.players.map(p => [p.name.toLowerCase(), p.id])), entrants = {}, skipped = [];
+  const have = new Map(S.players.map(p => [p.name.toLowerCase(), p.id])), entrants = {}, skipped = [], members = {};
   for (const e of list) {
     const tag = sggTag(e);
     let id = have.get(tag.toLowerCase());
@@ -81,7 +81,9 @@ async function sggImport() {
       catch (err) { skipped.push(`${tag} (${err.message})`); }
     }
     if (id) entrants[id] = String(e.id); else if (S.matches.length) skipped.push(`${tag} (the bracket has started)`);
+    if (id && !sggSolo(e)) members[id] = e.participants.map(p => (p.gamerTag ?? '').trim()).filter(Boolean); // a 2v2 team: the app switches to 2v2 by itself
   }
+  if (JSON.stringify(members) !== JSON.stringify(S.members ?? {}) && Object.keys(members).length) await post('members', { members });
   const seeded = list.map(e => Object.keys(entrants).find(p => entrants[p] === String(e.id))).filter(Boolean);
   const same = Object.entries(entrants).every(([p, e]) => S.startgg.entrants?.[p] === e)
     && (S.matches.length || seeded.every((id, i) => S.raw.order[i] === id));

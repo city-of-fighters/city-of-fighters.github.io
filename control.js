@@ -5,6 +5,14 @@
 if (window.top !== window.self) { document.documentElement.style.display = 'none'; try { top.location = location.href; } catch {} }
 const $ = id => document.getElementById(id);
 const btn = (label, act, data = {}, cls = 'small') => `<button class="${cls}" data-act="${act}" data-body='${esc(JSON.stringify(data))}'>${label}</button>`;
+// 2v2: each team's players as buttons (the one playing now is lit, players who are out are crossed off), and Double KO.
+function duoPicks(m, s, cls = 'small') {
+  const names = m[s + 'Members'], t = m.duo?.[s];
+  if (!names) return '';
+  return `<div class="duoPick">${names.map((n, i) => t?.out.includes(i) ? `<button type="button" class="${cls} out" disabled><s>${esc(n)}</s></button>`
+    : btn(`${t?.on === i ? '▶ ' : ''}${esc(n)}`, 'duoPick', { id: m.id, side: s, i }, `${cls}${t?.on === i ? ' on' : ''}`)).join('')}</div>`;
+}
+const duoKoBtn = (m, cls = 'small') => `<button type="button" class="${cls}" data-act="duoKo" data-body='${esc(JSON.stringify({ id: m.id }))}' data-confirm="Double KO? Both players playing now are out. If each team has only one player left, the set is played again.">💥 Double KO</button>`;
 // Custom match: ends only when the organizer says so, and the player with more games wins.
 const endBtn = (m, cls) => `<button class="${cls}" data-act="endMatch" data-body='${esc(JSON.stringify({ id: m.id }))}' data-confirm="${esc(`End the match ${m.ga}–${m.gb}? ${m.ga === m.gb ? '' : (m.ga > m.gb ? m.aName : m.bName) + ' wins.'}`)}">🏁 End match</button>`;
 let S, token = '';
@@ -49,6 +57,12 @@ if ($('liveBox')) { setInterval(drawLiveBox, 3000); drawLiveBox(); }
 // A match put on stream once isn't taken from start.gg again, so Take off stream stays off.
 const markStreamed = (d, id) => { if (id && d.startgg) (d.startgg.streamed ??= {})[id] = true; };
 const notStarted = d => { if (d.matches.length) throw new Error('Bracket already started'); };
+// 2v2: the match's team state, made the first time someone is chosen or scores (teams come from start.gg with their players)
+const duoMatch = (d, id) => {
+  const m = d.matches.find(x => x.id === id);
+  if (d.duo && m && B.isReady(m) && !m.duo) m.duo = B.duoNew(d.members?.[m.a]?.length || 2, d.members?.[m.b]?.length || 2);
+  return m;
+};
 const actions = {
   settings: (d, b) => {
     if (typeof b.name === 'string') d.name = b.name.slice(0, 60);
@@ -89,7 +103,13 @@ const actions = {
   resetBracket: d => { Object.assign(d, { matches: [], streamMatch: null, screen: 'scoreboard', status: 'setup' }); },
   report: (d, b) => played(d, () => B.report(d.matches, b.id, b.slot)),
   reopen: (d, b) => played(d, () => B.reopen(d.matches, b.id)),
-  score: (d, b) => played(d, () => B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1)),
+  score: (d, b) => played(d, () => { duoMatch(d, b.id); B.score(d.matches, b.id, b.side, b.kind, b.delta > 0 ? 1 : -1); }),
+  duoPick: (d, b) => { const m = duoMatch(d, b.id); if (!m?.duo || !['a', 'b'].includes(b.side)) throw new Error('Not a 2v2 match'); B.duoPick(m, b.side, b.i); }, // who plays now
+  duoKo: (d, b) => played(d, () => { duoMatch(d, b.id); B.duoDoubleKo(d.matches, b.id); }),
+  members: (d, b) => { // 2v2 teams from start.gg: {teamId: [gamer tags]}
+    d.members = Object.fromEntries(Object.entries(b.members ?? {}).filter(([, v]) => Array.isArray(v) && v.length > 1).map(([k, v]) => [k, v.slice(0, 4).map(n => String(n).slice(0, 24))]));
+    d.duo = Object.keys(d.members).length > 0;
+  },
   stream: (d, b) => { d.streamMatch = b.id || null; if (b.id) d.screen = 'scoreboard'; markStreamed(d, b.id); },
   streamSgg: (d, b) => { // marked for the stream on start.gg
     const cur = d.matches.find(x => x.id === d.streamMatch);
@@ -174,7 +194,7 @@ const post = (act, body = {}) => (queue = queue.then(async () => {
         const before = structuredClone(d);
         actions[act](d, body);
         await rpc('cof_admin_save', { p_token: token, p_data: d });
-        if (!['startgg', 'swap', 'sggResult', 'streamSgg'].includes(act)) undoStack.push(before); // undo is for this device's results, not for start.gg bookkeeping or seating
+        if (!['startgg', 'swap', 'sggResult', 'streamSgg', 'members'].includes(act)) undoStack.push(before); // undo is for this device's results, not for start.gg bookkeeping or seating
         if (undoStack.length > 20) undoStack.shift();
         decided = !B.finished(before.matches) && B.finished(d.matches);
       }

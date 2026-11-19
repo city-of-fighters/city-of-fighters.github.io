@@ -123,7 +123,7 @@ $('mailBtn').onclick = () => confirm('Email the winner banner to the champion no
 const fmtDate = iso => new Date(iso).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 function tourStatus() {
   if (S.status === 'none') return '⚪ No tournament in progress.';
-  const head = `<b>${esc(S.name)}</b> · ${esc(S.game)} · ${esc(B.FORMATS[S.format] ?? '')}${S.eventAt ? ` · 📅 ${esc(fmtDate(S.eventAt))}` : ''} · `;
+  const head = `<b>${esc(S.name)}</b> · ${esc(S.game)} · ${esc(B.FORMATS[S.format] ?? '')}${S.eventAt ? ` · 📅 ${esc(fmtDate(S.eventAt))}` : ''}${S.duo ? ' · 👥 2v2 (teams from start.gg)' : ''} · `;
   if (S.status === 'running') return head + '🟢 In progress';
   if (S.status === 'finished') return head + '🏆 Finished';
   return head + (S.startgg?.slug ? '🟢 Sign-up on start.gg (players come in by themselves)' : '🟠 Link the start.gg event below so players can sign up');
@@ -134,7 +134,8 @@ function side(m, s) {
   return `<div><div class="pname">${esc(n)}</div>
     <div class="big">${m['g' + s]}</div><div class="dim">games</div>
     <div class="ctl">${sc('round', -1, '−')}<span>Round wins: <b>${m['r' + s]}</b></span>${sc('round', 1, '+ round')}</div>
-    <div class="ctl">${sc('game', -1, '−')}<span>Games</span>${sc('game', 1, '+ game')}</div></div>`;
+    <div class="ctl">${sc('game', -1, '−')}<span>Games</span>${sc('game', 1, '+ game')}</div>
+    ${m[s + 'Members'] ? `<div class="dim" style="margin-top:10px">Playing now</div>${duoPicks(m, s)}` : ''}</div>`;
 }
 
 async function draw() {
@@ -157,7 +158,7 @@ async function draw() {
   if (started) $('format').value = S.format;
 
   if (!$('players').contains(document.activeElement)) // don't redraw while a team name is being typed
-  $('players').innerHTML = S.players.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.name)}</b></td>
+  $('players').innerHTML = S.players.map((p, i) => `<tr><td>${i + 1}</td><td><b>${esc(p.name)}</b>${S.members?.[p.id] ? `<div class="dim">${S.members[p.id].map(esc).join(' & ')}</div>` : ''}</td>
     <td><input type="text" class="team" data-id="${esc(p.id)}" value="${esc(p.team ?? '')}" maxlength="24" placeholder="Team (optional)" aria-label="Team of ${esc(p.name)}" style="max-width:170px;padding:5px 8px"></td>
     <td class="dim">${esc(p.email)}</td>
     <td>${started ? '' : btn('▲', 'move', { id: p.id, dir: -1 }) + ' ' + btn('▼', 'move', { id: p.id, dir: 1 }) + ' ' + btn('Remove', 'removePlayer', { id: p.id })}</td></tr>`).join('')
@@ -165,10 +166,10 @@ async function draw() {
 
   const m = S.matches.find(x => x.id === S.streamMatch);
   $('streamBody').innerHTML = !m ? 'No match on stream. Pick one below with “Put on stream”.' : `
-    <div class="dim" style="text-align:center;margin-bottom:8px">${esc(m.label)} · ${m.open ? 'no game limit, ends with End match' : `first to ${S.ftGames} games`}, ${S.ftRounds} rounds per game
+    <div class="dim" style="text-align:center;margin-bottom:8px">${esc(m.label)} · ${m.open ? 'no game limit, ends with End match' : m.aMembers ? `2v2, winner stays on: first to ${S.ftGames} games per set` : `first to ${S.ftGames} games`}, ${S.ftRounds} rounds per game
       ${m.winner ? ` · <b class="ok">${esc(m.winner === m.a ? m.aName : m.bName)} wins!</b>` : ''}</div>
     ${m.ready ? `<div class="score">${side(m, 'a')}<div class="big">vs</div>${side(m, 'b')}</div>` : ''}
-    <div class="row" style="justify-content:center;margin-top:12px">${m.open && m.ready ? endBtn(m, 'primary') : ''}${btn('Take off stream', 'stream', { id: null })}</div>`;
+    <div class="row" style="justify-content:center;margin-top:12px">${m.open && m.ready ? endBtn(m, 'primary') : ''}${m.aMembers && m.ready ? duoKoBtn(m) : ''}${btn('Take off stream', 'stream', { id: null })}</div>`;
 
   const ready = S.matches.filter(x => x.ready);
   $('ready').innerHTML = !started ? 'Bracket not started.' : !ready.length ? 'No matches waiting.' : '<table>' + ready.map(x => `<tr>

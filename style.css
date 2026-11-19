@@ -89,6 +89,10 @@ body.app main { overflow-x: hidden; }
 .tp-t img { grid-row: span 2; width: 56px; height: 56px; object-fit: contain; }
 .tp-t b { color: var(--text); font: 700 16px var(--display); text-transform: uppercase; letter-spacing: 1px; }
 .tp-t.on { border-color: var(--pink); background: #ff0a6c22; }
+/* 2v2: who plays now (control.js duoPicks) */
+.duoPick { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.duoPick button.on { background: linear-gradient(var(--pink), var(--pink2)); color: #fff; border-color: transparent; }
+.duoPick button.out { opacity: .5; }
 /* Sponsors at the top of the app (sponsorbar.js): logos in a row, each a link to the sponsor's website */
 #sponsorBar { margin: 0 0 14px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-top: 3px solid var(--pink); }
 #sponsorBar .sb-t { font: 700 12px var(--display); letter-spacing: 3px; text-transform: uppercase; color: var(--dim); text-align: center; margin-bottom: 8px; }
