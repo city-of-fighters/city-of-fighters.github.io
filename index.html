@@ -23,11 +23,12 @@ if (location.pathname === '/' && matchMedia('(min-width: 900px) and (hover: hove
 <body class="app">
 <main style="max-width:560px">
   <div class="hero"><img src="logo-clear.png" alt="City of Fighters"><div class="ev" id="ev"></div><div class="dim" id="game"></div></div>
+  <div id="sponsorBar" hidden></div>
   <div class="card reg" id="reg"><p class="dim">Loading…</p></div>
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="account.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script><script src="account.js"></script>
 <script>
 // Players register only with their start.gg account; the control panel pulls them in from start.gg. Once "Log in with
 // start.gg" is set up they log in here and join City of Fighters events from the calendar.

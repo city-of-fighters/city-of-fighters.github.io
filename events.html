@@ -27,6 +27,7 @@
 <body class="app">
 <main>
   <div class="hero"><img src="logo-clear.png" alt="City of Fighters"></div>
+  <div id="sponsorBar" hidden></div>
   <h1 style="text-align:center;font-size:26px">📅 Upcoming <span>events</span></h1>
   <div class="card acct" id="acct" hidden></div>
   <p class="err" id="err" role="alert" style="text-align:center"></p>
@@ -34,7 +35,7 @@
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
 <nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a class="on" href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="account.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script><script src="account.js"></script>
 <script>
 // Public calendar: events typed in by the organizers plus their upcoming start.gg tournaments (cof_events_list).
 // Logged-in players join a start.gg event with Participate; the control panel then pulls them into the bracket.
