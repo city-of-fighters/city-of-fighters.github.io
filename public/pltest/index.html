@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<base href="/">
+<title>City of Fighters Profile (test)</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  main { max-width: 760px; }
+  body.app main { overflow-x: clip; } /* clip, not hidden, so the card can stay at the top while scrolling */
+  .test { background: #ff0a6c22; border: 2px dashed var(--pink); padding: 8px 12px; margin: 10px 0; font-weight: 700; font-size: 14px; }
+  .chars { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; max-height: 340px; overflow-y: auto; }
+  .chars button { padding: 4px; display: grid; gap: 2px; font-size: 11px; text-transform: none; letter-spacing: 0; background: var(--panel2); border: 2px solid var(--line); color: var(--text); }
+  .chars img { width: 100%; height: 72px; object-fit: cover; object-position: top; }
+  .chars button.on { border-color: var(--pink); background: #ff0a6c22; }
+  .big { font: 700 26px var(--display); text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+</style>
+</head>
+<body class="app">
+<!-- Test page for the Player Profile before it goes live: a pretend player "test", logged in. Nothing here reaches the database;
+     the choices stay in this browser. Delete this folder once the Player Profile is published. -->
+<main>
+  <div class="test">TEST PAGE · Player Profile as the player "test" sees it once logged in with start.gg. Nothing is saved to the app; your choices stay on this device.</div>
+  <div class="card" style="position:sticky;top:0;z-index:5">
+    <div class="big">test</div>
+    <div id="myCard" style="margin:10px -6px"></div>
+    <p class="dim" style="text-align:center" id="memberLine"></p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Edit my profile</h2>
+    <label>Character</label><div class="chars" id="chars"></div>
+    <label for="quote">Your quote <span class="dim" id="qLeft"></span></label><input type="text" id="quote" maxlength="58" placeholder="e.g. Roundstart: Deathfist">
+    <h3>5 titles</h3><div id="picker"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Test settings <span class="dim">(organizers set these)</span></h2>
+    <label for="team">Team (start.gg prefix)</label><select id="team"><option value="">No team (pink)</option></select>
+    <label class="row" style="color:var(--text)"><input type="checkbox" id="member"> Member</label>
+    <label class="row" style="color:var(--text)"><input type="checkbox" id="stats" checked> Example stats (seed 3, 2 of 3 qualifiers)</label>
+    <button type="button" id="reset">Start over</button>
+  </div>
+</main>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a class="on" href="pltest/"><b>👤</b>Profile</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<script src="bracket.js"></script><script src="api.js"></script><script src="titles.js"></script><script src="scorecard.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+// the teams as they are set up in the app's database file
+const TEAMS = [['EG', '#f15a24'], ['EVE', '#29a8e0'], ['PBH', '#9b30c8'], ['VGM', '#3d63d6']].map(([prefix, color]) => ({ prefix, color, logo: `hud/teams/${prefix.toLowerCase()}.png` }));
+const FRESH = { character: null, quote: '', titles: [], team: '', member: false, stats: true };
+let me; try { me = { ...FRESH, ...JSON.parse(localStorage.getItem('cofPlTest') || '{}') }; } catch { me = { ...FRESH }; }
+const keep = () => { try { localStorage.setItem('cofPlTest', JSON.stringify(me)); } catch {} };
+const SEASON = { fees: { qualifier: [5, 10], lcq: [10, 20], main: [0, 0] }, memberUntil: 'March 2027' };
+const EXAMPLE = { games: [11, 17], best: 2, seed: 3, points: 39, att: [2, 3], went: { qualifier: 2, lcq: 0, main: 0 } };
+function draw() {
+  keep();
+  renderScorecard($('myCard'), { name: 'test', character: me.character, quote: me.quote, titles: me.titles, member: me.member,
+    team: TEAMS.find(t => t.prefix === me.team) ?? null, stats: me.stats ? EXAMPLE : null, season: SEASON });
+  $('memberLine').textContent = me.member ? `✅ Member, valid until ${SEASON.memberUntil}` : '';
+  $('chars').innerHTML = CHARACTERS.map(c => `<button type="button" class="${c.id === me.character ? 'on' : ''}" data-ch="${c.id}" aria-pressed="${c.id === me.character}"><img src="hud/characters/small/${c.id}.webp" alt="" loading="lazy">${esc(c.name)}</button>`).join('');
+  $('qLeft').textContent = `(${58 - $('quote').value.length} characters left)`;
+}
+$('team').innerHTML += TEAMS.map(t => `<option value="${t.prefix}">${t.prefix}</option>`).join('');
+$('team').value = me.team; $('member').checked = me.member; $('stats').checked = me.stats; $('quote').value = me.quote;
+$('chars').onclick = e => { const id = e.target.closest('[data-ch]')?.dataset.ch; if (id) { me.character = id; draw(); } };
+$('quote').oninput = () => { me.quote = $('quote').value.replace(/["“”]/g, '').trim(); draw(); };
+$('team').onchange = () => { me.team = $('team').value; draw(); };
+$('member').onchange = () => { me.member = $('member').checked; draw(); };
+$('stats').onchange = () => { me.stats = $('stats').checked; draw(); };
+$('reset').onclick = () => { me = { ...FRESH }; $('quote').value = ''; $('team').value = ''; $('member').checked = false; $('stats').checked = true; titlePicker($('picker'), me.titles, { max: 5, onChange: draw }); draw(); };
+titlePicker($('picker'), me.titles, { max: 5, onChange: draw });
+draw();
+</script>
+</body>
+</html>
