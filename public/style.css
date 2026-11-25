@@ -101,18 +101,22 @@ body.app main { overflow-x: hidden; }
 #sponsorBar img { height: 34px; max-width: 170px; width: auto; object-fit: contain; }
 #sponsorBar img.tall { height: 52px; }
 #sponsorBar a:focus-visible { outline: 2px solid var(--teal); outline-offset: 4px; }
+@font-face { font-family: Brushline; src: url(fonts/brushline-rank.woff2) format('woff2'); font-display: swap; } /* the rank only: digits and st/nd/rd/th */
 /* Player Profile scorecard (scorecard.js): drawn at 1920×1080 and scaled to the box's width */
 .sc { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #e9e9ee; }
 .sc-in { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; font-family: Montserrat, system-ui, sans-serif; }
 .sc-in > * { position: absolute; }
 .sc-bg { inset: 0; width: 100%; height: 100%; }
-.sc-ch { left: 300px; top: 230px; width: 1425px; height: 1900px; } /* zoomed in: the head under SCORECARD, the torso at the bottom */
+.sc-ch { position: absolute; left: 300px; top: 170px; width: 1425px; height: 1900px; } /* placed per character by charFit() in scorecard.js */
 .sc-ch img, .sc-ch i { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: top; }
 .sc-ch img { filter: grayscale(1) contrast(1.08); }
 .sc-ch i { background: var(--c); mix-blend-mode: color; opacity: .22; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: top; mask-position: top; }
 .sc-team { left: 60px; top: 14px; width: 180px; height: 180px; object-fit: contain; }
 .sc-name { left: 466px; top: 40px; font-weight: 800; font-size: 118px; line-height: 1; color: var(--c); text-shadow: 8px 8px 0 #050510; white-space: nowrap; }
-.sc-rank { right: 56px; top: 6px; font: 170px/1 'Permanent Marker', cursive; color: var(--c); transform: rotate(-6deg); }
+.sc-clip { inset: 0; clip-path: inset(0 0 0 500px); } /* the character stays right of the stats, like in Joseph's examples */
+.sc-stampimg { left: 1380px; top: 620px; width: 470px; height: 440px; } /* the stamp again, over the character */
+.sc-word { left: 700px; top: 170px; width: 700px; height: 200px; } /* SCORECARD again, over the character's head */
+.sc-rank { right: 56px; top: 26px; font: 170px/1 Brushline, 'Permanent Marker', cursive; color: var(--c); transform: rotate(-6deg); }
 .sc-rank sup { font-size: 70px; vertical-align: top; }
 .sc-season { left: 1350px; top: 390px; width: 520px; height: 180px; object-fit: contain; }
 .sc-stamp { left: 1424px; top: 650px; width: 386px; height: 380px; border-radius: 50%; }
