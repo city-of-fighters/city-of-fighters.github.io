@@ -98,6 +98,24 @@ for (let n = 2; n <= 20; n++) for (let t = 0; t < 10; t++) {
   ms = fresh(); m = ms[0]; B.duoPick(m, 'a', 0); B.duoPick(m, 'b', 0); set(ms, 'a'); // b down to its last player
   assert.strictEqual(B.duoDoubleKo(ms, m.id), 'out'); assert.deepStrictEqual([m.winner, m.ga, m.gb], ['x', 2, 1], 'b has nobody left: a wins');
 }
+// Player Profile season stats: points, games win rate, attendance, seeds with head-to-head, LCQ seeds, DQs.
+{
+  const { seasonStats, eventKind } = require('./public/season');
+  assert.deepStrictEqual(['Friday 13th', 'Last Chance Qualifier', 'MAIN EVENT', 'LCQ day'].map(eventKind), ['qualifier', 'lcq', 'main', 'lcq']);
+  const st = (tags, sets) => ({ standings: tags.map((tag, i) => ({ placement: i + 1, tag })), sets });
+  const s = seasonStats([
+    { name: 'Qualifier 1', ...st(['Ana', 'Bob', 'Cal'], [{ a: 'Ana', b: 'Bob', ga: 2, gb: 1 }, { a: 'Bob', b: 'Cal', ga: 2, gb: 0 }]) },
+    { name: 'Qualifier 2', ...st(['Bob', 'Ana', 'Cal', 'Dee'], [{ a: 'Bob', b: 'Ana', ga: 2, gb: 0 }, { a: 'Cal', b: 'Dee', ga: 2, gb: -1 }, { a: 'Ana', b: 'Cal', ga: 2, gb: 1 }]) },
+    { name: 'Last Chance Qualifier', ...st(['Eve', 'Cal'], [{ a: 'Eve', b: 'Cal', ga: 2, gb: 0 }]) },
+  ]);
+  // Ana and Bob: 1st once (25+1+1) and 2nd once (15+1+1) = 44 each; they beat each other once and both have a 1st, so by name. Cal: 3rd twice (10+1+1)
+  assert.deepStrictEqual([s.ana.points, s.bob.points, s.cal.points], [44, 44, 24]);
+  assert.deepStrictEqual([s.ana.seed, s.bob.seed, s.cal.seed], [1, 2, 3]);
+  assert.deepStrictEqual(s.ana.games, [4, 8], 'games: 2-1, 0-2, 2-1');
+  assert.deepStrictEqual([s.ana.att, s.cal.att, s.cal.went], [[2, 3], [3, 3], { qualifier: 2, lcq: 1, main: 0 }]);
+  assert.strictEqual(s.dee, undefined, 'only a DQ: did not attend');
+  assert.deepStrictEqual([s.eve.seed, s.eve.points, s.eve.best], [1, 0, 1], 'LCQ placing gives the seed, no points');
+}
 const { pictureDarkShare } = require('./public/obs');
 const rgba = (n, v) => new Uint8ClampedArray(n * 4).fill(v);
 assert.strictEqual(pictureDarkShare(rgba(100, 18)), 1, 'a capture card\'s near-black counts as dark');

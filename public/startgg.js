@@ -322,3 +322,23 @@ async function sggTick() {
 }
 setInterval(() => navigator.locks ? navigator.locks.request('cof-startgg', { ifAvailable: true }, l => l && sggTick()) : sggTick(), 10000);
 
+
+// Player Profile: the season's stats from its finished events on start.gg (Settings → Season; rules in season.js).
+async function sggSeason(link) {
+  const slug = String(link ?? '').match(/tournament\/([^/\s?#]+)/)?.[1];
+  if (!slug) throw new Error("Paste the season's start.gg tournament link first");
+  if (!await sggGetKey()) throw new Error('No start.gg API key saved: connect start.gg first');
+  const t = (await sgg('query($s: String) { tournament(slug: $s) { name events { id name state } } }', { s: slug })).tournament;
+  if (!t) throw new Error('start.gg has no tournament at that link');
+  const done = (t.events ?? []).filter(e => e.state === 'COMPLETED'), events = [];
+  for (const e of done) {
+    const standings = await sggPages('standings', `query($id: ID!, $page: Int!) { event(id: $id) { standings(query: { page: $page, perPage: 64 }) {
+      pageInfo { totalPages } nodes { placement entrant { id participants { gamerTag } } } } } }`, e.id);
+    const tagOf = new Map(standings.filter(s => s.entrant?.participants?.length === 1).map(s => [String(s.entrant.id), s.entrant.participants[0].gamerTag]));
+    const score = slot => slot.standing?.stats?.score?.value ?? 0;
+    const sets = (await sggSets(e.id)).filter(s => s.slots?.length === 2 && s.slots.every(x => tagOf.has(String(x.entrant?.id))));
+    events.push({ name: e.name, standings: standings.filter(s => tagOf.has(String(s.entrant?.id))).map(s => ({ placement: s.placement, tag: tagOf.get(String(s.entrant.id)) })),
+      sets: sets.map(s => ({ a: tagOf.get(String(s.slots[0].entrant.id)), b: tagOf.get(String(s.slots[1].entrant.id)), ga: score(s.slots[0]), gb: score(s.slots[1]) })) });
+  }
+  return { name: t.name, finished: done.length, events: done.map(e => e.name), stats: seasonStats(events) };
+}

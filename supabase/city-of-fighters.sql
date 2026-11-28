@@ -459,7 +459,7 @@ create or replace function public.cof_admin_accounts(p_token text) returns jsonb
 language plpgsql security definer set search_path = public as $$
 begin
   perform cof_auth(p_token);
-  return coalesce((select jsonb_agg(jsonb_build_object('name', a.gamer_tag, 'titles', coalesce(jsonb_array_length(c.titles), 0)) order by lower(a.gamer_tag))
+  return coalesce((select jsonb_agg(jsonb_build_object('name', a.gamer_tag, 'titles', coalesce(jsonb_array_length(c.titles), 0), 'member', coalesce(c.member, false), 'prefix', a.prefix) order by lower(a.gamer_tag))
     from cof_accounts a left join cof_cards c on c.tag = lower(trim(a.gamer_tag))), '[]'::jsonb);
 end $$;
 create or replace function public.cof_card_save_mine(p_session text, p_titles jsonb) returns void
@@ -593,6 +593,103 @@ $$;
 
 revoke all on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) from public, anon, authenticated;
 revoke all on function public.cof_titles_check(jsonb, int) from public, anon, authenticated;
+-- Player Profile (scorecard). Each player sees only their own card, because the quote is theirs to write.
+-- On the card: character, quote and member (on cof_cards, by gamer tag), the team from the start.gg prefix (cof_teams),
+-- the season (logo, start.gg link, fees, membership date) and the season's stats worked out from start.gg (cof_cards.stats).
+alter table public.cof_cards add column if not exists character text check (character ~ '^[a-z0-9-]{1,30}$');
+alter table public.cof_cards add column if not exists quote text check (char_length(quote) <= 58);
+alter table public.cof_cards add column if not exists member boolean not null default false;
+alter table public.cof_cards add column if not exists stats jsonb;
+create table if not exists public.cof_teams (prefix text primary key check (char_length(prefix) between 1 and 30),
+  logo text not null check (char_length(logo) <= 400000 and logo ~ '^(hud/teams/[a-z0-9-]+\.png|data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$'),
+  color text not null check (color ~ '^#[0-9a-f]{6}$'));
+create table if not exists public.cof_season (id int primary key check (id = 1), data jsonb not null default '{}'::jsonb check (pg_column_size(data) < 400000));
+alter table public.cof_teams enable row level security;
+alter table public.cof_season enable row level security;
+revoke all on public.cof_teams, public.cof_season from anon, authenticated;
+insert into public.cof_teams (prefix, logo, color) values ('EG', 'hud/teams/eg.png', '#f15a24'), ('EVE', 'hud/teams/eve.png', '#29a8e0'),
+  ('PBH', 'hud/teams/pbh.png', '#9b30c8'), ('VGM', 'hud/teams/vgm.png', '#3d63d6') on conflict (prefix) do nothing;
+insert into public.cof_season (id, data) values (1, '{"fees": {"qualifier": [5, 10], "lcq": [10, 20], "main": [0, 0]}, "memberUntil": "March 2027"}') on conflict (id) do nothing;
+
+-- One card, with everything the scorecard needs (tag: lower-case gamer tag; prefix: the start.gg prefix, i.e. the team)
+create or replace function public.cof_profile_of(p_tag text, p_prefix text) returns jsonb
+language sql security definer set search_path = public stable as $$
+  select jsonb_build_object('name', coalesce((select gamer_tag from cof_accounts where lower(trim(gamer_tag)) = lower(trim(p_tag)) limit 1), p_tag),
+    'titles', coalesce(c.titles, '[]'::jsonb), 'character', c.character, 'quote', c.quote, 'member', coalesce(c.member, false), 'stats', c.stats,
+    'team', (select jsonb_build_object('prefix', prefix, 'logo', logo, 'color', color) from cof_teams where lower(prefix) = lower(trim(coalesce(p_prefix, '')))),
+    'season', (select data - 'link' from cof_season where id = 1))
+  from (select 1) x left join cof_cards c on c.tag = lower(trim(p_tag))
+$$;
+create or replace function public.cof_profile_me(p_session text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare a text := cof_account_of(p_session);
+begin return (select cof_profile_of(gamer_tag, prefix) from cof_accounts where sgg_user = a); end $$;
+create or replace function public.cof_profile_save_mine(p_session text, p_character text, p_quote text) returns void
+language plpgsql security definer set search_path = public as $$
+declare a text := cof_account_of(p_session);
+  t text := (select lower(trim(gamer_tag)) from cof_accounts where sgg_user = a);
+begin
+  p_quote := nullif(trim(regexp_replace(coalesce(p_quote, ''), '["“”]', '', 'g')), ''); -- the card adds the quote marks
+  if char_length(p_quote) > 58 then raise exception 'The quote can be at most 58 characters'; end if;
+  if p_character is not null and p_character !~ '^[a-z0-9-]{1,30}$' then raise exception 'Unknown character'; end if;
+  insert into cof_cards (tag, character, quote) values (t, p_character, p_quote)
+  on conflict (tag) do update set character = excluded.character, quote = excluded.quote, updated_at = now();
+end $$;
+create or replace function public.cof_admin_profile(p_token text, p_tag text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); return cof_profile_of(p_tag, (select prefix from cof_accounts where lower(trim(gamer_tag)) = lower(trim(p_tag)) limit 1)); end $$;
+create or replace function public.cof_admin_member_set(p_token text, p_tag text, p_on boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  insert into cof_cards (tag, member) values (lower(trim(p_tag)), coalesce(p_on, false)) on conflict (tag) do update set member = excluded.member, updated_at = now();
+end $$;
+-- The season's stats, worked out by the Control panel from start.gg: {tag: {...}}. Replaces the previous ones.
+create or replace function public.cof_admin_stats_save(p_token text, p_stats jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  if jsonb_typeof(p_stats) <> 'object' or pg_column_size(p_stats) > 500000 then raise exception 'Bad stats'; end if;
+  update cof_cards set stats = null where stats is not null and not p_stats ? tag;
+  insert into cof_cards (tag, stats) select lower(trim(k)), v from jsonb_each(p_stats) as e(k, v) where char_length(trim(k)) between 1 and 60
+  on conflict (tag) do update set stats = excluded.stats, updated_at = now();
+end $$;
+create or replace function public.cof_teams_list() returns jsonb
+language sql security definer set search_path = public stable as $$
+  select coalesce(jsonb_agg(jsonb_build_object('prefix', prefix, 'logo', logo, 'color', color) order by lower(prefix)), '[]'::jsonb) from cof_teams
+$$;
+create or replace function public.cof_admin_team_save(p_token text, p_prefix text, p_logo text, p_color text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  p_prefix := trim(coalesce(p_prefix, ''));
+  if char_length(p_prefix) not between 1 and 30 then raise exception 'Team name must be 1–30 characters'; end if;
+  if coalesce(p_color, '') !~ '^#[0-9a-f]{6}$' then raise exception 'Bad colour'; end if;
+  if p_logo is null then update cof_teams set color = p_color where prefix = p_prefix; return; end if;
+  if p_logo !~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$' or char_length(p_logo) > 400000 then raise exception 'The logo must be a PNG, JPEG or WebP under 300 KB'; end if;
+  if (select count(*) from cof_teams) >= 40 and not exists (select 1 from cof_teams where prefix = p_prefix) then raise exception 'At most 40 teams'; end if;
+  insert into cof_teams values (p_prefix, p_logo, p_color) on conflict (prefix) do update set logo = excluded.logo, color = excluded.color;
+end $$;
+create or replace function public.cof_admin_team_delete(p_token text, p_prefix text) returns void
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); delete from cof_teams where prefix = p_prefix; end $$;
+-- Season settings: {link, logo, fees: {qualifier: [member, other], lcq: [...], main: [...]}, memberUntil}
+create or replace function public.cof_admin_season_get(p_token text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin perform cof_auth(p_token); return (select data from cof_season where id = 1); end $$;
+create or replace function public.cof_admin_season_save(p_token text, p_data jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform cof_auth(p_token);
+  if jsonb_typeof(p_data) <> 'object' or pg_column_size(p_data) > 400000 then raise exception 'Bad season settings'; end if;
+  if coalesce(p_data->>'logo', '') !~ '^(|data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+)$' then raise exception 'The season logo must be a PNG, JPEG or WebP'; end if;
+  insert into cof_season values (1, p_data) on conflict (id) do update set data = excluded.data;
+end $$;
+grant execute on function public.cof_profile_me(text), public.cof_profile_save_mine(text, text, text), public.cof_admin_profile(text, text),
+  public.cof_admin_member_set(text, text, boolean), public.cof_admin_stats_save(text, jsonb), public.cof_teams_list(), public.cof_admin_team_save(text, text, text, text),
+  public.cof_admin_team_delete(text, text), public.cof_admin_season_get(text), public.cof_admin_season_save(text, jsonb) to anon;
+revoke all on function public.cof_profile_of(text, text) from public, anon, authenticated;
+
 revoke all on function public.cof_account_login(text, text, text), public.cof_account_of(text), public.cof_participate_check(text, uuid), public.cof_participate_mark(text, uuid) from public, anon, authenticated;
 grant execute on function public.cof_account_login(text, text, text), public.cof_participate_check(text, uuid), public.cof_participate_mark(text, uuid) to service_role;
 grant execute on function public.cof_winner_mail(text, uuid[], boolean), public.cof_winner_mailed(text, uuid[]) to service_role;

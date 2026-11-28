@@ -2,33 +2,63 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="theme-color" content="#0e0e10"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>City of Fighters Titles</title>
+<title>City of Fighters Profile</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
-<style> main { max-width: 760px; } </style>
+<style> main { max-width: 760px; }
+  .chars { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; max-height: 340px; overflow-y: auto; }
+  .chars button { padding: 4px; display: grid; gap: 2px; font-size: 11px; text-transform: none; letter-spacing: 0; background: var(--panel2); border: 2px solid var(--line); color: var(--text); }
+  .chars img { width: 100%; height: 72px; object-fit: cover; object-position: top; }
+  .chars button.on { border-color: var(--pink); background: #ff0a6c22; }
+</style>
 </head>
 <body class="app">
 <main>
   <div id="sponsorBar" hidden></div>
   <h1 style="text-align:center;font-size:26px">🏅 Player <span>titles</span></h1>
   <p class="dim" id="intro" style="text-align:center">Terms from our scene and stories from the last 2 years.</p>
+  <div class="card" id="prof" hidden>
+    <h2 style="margin-top:0">My Player Profile</h2>
+    <p class="dim" style="margin-top:0">Your scorecard is on the <a href="index.html">Profile</a> tab. Only you see it.</p>
+    <label>Character</label><div class="chars" id="chars"></div>
+    <label for="quote">Your quote <span class="dim" id="qLeft"></span></label><input type="text" id="quote" maxlength="58" placeholder="e.g. Roundstart: Deathfist">
+    <p class="err" id="perr" role="alert"></p><button class="primary" type="button" id="psave">Save character and quote</button>
+  </div>
   <div class="card" id="mine" hidden><div id="picker"></div><p class="err" id="err" role="alert"></p><button class="primary" type="button" id="save">Save my 5 titles</button></div>
   <div class="card" id="all"><div class="tp-all" id="list"></div></div>
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
-<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>✍️</b>Register</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script><script src="account.js"></script><script src="titles.js"></script>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a href="index.html"><b>👤</b>Profile</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script><script src="account.js"></script><script src="titles.js"></script><script src="scorecard.js"></script>
 <script>
-// Everyone can read the titles. A logged-in player picks up to 5 of them.
+// Everyone can read the titles. A logged-in player picks up to 5 of them, only from the Profile tab (titles.html?edit):
+// the Leaderboard's Player titles button just lists them.
 const $ = id => document.getElementById(id);
 $('list').innerHTML = COF_TITLES.map(t => `<div class="tp-t" style="border:1px solid var(--line)"><img src="hud/titles/${esc(t.id)}.webp" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.desc)}</span></div>`).join('');
 (async () => {
   const me = await acctConfig() && await acctMe();
   if (!me) return;
+  if (!new URLSearchParams(location.search).has('edit')) return void ($('intro').innerHTML = `Hi ${esc(me.name)}. To choose your 5 titles, open the <a href="index.html">Profile</a> tab and press Edit my profile.`);
   const c = await rpc('cof_card', { p_tag: me.name }).catch(() => null), chosen = [...(c?.titles ?? [])];
   $('intro').textContent = `Hi ${me.name}. Choose up to 5 titles to show on your player card.`;
   $('mine').hidden = false;
   titlePicker($('picker'), chosen, { max: 5 });
+  // Player Profile: the character on the scorecard and the quote under the badges
+  const p = await rpc('cof_profile_me', { p_session: acctSession() }).catch(() => null);
+  if (p) {
+    let pick = p.character ?? null;
+    $('prof').hidden = false; $('quote').value = p.quote ?? '';
+    const left = () => ($('qLeft').textContent = `(${58 - $('quote').value.length} characters left)`);
+    $('quote').oninput = left; left();
+    const drawChars = () => ($('chars').innerHTML = CHARACTERS.map(c => `<button type="button" class="${c.id === pick ? 'on' : ''}" data-ch="${c.id}" aria-pressed="${c.id === pick}"><img src="hud/characters/small/${c.id}.webp" alt="" loading="lazy">${esc(c.name)}</button>`).join(''));
+    $('chars').onclick = e => { const id = e.target.closest('[data-ch]')?.dataset.ch; if (id) { pick = id; drawChars(); } };
+    drawChars();
+    $('psave').onclick = async () => {
+      $('perr').textContent = '';
+      try { await rpc('cof_profile_save_mine', { p_session: acctSession(), p_character: pick, p_quote: $('quote').value }); $('psave').textContent = '✓ Saved'; setTimeout(() => ($('psave').textContent = 'Save character and quote'), 2000); }
+      catch (err) { $('perr').textContent = err.message; }
+    };
+  }
   $('save').onclick = async () => {
     $('err').textContent = '';
     try { await rpc('cof_card_save_mine', { p_session: acctSession(), p_titles: chosen }); $('err').textContent = ''; $('save').textContent = '✓ Saved'; setTimeout(() => ($('save').textContent = 'Save my 5 titles'), 2000); }
