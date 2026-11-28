@@ -27,8 +27,8 @@ if (location.pathname === '/' && matchMedia('(min-width: 900px) and (hover: hove
   <div class="card reg" id="reg"><p class="dim">Loading…</p></div>
   <p class="legal"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
 </main>
-<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a class="on" href="index.html"><b>✍️</b>Register</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
-<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script><script src="account.js"></script>
+<nav class="appnav"><a href="app.html"><b>🏆</b>Leaderboard</a><a href="events.html"><b>📅</b>Events</a><a class="on" href="index.html"><b>👤</b>Profile</a><a href="contact.html"><b>✉️</b>Contact</a><a href="phone.html"><b>🔒</b>Admin</a></nav>
+<script src="bracket.js"></script><script src="api.js"></script><script src="sponsorbar.js"></script><script src="consent.js"></script><script src="account.js"></script><script src="titles.js"></script><script src="scorecard.js"></script>
 <script>
 // Players register only with their start.gg account; the control panel pulls them in from start.gg. Once "Log in with
 // start.gg" is set up they log in here and join City of Fighters events from the calendar.
@@ -36,11 +36,22 @@ let cfg = null;
 async function accountCard() {
   cfg ??= await acctConfig();
   if (!cfg) return false;
-  const me = await acctMe(), pic = me ? await acctPic(me.name, 120) : '';
-  $('reg').innerHTML = me ? `${pic ? `<div style="text-align:center;margin-bottom:8px">${pic}</div>` : ''}<div class="big">You're logged in</div><p>as <b>${esc(me.name)}</b>. Pick an event and press Participate.</p>
-      <a class="btnlink go" href="events.html">Open the calendar</a>
-      <a class="btnlink go" href="titles.html" style="background:none;border:1px solid var(--pink)">Choose your 5 titles</a>`
-    : `<div class="big">Register with start.gg</div><p>Log in once with your start.gg account and stay logged in. Then join any City of Fighters event from the calendar.</p>
+  const me = await acctMe();
+  if (me) { // Profile: the player's own scorecard (nobody else sees it, because the quote is theirs to write)
+    const p = await rpc('cof_profile_me', { p_session: acctSession() }).catch(() => null), key = JSON.stringify(p);
+    if (key === $('reg').dataset.key) return true; // redrawn every 30 s: only when something changed
+    $('reg').dataset.key = key;
+    $('reg').innerHTML = `<div class="big">${esc(me.name)}</div><div id="myCard" style="margin:10px -6px"></div>
+      ${p?.member ? `<p class="dim" style="text-align:center">✅ Member${p.season?.memberUntil ? `, valid until ${esc(p.season.memberUntil)}` : ''}</p>` : ''}
+      ${p && !p.character ? '<p class="dim" style="text-align:center">Pick your character, write your quote and choose 5 titles to finish your card.</p>' : ''}
+      <a class="btnlink go" href="titles.html?edit">Edit my profile</a>
+      <a class="btnlink go" href="events.html" style="background:none;border:1px solid var(--pink)">Open the calendar</a>`;
+    if (p) renderScorecard($('myCard'), p).catch(() => {});
+    else $('myCard').innerHTML = '<p class="dim" style="text-align:center">Your scorecard shows here once the organizers update the app.</p>';
+    return true;
+  }
+  $('reg').dataset.key = '';
+  $('reg').innerHTML = `<div class="big">Register with start.gg</div><p>Log in once with your start.gg account and stay logged in. Then join any City of Fighters event from the calendar.</p>
       <button type="button" class="btnlink go" id="in">Log in with start.gg</button>`;
   return true;
 }

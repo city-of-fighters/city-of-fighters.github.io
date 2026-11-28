@@ -80,8 +80,9 @@
 
   <section class="card">
     <h2>Logged-in players (<span id="accCount">0</span>)</h2>
-    <p class="dim" style="margin-top:0">Everyone who has logged in with start.gg. Press <b>Titles</b> to set their portrait and titles.</p>
+    <p class="dim" style="margin-top:0">Everyone who has logged in with start.gg. Press <b>Titles</b> to set their portrait and titles, <b>Scorecard</b> to see their Player Profile card. Tick <b>Member</b> for members (lower entry fees in the Contribution).</p>
     <div class="plist" id="acc"></div>
+    <div id="scBox" hidden style="margin-top:12px"><div class="row" style="justify-content:space-between;align-items:center"><b id="scWho"></b><button type="button" class="small" id="scClose">Close</button></div><div id="scCard" style="margin-top:8px"></div></div>
   </section>
 
   <section class="card">
@@ -90,7 +91,7 @@
   </section>
 </main>
 <div id="toast" role="alert"></div>
-<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="banner.js"></script><script src="control.js"></script><script src="titles.js"></script>
+<script src="bracket.js"></script><script src="api.js"></script><script src="consent.js"></script><script src="banner.js"></script><script src="control.js"></script><script src="titles.js"></script><script src="scorecard.js"></script>
 <script>
 // Editing state: null = adding a new player. photo: undefined = unchanged, null = remove, data URL = new photo.
 let editing = null, newPhoto;
@@ -203,8 +204,20 @@ async function drawAccounts() {
   $('accCount').textContent = list.length;
   const pics = await Promise.all(list.map(a => rpc('cof_card', { p_tag: a.name }).then(c => c?.portrait, () => null))); // the card picture, by gamer tag
   $('acc').innerHTML = list.map((a, i) => `<div class="prow">${pics[i] ? `<img class="ph" src="${esc(pics[i])}" alt="">` : ''}<div class="who"><b>${esc(a.name)}</b><div class="mail">${pics[i] ? '' : 'No picture yet · '}${a.titles} of 5 titles chosen</div></div>
-    <div class="acts"><button type="button" data-card="${esc(a.name)}">Titles</button></div></div>`).join('') || '<p class="dim">Nobody has logged in with start.gg yet.</p>';
+    <div class="acts"><label class="row" style="margin:0;gap:4px;color:var(--text)"><input type="checkbox" data-member="${esc(a.name)}"${a.member ? ' checked' : ''}> Member</label>
+      <button type="button" data-sc="${esc(a.name)}">Scorecard</button><button type="button" data-card="${esc(a.name)}">Titles</button></div></div>`).join('') || '<p class="dim">Nobody has logged in with start.gg yet.</p>';
 }
+$('acc').addEventListener('change', e => {
+  const n = e.target.dataset.member;
+  if (n) rpc('cof_admin_member_set', { p_token: token, p_tag: n, p_on: e.target.checked }).then(() => toast(e.target.checked ? `${n} is a member` : `${n} is not a member`), err => toast(err.message));
+});
+$('acc').addEventListener('click', async e => {
+  const n = e.target.closest('[data-sc]')?.dataset.sc;
+  if (!n) return;
+  try { $('scWho').textContent = `${n}'s scorecard (only they and organizers see it)`; $('scBox').hidden = false; await renderScorecard($('scCard'), await rpc('cof_admin_profile', { p_token: token, p_tag: n })); $('scBox').scrollIntoView({ behavior: 'smooth' }); }
+  catch (err) { toast(/not set up|does not exist|Could not find/.test(err.message) ? 'Run the updated database file in Supabase first.' : err.message); }
+});
+$('scClose').onclick = () => ($('scBox').hidden = true);
 $('acc').addEventListener('click', e => {
   const name = e.target.closest('[data-card]')?.dataset.card;
   if (name) { showCard({ name }); $('cardBox').scrollIntoView({ behavior: 'smooth' }); }
